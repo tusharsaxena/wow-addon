@@ -1,23 +1,39 @@
 ---
-description: Deep-analyze the current state of the addon and rewrite README.md, CLAUDE*.md, and ARCHITECTURE*.md to match — eliminating documentation drift. Includes count-claim verification, slash/COMMANDS parity, dead-export detection, and ARCHITECTURE.md scaffolding.
+description: Deep-analyze the current state of the addon and rewrite README.md, CLAUDE*.md, and ARCHITECTURE*.md to match — eliminating documentation drift. Includes count-claim verification, slash/COMMANDS parity, dead-export detection, and ARCHITECTURE.md / CLAUDE.md scaffolding.
 allowed-tools: [Read, Glob, Grep, Bash, Edit, Write]
 ---
 
 Deep-analyze the current state of the WoW addon in the cwd, then rewrite its documentation files so they accurately describe what the code does today.
 
-## Step 0 — ARCHITECTURE.md decision
+## Step 0 — Doc layout decisions
 
-Before doing anything else, check if `ARCHITECTURE.md` exists at the addon root, and if `docs/ARCHITECTURE_*.md` files exist.
+Before doing anything else, decide whether the addon needs ARCHITECTURE and CLAUDE docs, and — if it does — whether they should be a single file or a split layout.
 
-Count the addon's source files (`.lua` and `.xml` files referenced in the TOC, **excluding** `libs/` and `Libs/`).
+Count the addon's source files (`.lua` and `.xml` files referenced in the TOC, **excluding** `libs/` and `Libs/`). The same count drives both decisions below.
+
+### ARCHITECTURE.md decision
+
+Check if `ARCHITECTURE.md` exists at the addon root, and if `docs/ARCHITECTURE_*.md` files exist.
 
 Apply this rule:
 - **< 10 source files**: a single `ARCHITECTURE.md` at the root is appropriate. If absent, propose creating one with sections: Purpose, Module map, Boot, Data flow, Settings, Slash dispatch, Saved variables, Conventions.
 - **≥ 10 source files**: a top-level `ARCHITECTURE.md` index pointing to `docs/ARCHITECTURE_*.md` per topic is appropriate. If absent, propose the split layout.
 
-If ARCHITECTURE docs already exist in some form, leave the structure alone — just sync content.
+If ARCHITECTURE docs already exist in some form (single root file, `docs/ARCHITECTURE_*.md` split, or any other variant), leave the structure alone — just sync content.
 
-If you propose creating ARCHITECTURE docs, ask the user to confirm before scaffolding.
+### CLAUDE.md decision
+
+Check if `CLAUDE.md` exists at the addon root, and if `CLAUDE/*.md` or `docs/CLAUDE_*.md` files exist.
+
+Apply this rule:
+- **< 10 source files**: a single `CLAUDE.md` at the root is appropriate. If absent, propose creating one with sections: Purpose & stack, Project-internal conventions, Module map, Boot & lifecycle, Saved variables, Slash dispatch, Hot zones / footguns, Known TODOs. Keep it concise — CLAUDE.md loads into every future session's context.
+- **≥ 10 source files**: a top-level `CLAUDE.md` index (very concise — pointers only) plus `docs/CLAUDE_*.md` per topic (e.g. `CLAUDE_CONVENTIONS.md`, `CLAUDE_MODULES.md`, `CLAUDE_LIFECYCLE.md`, `CLAUDE_SAVED_VARS.md`, `CLAUDE_HOT_ZONES.md`, and the existing `CLAUDE_SECRET_VALUES.md` if the addon has protected-API safety rules) is appropriate. If absent, propose the split layout.
+
+If CLAUDE docs already exist in some form (single root file, `CLAUDE/*.md` subdirectory, `docs/CLAUDE_*.md` split, or any other variant), leave the structure alone — just sync content.
+
+### Confirmation
+
+If you propose creating either layout (ARCHITECTURE or CLAUDE), ask the user to confirm before scaffolding.
 
 ## Step 1 — Discover the addon
 
