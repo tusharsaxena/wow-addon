@@ -1,6 +1,6 @@
 {
   "name": "wow-addon",
   "description": "World of Warcraft addon development helpers — scaffolding, version bumping, doc sync, README normalization, cross-addon convention audit, git diff/commit, CRLF hook, and a focused WoW-specific review subagent.",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "license": "MIT"
 }
