@@ -1,6 +1,6 @@
 ---
 name: review
-description: Principal-engineer-level review of a WoW addon — full-scope (design, structure, patterns, logic, performance, UX, naming) plus deep WoW-specific checks (taint, events, frames, deprecated APIs, AceConfig, localization, conventions). Produces three artifacts under reviews/<YYYY-MM-DD>/ — REVIEW_FINDINGS.md, REVIEW_PROPOSED_CHANGES.md, REVIEW_EXECUTION_PLAN.md — and prints a chat summary.
+description: Principal-engineer-level review of a WoW addon — full-scope (design, structure, patterns, logic, performance, UX, naming) plus deep WoW-specific checks (taint, events, frames, deprecated APIs, AceConfig, localization, conventions). Produces five artifacts under reviews/<YYYY-MM-DD>/ — 01_FINDINGS.md, 02_PROPOSED_CHANGES.md, 03_SMOKE_TESTS.md, 04_EXECUTION_PLAN.md, 05_FINAL_SUMMARY.md — and prints a chat summary.
 tools: Read, Write, Glob, Grep, Bash
 ---
 
@@ -108,9 +108,9 @@ Apply convention checks **only** for conventions the addon already uses.
 
 ## Output artifacts
 
-Write three artifacts to `reviews/<YYYY-MM-DD>/` under the addon root (create the directory if it does not exist; use today's date — get it via `date +%Y-%m-%d`). Use `Write` for the files. After writing, print a chat summary (see end of section).
+Write five artifacts to `reviews/<YYYY-MM-DD>/` under the addon root (create the directory if it does not exist; use today's date — get it via `date +%Y-%m-%d`). Use `Write` for the files, in this order: `01_FINDINGS.md`, `02_PROPOSED_CHANGES.md`, `03_SMOKE_TESTS.md`, `04_EXECUTION_PLAN.md`, `05_FINAL_SUMMARY.md`. After writing, print a chat summary (see end of section).
 
-### `REVIEW_FINDINGS.md` — the requirements doc
+### `01_FINDINGS.md` — the requirements doc
 - One-line **verdict** at top: ship-ready / minor issues / blocking issues.
 - Findings grouped by severity:
   - **Critical** — data loss, taint propagation that breaks gameplay, addon fails to load, secret-value / protected-API leakage, security issues.
@@ -122,19 +122,52 @@ Write three artifacts to `reviews/<YYYY-MM-DD>/` under the addon root (create th
 - Skip severity buckets that have no findings — don't pad.
 - If unsure about an API call (deprecated or not, available in the user's interface version), say so explicitly and point to the function rather than guessing.
 
-### `REVIEW_PROPOSED_CHANGES.md` — HLD + LLD design doc
+### `02_PROPOSED_CHANGES.md` — HLD + LLD design doc
 - **HLD** — themes (e.g. "consolidate saved-variable writes behind `Schema.Set`", "split `Core.lua` along event vs. state boundaries"), the rationale for each theme, alternatives considered and why rejected, trade-offs.
-- **LLD** — concrete change-set per finding ID. For each change: target file(s), function/section, before → after sketch (small code blocks where the change is non-obvious), risk notes, links back to finding IDs from `REVIEW_FINDINGS.md`. When multiple findings collapse into one change, roll them up and note the IDs covered.
+- **LLD** — concrete change-set per finding ID. For each change: target file(s), function/section, before → after sketch (small code blocks where the change is non-obvious), risk notes, links back to finding IDs from `01_FINDINGS.md`. When multiple findings collapse into one change, roll them up and note the IDs covered.
 
-### `REVIEW_EXECUTION_PLAN.md` — agent-team execution plan
+### `03_SMOKE_TESTS.md` — manual smoke-test checklist
+- Purpose: a comprehensive, runnable checklist the user (or QA) executes in-client after the proposed changes have been applied, to confirm the fixes work and nothing else regressed. Derived from `02_PROPOSED_CHANGES.md`.
+- **Pre-flight** — exact build/install steps before testing: which TOC interface version, which character/spec/realm type matters (e.g. retail vs classic, in-combat vs out-of-combat scenarios), and any `/console scriptErrors 1` / `/etrace` setup that makes failures observable.
+- **Per-change tests** — one section per change ID from `02_PROPOSED_CHANGES.md`. Each section contains:
+  - **Change covered**: change ID + one-line headline.
+  - **Setup**: preconditions (e.g. "fresh SavedVariables", "character with at least one talent loadout", "in a 5-man instance", "BattlePet UI open").
+  - **Steps**: numbered, deterministic actions ("type `/<addon> reset`", "open Bag 1", "enter combat with target dummy at <Stormwind dummies>").
+  - **Expected**: observable outcome — exact chat text, frame visibility, no Lua error popup, saved-variable key present, etc.
+  - **Pass / Fail criteria**: explicit boolean — what must be true for this change to be considered verified.
+- **Regression suite** — checks that are NOT tied to a specific change but cover behavior the proposed changes could plausibly break: `/reload` cleanly, login → first-time defaults populate, ADDON_LOADED → PLAYER_LOGIN → PLAYER_ENTERING_WORLD with no errors, combat enter/leave with all UI visible, profile switch (if AceDB), settings panel open and every option toggled at least once.
+- **Taint-specific tests** (only if the review flagged taint findings) — concrete repro: enter combat, click an actionbar slot the addon touched, verify no `Interface action failed because of an AddOn` red text. If the addon hooks `Settings.OpenToCategory` or similar, verify the panel opens from `/<addon> config` AND from the Esc → Options menu.
+- **Localization sanity** (only if the review flagged locale findings) — switch client to one non-enUS locale (deDE or frFR) and re-run the per-change tests for any change that touched user-facing strings or tooltip patterns.
+- **Performance spot-checks** (only if perf findings exist) — `/run collectgarbage("count")` before/after the relevant flow; `OnUpdate`-touching changes get a frame-time check via the Blizzard CPU profiler (`/console scriptProfile 1` → `/reload` → `/run UpdateAddOnCPUUsage()`).
+- **Sign-off table** at the bottom: one row per change ID, columns `[ID | Tested? | Pass/Fail | Notes]` for the user to fill in.
+- Tests must be concrete enough that someone unfamiliar with the addon could execute them. No "verify it works" — say what to type, click, or observe.
+
+### `04_EXECUTION_PLAN.md` — agent-team execution plan
 - **Milestones** — ordered, each with a clear "done when" exit criterion.
 - **Tasks per milestone** — each task: ID, owner-agent role (e.g. "lua-refactorer", "wow-api-migrator", "ux-cleanup"), the finding/change IDs it implements, files touched.
 - **Critical-path / concurrency map** — explicit "files touched by task X also touched by task Y → must serialize" callouts. Tasks with disjoint file sets marked **parallelizable**.
 - **Checkpoints** — pause points where the human (or coordinator) verifies state before the next milestone (e.g. after taint fixes; before refactors; after deprecated-API migration).
 - **Incremental commit strategy** (nice-to-have) — proposed atomic commit boundaries (one commit per task, or per milestone), with suggested commit messages.
 
+### `05_FINAL_SUMMARY.md` — post-implementation summary
+- Purpose: a comprehensive summary of every change that was applied, written under the assumption that all tests in `03_SMOKE_TESTS.md` have passed. This is the artifact that goes into the PR description, the changelog, and the "what shipped" record. Derived from `02_PROPOSED_CHANGES.md` + `04_EXECUTION_PLAN.md`.
+- **Headline** — one paragraph: what this review-and-fix cycle accomplished, in plain language a non-author maintainer would understand.
+- **Counts** — `Critical fixed: N, High fixed: N, Medium fixed: N, Low fixed: N` (mirrors the finding buckets, but counts what was actually addressed). Note any finding IDs deliberately deferred and why.
+- **Changes by theme** — group changes by the HLD themes from `02_PROPOSED_CHANGES.md`. For each theme:
+  - **What changed** (1–3 sentences, user/maintainer perspective — not a diff narration).
+  - **Why it mattered** (the underlying risk or limitation that justified the work).
+  - **Finding IDs covered** and **change IDs implemented**.
+  - **Files touched** (bulleted, paths relative to addon root).
+- **API / behavior changes** — explicit list of anything that changed externally observable behavior: new/renamed slash subcommands, removed deprecated calls swapped for modern equivalents, saved-variable schema migrations (with migration version), new defaults, removed defaults, locale string keys added or renamed.
+- **Saved-variable / migration notes** — if any change introduced a schema bump, document the old → new shape and the migration path; call out whether existing user profiles auto-migrate or require a `/<addon> reset`.
+- **Deprecated-API migrations** — table of `Old API → New API → Files` for every deprecated call replaced. Helps future reviewers confirm the sweep was complete.
+- **Performance impact** — any measured before/after numbers from the smoke tests' perf spot-checks. Omit the section if no perf-tagged changes were made.
+- **Known follow-ups** — anything intentionally left for a later pass (deferred findings, "would be nice but out of scope" items, refactors flagged but not executed). Each with a one-liner rationale so future-you knows why it was deferred, not forgotten.
+- **Verification evidence** — pointer to the completed `03_SMOKE_TESTS.md` (with its sign-off table filled in) and to the commit range / PR that implemented the work.
+- **Suggested commit message / PR description** — a ready-to-paste block summarizing the work, referencing finding IDs, suitable for the project's commit-message convention.
+
 ### Chat summary (always print after writing the files)
 - One-line verdict.
 - Counts: `Critical: N, High: N, Medium: N, Low: N`.
 - Top 3 most-important findings, one line each (ID + headline).
-- Paths to the three artifacts.
+- Paths to all five artifacts.

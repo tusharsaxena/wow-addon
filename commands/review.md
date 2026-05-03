@@ -1,5 +1,5 @@
 ---
-description: Run the wow-addon:review subagent — a principal-engineer-level review of the addon in cwd. Produces REVIEW_FINDINGS.md, REVIEW_PROPOSED_CHANGES.md, and REVIEW_EXECUTION_PLAN.md under reviews/<YYYY-MM-DD>/, plus a chat summary.
+description: Run the wow-addon:review subagent — a principal-engineer-level review of the addon in cwd. Produces 01_FINDINGS.md, 02_PROPOSED_CHANGES.md, 03_SMOKE_TESTS.md, 04_EXECUTION_PLAN.md, and 05_FINAL_SUMMARY.md under reviews/<YYYY-MM-DD>/, plus a chat summary.
 ---
 
 Invoke the `wow-addon:review` subagent on the addon in the current working directory.
