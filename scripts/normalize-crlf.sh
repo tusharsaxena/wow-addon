@@ -8,7 +8,9 @@ set -u
 input="$(cat 2>/dev/null || true)"
 
 # Extract the file path from the hook input. Try common shapes.
-file_path="$(printf '%s' "$input" | python3 - <<'PY' 2>/dev/null || true
+# NOTE: use `python3 -c` (not a heredoc) — a heredoc inside $(...) trips a bash
+# command-substitution parse bug at runtime ("syntax error near unexpected token `||'").
+file_path="$(printf '%s' "$input" | python3 -c '
 import sys, json
 try:
     d = json.load(sys.stdin)
@@ -22,8 +24,7 @@ for key in ("file_path", "filePath", "path"):
     if v:
         print(v)
         sys.exit(0)
-PY
-)"
+' 2>/dev/null || true)"
 
 [[ -z "$file_path" ]] && exit 0
 [[ ! -f "$file_path" ]] && exit 0
