@@ -31,27 +31,28 @@ A focused toolkit for working on WoW addons: scaffolding new addons, bumping int
 
 ## Install
 
-This plugin is distributed as a local marketplace directory. To install:
+Install straight from this GitHub repo — no manual cloning required. In any Claude Code session, run these three commands:
 
-1. Clone or copy the marketplace directory to your machine. The marketplace is the directory that contains `.claude-plugin/marketplace.json` (one level above `plugins/wow-addon/`).
-2. In any Claude Code session, run:
+```
+/plugin marketplace add tusharsaxena/wow-addon
+/plugin install wow-addon@wow-addon
+/reload-plugins
+```
 
-   ```
-   /plugin marketplace add <path-to-marketplace-directory>
-   /plugin install wow-addon@tushar-local
-   /reload-plugins
-   ```
+Step by step:
 
-3. When prompted for install scope, choose **user** to enable the plugin in every project on this machine. Choose **project** to enable it only in the current project.
+1. **`/plugin marketplace add tusharsaxena/wow-addon`** — registers this repo as a plugin marketplace. Claude Code clones it for you. (You can also pass the full URL `https://github.com/tusharsaxena/wow-addon.git` or, if you already have a local clone, the path to it.)
+2. **`/plugin install wow-addon@wow-addon`** — installs the plugin (`wow-addon`) from the marketplace (`wow-addon`). When prompted for scope, choose **user** to enable it in every project on this machine, or **project** to enable it only in the current project.
+3. **`/reload-plugins`** — activates the plugin in the current session without a restart.
 
 After install, the commands, the `review` subagent, and the CRLF hook are available in every Claude Code session.
 
 ## Updating
 
-When the marketplace contents change (new commands, updated agent, new hook):
+When the repo changes (new commands, updated agent, new hook), pull the latest and reload:
 
 ```
-/plugin marketplace update tushar-local
+/plugin marketplace update wow-addon
 /reload-plugins
 ```
 
