@@ -2,7 +2,9 @@
 
 Claude Code plugin for World of Warcraft addon development.
 
-A focused toolkit for working on WoW addons: scaffolding new addons, bumping interface versions across a project, syncing documentation against the actual code, normalizing READMEs across multiple addons, auditing cross-addon convention drift, releasing new versions, and reviewing changes for WoW-specific correctness (taint, deprecated APIs, frame leaks, missing localization, AceConfig misuse, dead code).
+A focused toolkit for working on WoW addons: scaffolding new addons that are born compliant with the Ka0s WoW Addon Standard, auditing an addon against that standard, bumping interface versions across a project, syncing documentation against the actual code, normalizing READMEs across multiple addons, auditing cross-addon convention drift, releasing new versions, and reviewing changes for WoW-specific correctness (taint, deprecated APIs, frame leaks, missing localization, AceConfig misuse, dead code).
+
+`/wow-addon:new-addon` and `/wow-addon:standards-audit` consume the living **Ka0s WoW Addon Standard** at [tusharsaxena/WowAddonStandards](https://github.com/tusharsaxena/WowAddonStandards): they fetch that repo's `NEW_ADDON.md` / `AUDIT.md` playbooks and `standards/` docs at runtime and follow them, so they always track the current standard. Both need network access to that public repo when they run.
 
 ## Components
 
@@ -10,7 +12,7 @@ A focused toolkit for working on WoW addons: scaffolding new addons, bumping int
 
 | Command | What it does |
 |---|---|
-| `/wow-addon:new-addon <Name>` | Scaffold a new addon (Ace3 stack, MIT, modular layout). Adapts to sibling addons' conventions when present. |
+| `/wow-addon:new-addon <Name>` | Scaffold a new addon born compliant with the Ka0s WoW Addon Standard. Fetches the `NEW_ADDON.md` playbook + context pack and follows them: Ace3 skeleton, tier layout, MIT, the standards brief dropped into the addon's `docs/`, and a `CLAUDE.md` stub. |
 | `/wow-addon:bump-interface <versions>` | Update `## Interface:` in every `.toc` under the cwd (recursive). |
 | `/wow-addon:sync-docs` | Deep-analyze the addon and rewrite `README.md` / `CLAUDE*.md` / `ARCHITECTURE*.md` to eliminate drift. Includes count verification, COMMANDS↔README slash parity, dead-export detection, and ARCHITECTURE.md scaffolding. |
 | `/wow-addon:normalize-readme <ref-addon>` | Reshape the cwd addon's README to match the section structure, table conventions, and ordering of a reference addon's README. Inter-addon — does NOT touch code. |
@@ -24,6 +26,7 @@ A focused toolkit for working on WoW addons: scaffolding new addons, bumping int
 | Agent | When to invoke |
 |---|---|
 | `review` | Focused review of WoW-specific issues: taint and combat lockdown (incl. secret-value leakage), event over-registration, frame leaks, deprecated APIs, missing localization, AceConfig/Settings UI misuse, NBSP/tooltip-pattern bugs, dead exports, and project-internal convention drift (COMMANDS dispatcher parity, single-write-path bypass — applied only when the addon has those conventions). |
+| `standards-audit` | Read-only compliance audit against the Ka0s WoW Addon Standard. Fetches the living `AUDIT.md` playbook + `standards/01_STANDARD.md` at runtime, measures the addon section-by-section and against the §19 anti-patterns, and writes a frozen `audit/<YYYY-MM-DD>/` bundle (current state, deviations with stable IDs, evidence, remediation design, execution plan). Never modifies addon code. Invoked via `/wow-addon:standards-audit`. |
 
 ### Hooks
 
@@ -45,7 +48,7 @@ Step by step:
 2. **`/plugin install wow-addon@wow-addon`** — installs the plugin (`wow-addon`) from the marketplace (`wow-addon`). When prompted for scope, choose **user** to enable it in every project on this machine, or **project** to enable it only in the current project.
 3. **`/reload-plugins`** — activates the plugin in the current session without a restart.
 
-After install, the commands, the `review` subagent, and the CRLF hook are available in every Claude Code session.
+After install, the commands, the `review` and `standards-audit` subagents, and the CRLF hook are available in every Claude Code session.
 
 ## Updating
 
