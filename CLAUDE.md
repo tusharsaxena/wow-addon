@@ -1,0 +1,48 @@
+# CLAUDE.md — wow-addon plugin
+
+## Purpose & stack
+
+A **Claude Code plugin** (not a WoW addon itself) that ships helpers for World of Warcraft addon development: standard-compliant scaffolding, compliance auditing, interface/version bumping, doc sync, git diff/commit, a CRLF hook, and a WoW-specific review subagent. Everything here is **Markdown command/agent specs + one Bash hook script + JSON manifests** — there is no compiled code and no test suite.
+
+Current version: **1.5.0** (in `.claude-plugin/plugin.json`).
+
+## Module/package map
+
+- `.claude-plugin/plugin.json` — plugin manifest; **the single source of truth for the version**.
+- `.claude-plugin/marketplace.json` — marketplace entry; carries a **mirror of the description** (no version field of its own).
+- `commands/*.md` — 8 slash-command specs (`/wow-addon:<name>`), each also invocable as a Skill of the same name. Two of them (`review.md`, `standards-audit.md`) are thin **wrappers that dispatch to the subagent of the same name**; the other six act directly.
+- `agents/*.md` — 2 subagent specs: `review` (WoW-specific principal-level review → `reviews/<date>/`) and `standards-audit` (read-only compliance audit → `audit/<date>/`).
+- `hooks/hooks.json` + `scripts/normalize-crlf.sh` — the CRLF-normalization hook.
+- `README.md` — user-facing docs. `LICENSE` — MIT.
+
+## Entry points & lifecycle
+
+Claude Code auto-discovers `commands/` and `agents/` by directory; there is no registration file listing them. A command file becomes live the moment it exists and the plugin is (re)loaded. `hooks/hooks.json` registers the `PostToolUse` hook. To activate changes in a session: **`/reload-plugins`** (no restart needed).
+
+- **Command spec** = YAML frontmatter (`description`, `argument-hint`, `allowed-tools`) + a Markdown body that instructs the agent. `$ARGUMENTS` is the user's argument string.
+- **Agent spec** = frontmatter (`name`, `description`, `tools`) + body. The `name` becomes `wow-addon:<name>` when dispatched.
+
+## Configuration & env
+
+None. No env vars, no config files, no persistent state. `standards-audit` and `new-addon` reach out to the external **[`WowAddonStandards`](https://github.com/tusharsaxena/WowAddonStandards)** repo at runtime (raw GitHub) and need network access when they run — but that's not local config.
+
+## Build / test / run
+
+- **No build, no tests.** Validation is: `python3 -c "import json; ..."` on the two manifests, and a manual `/reload-plugins` to confirm the plugin loads (`Reloaded: … plugins · … skills · … agents · … hooks`).
+- The CRLF hook script is Bash; there's no harness for it beyond running the flow that triggers `Write|Edit|MultiEdit` inside a repo whose `.gitattributes` declares `eol=crlf`.
+
+## Conventions & hot zones (footguns)
+
+- **Adding/removing a command or agent is a 4-touch change.** Keep these in sync or the docs drift:
+  1. the `commands/*.md` or `agents/*.md` file,
+  2. the README table (Commands / Subagents),
+  3. **both** manifest descriptions (`plugin.json` + `marketplace.json`),
+  4. the version in `plugin.json` (bump it).
+- **Command wrappers for subagents** (`review`, `standards-audit`) are documented under **Subagents** in the README, not the Commands table — follow that taxonomy for any future wrapper.
+- **Runtime-fetch specs** (`standards-audit`, `new-addon`): fetch the playbook + standard with `curl -fsSL` (verbatim); WebFetch is a **lossy fallback only** — its summarizer mangles verbatim content. If the standard can't be resolved, the spec must **hard-stop**, not improvise.
+- **`standards-audit` is read-only** on the audited addon — it only writes under `audit/<date>/`. Don't let it edit addon code.
+- **Commit style:** terse capitalized imperative subjects, no Conventional-Commits prefix; releases commit **directly to `master`**; commits carry a `Co-Authored-By: Claude …` trailer (match the recent `git log`).
+
+## Known TODOs
+
+None tracked. (The `TODO/FIXME` strings that appear in `commands/diff.md` and `commands/sync-docs.md` are those specs *describing their own behavior*, not project TODOs.)

@@ -2,7 +2,7 @@
 
 Claude Code plugin for World of Warcraft addon development.
 
-A focused toolkit for working on WoW addons: scaffolding new addons that are born compliant with the Ka0s WoW Addon Standard, auditing an addon against that standard, bumping interface versions across a project, syncing documentation against the actual code, normalizing READMEs across multiple addons, auditing cross-addon convention drift, releasing new versions, and reviewing changes for WoW-specific correctness (taint, deprecated APIs, frame leaks, missing localization, AceConfig misuse, dead code).
+A focused toolkit for working on WoW addons: scaffolding new addons that are born compliant with the Ka0s WoW Addon Standard, auditing an addon against that standard, bumping an addon's interface version to match Live Servers, syncing documentation against the actual code, releasing new versions, and reviewing changes for WoW-specific correctness (taint, deprecated APIs, frame leaks, missing localization, AceConfig misuse, dead code).
 
 `/wow-addon:new-addon` and `/wow-addon:standards-audit` consume the living **Ka0s WoW Addon Standard** at [tusharsaxena/WowAddonStandards](https://github.com/tusharsaxena/WowAddonStandards): they fetch that repo's `NEW_ADDON.md` / `AUDIT.md` playbooks and `standards/` docs at runtime and follow them, so they always track the current standard. Both need network access to that public repo when they run.
 
@@ -13,10 +13,8 @@ A focused toolkit for working on WoW addons: scaffolding new addons that are bor
 | Command | What it does |
 |---|---|
 | `/wow-addon:new-addon <Name>` | Scaffold a new addon born compliant with the Ka0s WoW Addon Standard. Fetches the `NEW_ADDON.md` playbook + context pack and follows them: Ace3 skeleton, tier layout, MIT, the standards brief dropped into the addon's `docs/`, and a `CLAUDE.md` stub. |
-| `/wow-addon:bump-interface <versions>` | Update `## Interface:` in every `.toc` under the cwd (recursive). |
+| `/wow-addon:bump-interface [number]` | Update `## Interface:` in the current addon's TOC(s) to the current Retail (Live Servers) value. This repo only, not recursive. Pass the number, or omit it to use the current Live value (asks to confirm if unsure). |
 | `/wow-addon:sync-docs` | Deep-analyze the addon and rewrite `README.md` / `CLAUDE*.md` / `ARCHITECTURE*.md` to eliminate drift. Includes count verification, COMMANDS↔README slash parity, dead-export detection, and ARCHITECTURE.md scaffolding. |
-| `/wow-addon:normalize-readme <ref-addon>` | Reshape the cwd addon's README to match the section structure, table conventions, and ordering of a reference addon's README. Inter-addon — does NOT touch code. |
-| `/wow-addon:audit-conventions [root]` | Walk every addon under cwd (or given root) and report cross-addon drift in TOC, library versions, structural patterns, docs, and git hygiene. Read-only. |
 | `/wow-addon:version-bump [X.Y.Z]` | Bump the addon's version everywhere it appears (TOC, code, README badges, Version History table, CHANGELOG). Proposes a bump if no version is given. |
 | `/wow-addon:diff` | Summarize all uncommitted git changes in the addon — what changed, likely intent, risks. |
 | `/wow-addon:commit` | Stage and commit changes with a generated commit message that matches the project's style. |
@@ -25,7 +23,7 @@ A focused toolkit for working on WoW addons: scaffolding new addons that are bor
 
 | Agent | When to invoke |
 |---|---|
-| `review` | Focused review of WoW-specific issues: taint and combat lockdown (incl. secret-value leakage), event over-registration, frame leaks, deprecated APIs, missing localization, AceConfig/Settings UI misuse, NBSP/tooltip-pattern bugs, dead exports, and project-internal convention drift (COMMANDS dispatcher parity, single-write-path bypass — applied only when the addon has those conventions). |
+| `review` | Focused review of WoW-specific issues: taint and combat lockdown (incl. secret-value leakage), event over-registration, frame leaks, deprecated APIs, missing localization, AceConfig/Settings UI misuse, NBSP/tooltip-pattern bugs, dead exports, and project-internal convention drift (COMMANDS dispatcher parity, single-write-path bypass — applied only when the addon has those conventions). Invoked via `/wow-addon:review`. |
 | `standards-audit` | Read-only compliance audit against the Ka0s WoW Addon Standard. Fetches the living `AUDIT.md` playbook + `standards/01_STANDARD.md` at runtime, measures the addon section-by-section and against the §19 anti-patterns, and writes a frozen `audit/<YYYY-MM-DD>/` bundle (current state, deviations with stable IDs, evidence, remediation design, execution plan). Never modifies addon code. Invoked via `/wow-addon:standards-audit`. |
 
 ### Hooks
