@@ -2,15 +2,15 @@
 
 ## Purpose & stack
 
-A **Claude Code plugin** (not a WoW addon itself) that ships helpers for World of Warcraft addon development: standard-compliant scaffolding, compliance auditing, interface/version bumping, doc sync, git diff/commit, a CRLF hook, and a WoW-specific review subagent. Everything here is **Markdown command/agent specs + one Bash hook script + JSON manifests** — there is no compiled code and no test suite.
+A **Claude Code plugin** (not a WoW addon itself) that ships helpers for World of Warcraft addon development: standard-compliant scaffolding, compliance auditing, interface/version bumping, doc sync, test-battery running, GitHub issue listing/creation, git diff/commit, a CRLF hook, and a WoW-specific review subagent. Everything here is **Markdown command/agent specs + one Bash hook script + JSON manifests** — there is no compiled code and no test suite.
 
-Current version: **1.5.0** (in `.claude-plugin/plugin.json`).
+Current version: **1.7.0** (in `.claude-plugin/plugin.json`).
 
 ## Module/package map
 
 - `.claude-plugin/plugin.json` — plugin manifest; **the single source of truth for the version**.
 - `.claude-plugin/marketplace.json` — marketplace entry; carries a **mirror of the description** (no version field of its own).
-- `commands/*.md` — 8 slash-command specs (`/wow-addon:<name>`), each also invocable as a Skill of the same name. Two of them (`review.md`, `standards-audit.md`) are thin **wrappers that dispatch to the subagent of the same name**; the other six act directly.
+- `commands/*.md` — 11 slash-command specs (`/wow-addon:<name>`), each also invocable as a Skill of the same name. Two of them (`review.md`, `standards-audit.md`) are thin **wrappers that dispatch to the subagent of the same name**; the other nine act directly.
 - `agents/*.md` — 2 subagent specs: `review` (WoW-specific principal-level review → `reviews/<date>/`) and `standards-audit` (read-only compliance audit → `audit/<date>/`).
 - `hooks/hooks.json` + `scripts/normalize-crlf.sh` — the CRLF-normalization hook.
 - `README.md` — user-facing docs. `LICENSE` — MIT.
@@ -24,7 +24,7 @@ Claude Code auto-discovers `commands/` and `agents/` by directory; there is no r
 
 ## Configuration & env
 
-None. No env vars, no config files, no persistent state. `standards-audit` and `new-addon` reach out to the external **[`WowAddonStandards`](https://github.com/tusharsaxena/WowAddonStandards)** repo at runtime (raw GitHub) and need network access when they run — but that's not local config.
+None. No env vars, no config files, no persistent state. Some specs need external tools **on the machine of whoever runs them** (still not local plugin config): `standards-audit` and `new-addon` fetch the external **[`WowAddonStandards`](https://github.com/tusharsaxena/WowAddonStandards)** repo at runtime (raw GitHub, needs network); `fetch-issues` and `add-issue` shell out to the **`gh`** CLI (must be installed and authenticated); `run-tests` invokes whatever it finds — **luacheck** and a **Lua** interpreter — treating an absent tool as a skipped suite, not a failure.
 
 ## Build / test / run
 

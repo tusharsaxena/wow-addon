@@ -57,7 +57,7 @@ Generate a concise, user-visible summary of changes since the previous version. 
 
 **Determine the "since" reference**, in this order:
 1. Git tag matching the previous version. Try `git tag --list 'v<previous>' '<previous>'`.
-2. The commit that last set the version constant to the previous value. Find via `git log -G '"<previous>"' -- <files-from-Step-2>` and pick the most recent commit that *introduced* the previous version (typically the previous version-bump commit).
+2. The commit that last set the version constant to the previous value. Find via `git log -G '"<previous>"' -- <files-from-Step-2>` and pick the most recent commit that *introduced* the previous version (typically the previous bump-version commit).
 3. The date in the row above the new one in the README's Version History table — use `git log --since=<date>` as a fallback window.
 4. If none of the above can be determined, leave the row's summary empty and warn the user that no `since` reference was found.
 

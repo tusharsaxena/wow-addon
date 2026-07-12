@@ -135,7 +135,7 @@ Print a summary:
 
 - **Don't invent features.** If the README claims a feature you can't find in code, ASK before deleting — it might be intentional/aspirational.
 - **Don't add documentation for things the user didn't document.** If there's no "Configuration" section currently, don't add one.
-- **Don't bump the version.** Even if you find drift in version numbers, do NOT change `## Version:` in the TOC, the `VERSION` constant in code, or the README badge URL. Changing the version is `/wow-addon:version-bump`'s job.
+- **Don't bump the version.** Even if you find drift in version numbers, do NOT change `## Version:` in the TOC, the `VERSION` constant in code, or the README badge URL. Changing the version is `/wow-addon:bump-version`'s job.
 - **Don't auto-delete dead exports.** Surface them; the user decides.
 - **Don't touch LICENSE, CHANGELOG.md, TODO.md, or any file that isn't a project doc.**
 - **Don't commit.**
