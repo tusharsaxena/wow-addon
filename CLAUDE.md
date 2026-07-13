@@ -4,7 +4,7 @@
 
 A **Claude Code plugin** (not a WoW addon itself) that ships helpers for World of Warcraft addon development: standard-compliant scaffolding, compliance auditing, interface/version bumping, doc sync, test-battery running, GitHub issue listing/creation, git diff/commit, a CRLF hook, and a WoW-specific review subagent. Everything here is **Markdown command/agent specs + one Bash hook script + JSON manifests** — there is no compiled code and no test suite.
 
-Current version: **1.7.1** (in `.claude-plugin/plugin.json`).
+Current version: **1.7.2** (in `.claude-plugin/plugin.json`).
 
 ## Module/package map
 
@@ -40,6 +40,8 @@ None. No env vars, no config files, no persistent state. Some specs need externa
   4. the version in `plugin.json` (bump it).
 - **Command wrappers for subagents** (`review`, `standards-audit`) are documented under **Subagents** in the README, not the Commands table — follow that taxonomy for any future wrapper.
 - **Runtime-fetch specs** (`standards-audit`, `new-addon`): fetch the playbook + standard with `curl -fsSL` (verbatim); WebFetch is a **lossy fallback only** — its summarizer mangles verbatim content. If the standard can't be resolved, the spec must **hard-stop**, not improvise.
+- **Hard-code only the entry points; discover the rest by following links.** The standard is **split** — `standards/STANDARDS.md` is an index whose **Sections** list links one file per section under `standards/standards/`. Specs fetch `STANDARDS.md` and then **every section file it lists**; they **must not** hard-code section filenames, so the standard can be re-organized upstream without touching this plugin. The only fixed remote paths are the playbooks (`AUDIT.md`/`NEW_ADDON.md`), `standards/STANDARDS.md`, and `standards/NEW_ADDON_CONTEXT.md` (dropped verbatim into new addons).
+- **Reference the standard's sections as `filename-§N`.** A whole section is its bare filename (`architecture`, `anti-patterns`); a subsection is `filename-§N` (`architecture-§5`, `documentation-§1`), the number being that section's **local** count. The old global `§N.M` notation is retired — don't use or reintroduce it in specs or artifacts.
 - **`standards-audit` is read-only** on the audited addon — it only writes under `docs/audits/<date>/`. Don't let it edit addon code.
 - **Commit style:** terse capitalized imperative subjects, no Conventional-Commits prefix; releases commit **directly to `master`**; commits carry a `Co-Authored-By: Claude …` trailer (match the recent `git log`).
 

@@ -27,7 +27,7 @@ A focused toolkit for working on WoW addons: scaffolding new addons that are bor
 | Agent | When to invoke |
 |---|---|
 | `review` | Focused review of WoW-specific issues: taint and combat lockdown (incl. secret-value leakage), event over-registration, frame leaks, deprecated APIs, missing localization, AceConfig/Settings UI misuse, NBSP/tooltip-pattern bugs, dead exports, and project-internal convention drift (COMMANDS dispatcher parity, single-write-path bypass — applied only when the addon has those conventions). Invoked via `/wow-addon:review`. |
-| `standards-audit` | Read-only compliance audit against the Ka0s WoW Addon Standard. Fetches the living `AUDIT.md` playbook + `standards/01_STANDARD.md` at runtime, measures the addon section-by-section and against the §19 anti-patterns, and writes a frozen `docs/audits/<YYYY-MM-DD>/` bundle (current state, deviations with stable IDs, evidence, remediation design, execution plan). Never modifies addon code. Invoked via `/wow-addon:standards-audit`. |
+| `standards-audit` | Read-only compliance audit against the Ka0s WoW Addon Standard. Fetches the living `AUDIT.md` playbook + `standards/STANDARDS.md` (the standard's index) at runtime, follows the index's Sections list to fetch every section file, measures the addon section-by-section and against the `anti-patterns` list, and writes a frozen `docs/audits/<YYYY-MM-DD>/` bundle (current state, deviations with stable IDs, evidence, remediation design, execution plan). Never modifies addon code. Invoked via `/wow-addon:standards-audit`. |
 
 ### Hooks
 

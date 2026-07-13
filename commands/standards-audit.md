@@ -1,5 +1,5 @@
 ---
-description: Run the wow-addon:standards-audit subagent — a read-only compliance audit of the addon in cwd against the living Ka0s WoW Addon Standard. Fetches the AUDIT.md playbook + standards/01_STANDARD.md from the WowAddonStandards repo at runtime and writes a frozen dated bundle to docs/audits/<YYYY-MM-DD>/ (01_CURRENT_STATE, 02_DEVIATIONS, 03_EVIDENCE, 04_TECHNICAL_DESIGN, 05_EXECUTION_PLAN), plus a chat summary.
+description: Run the wow-addon:standards-audit subagent — a read-only compliance audit of the addon in cwd against the living Ka0s WoW Addon Standard. Fetches the AUDIT.md playbook + standards/STANDARDS.md (the standard's index, then every section file it lists) from the WowAddonStandards repo at runtime and writes a frozen dated bundle to docs/audits/<YYYY-MM-DD>/ (01_CURRENT_STATE, 02_DEVIATIONS, 03_EVIDENCE, 04_TECHNICAL_DESIGN, 05_EXECUTION_PLAN), plus a chat summary.
 ---
 
 Invoke the `wow-addon:standards-audit` subagent on the addon in the current working directory.
