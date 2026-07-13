@@ -1,6 +1,6 @@
 {
   "name": "wow-addon",
   "description": "World of Warcraft addon development helpers — standard-compliant scaffolding, standards compliance auditing, interface-version bumping, doc sync, version bumping, test-battery running, GitHub issue listing/creation, git diff/commit, CRLF hook, and a focused WoW-specific review subagent.",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "license": "MIT"
 }

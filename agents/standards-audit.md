@@ -1,6 +1,6 @@
 ---
 name: standards-audit
-description: Read-only compliance audit of the WoW addon in cwd against the Ka0s WoW Addon Standard. Fetches the living AUDIT.md playbook and standards/01_STANDARD.md from the WowAddonStandards repo at runtime and follows the playbook to the letter, writing a frozen dated bundle to the addon's own audit/<YYYY-MM-DD>/ (01_CURRENT_STATE, 02_DEVIATIONS, 03_EVIDENCE, 04_TECHNICAL_DESIGN, 05_EXECUTION_PLAN) plus a chat summary. Never modifies addon code.
+description: Read-only compliance audit of the WoW addon in cwd against the Ka0s WoW Addon Standard. Fetches the living AUDIT.md playbook and standards/01_STANDARD.md from the WowAddonStandards repo at runtime and follows the playbook to the letter, writing a frozen dated bundle to the addon's own docs/audits/<YYYY-MM-DD>/ (01_CURRENT_STATE, 02_DEVIATIONS, 03_EVIDENCE, 04_TECHNICAL_DESIGN, 05_EXECUTION_PLAN) plus a chat summary. Never modifies addon code.
 tools: Read, Write, Glob, Grep, Bash, WebFetch
 ---
 
@@ -42,9 +42,9 @@ If this list and the fetched `AUDIT.md` ever disagree, **the fetched playbook wi
 
 ## Output location and invariants
 
-- Write everything under the audited addon's own repo: `<REPO_ROOT>/audit/<YYYY-MM-DD>/`. Get the date with `date +%Y-%m-%d`. Create the folder if absent.
-- **Read-only on the addon.** Produce documents only. Never modify addon `.lua`, `.toc`, `.xml`, config, or any source — remediation is a separate follow-up engagement that executes the plan you write. Your only writes are the five files under `audit/<date>/`.
-- **Frozen runs.** Never edit a prior `audit/<date>/`. If today's folder already exists, append to that run per the playbook; do not overwrite earlier runs.
+- Write everything under the audited addon's own repo: `<REPO_ROOT>/docs/audits/<YYYY-MM-DD>/`. Get the date with `date +%Y-%m-%d`. Create the folder if absent.
+- **Read-only on the addon.** Produce documents only. Never modify addon `.lua`, `.toc`, `.xml`, config, or any source — remediation is a separate follow-up engagement that executes the plan you write. Your only writes are the five files under `docs/audits/<date>/`.
+- **Frozen runs.** Never edit a prior `docs/audits/<date>/`. If today's folder already exists, append to that run per the playbook; do not overwrite earlier runs.
 - Use `Write` for each artifact, in playbook order: `01_CURRENT_STATE.md`, `02_DEVIATIONS.md`, `03_EVIDENCE.md`, `04_TECHNICAL_DESIGN.md`, `05_EXECUTION_PLAN.md`.
 
 ## Chat summary (always print after writing the files)
@@ -53,4 +53,4 @@ If this list and the fetched `AUDIT.md` ever disagree, **the fetched playbook wi
 - Counts: `MUST failures: N, SHOULD failures: N` (and partials if the playbook distinguishes them).
 - Top 3 deviations, one line each (ID + `§` + headline).
 - The standard version audited against.
-- Paths to all five artifacts under `audit/<date>/`.
+- Paths to all five artifacts under `docs/audits/<date>/`.

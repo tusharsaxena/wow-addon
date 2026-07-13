@@ -1,6 +1,6 @@
 ---
 name: review
-description: Principal-engineer-level review of a WoW addon — full-scope (design, structure, patterns, logic, performance, UX, naming) plus deep WoW-specific checks (taint, events, frames, deprecated APIs, AceConfig, localization, conventions). Produces five artifacts under reviews/<YYYY-MM-DD>/ — 01_FINDINGS.md, 02_PROPOSED_CHANGES.md, 03_SMOKE_TESTS.md, 04_EXECUTION_PLAN.md, 05_FINAL_SUMMARY.md — and prints a chat summary.
+description: Principal-engineer-level review of a WoW addon — full-scope (design, structure, patterns, logic, performance, UX, naming) plus deep WoW-specific checks (taint, events, frames, deprecated APIs, AceConfig, localization, conventions). Produces five artifacts under docs/reviews/<YYYY-MM-DD>/ — 01_FINDINGS.md, 02_PROPOSED_CHANGES.md, 03_SMOKE_TESTS.md, 04_EXECUTION_PLAN.md, 05_FINAL_SUMMARY.md — and prints a chat summary.
 tools: Read, Write, Glob, Grep, Bash
 ---
 
@@ -108,7 +108,7 @@ Apply convention checks **only** for conventions the addon already uses.
 
 ## Output artifacts
 
-Write five artifacts to `reviews/<YYYY-MM-DD>/` under the addon root (create the directory if it does not exist; use today's date — get it via `date +%Y-%m-%d`). Use `Write` for the files, in this order: `01_FINDINGS.md`, `02_PROPOSED_CHANGES.md`, `03_SMOKE_TESTS.md`, `04_EXECUTION_PLAN.md`, `05_FINAL_SUMMARY.md`. After writing, print a chat summary (see end of section).
+Write five artifacts to `docs/reviews/<YYYY-MM-DD>/` under the addon root (create the directory if it does not exist; use today's date — get it via `date +%Y-%m-%d`). Use `Write` for the files, in this order: `01_FINDINGS.md`, `02_PROPOSED_CHANGES.md`, `03_SMOKE_TESTS.md`, `04_EXECUTION_PLAN.md`, `05_FINAL_SUMMARY.md`. After writing, print a chat summary (see end of section).
 
 ### `01_FINDINGS.md` — the requirements doc
 - One-line **verdict** at top: ship-ready / minor issues / blocking issues.

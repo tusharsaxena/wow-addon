@@ -4,14 +4,14 @@
 
 A **Claude Code plugin** (not a WoW addon itself) that ships helpers for World of Warcraft addon development: standard-compliant scaffolding, compliance auditing, interface/version bumping, doc sync, test-battery running, GitHub issue listing/creation, git diff/commit, a CRLF hook, and a WoW-specific review subagent. Everything here is **Markdown command/agent specs + one Bash hook script + JSON manifests** — there is no compiled code and no test suite.
 
-Current version: **1.7.0** (in `.claude-plugin/plugin.json`).
+Current version: **1.7.1** (in `.claude-plugin/plugin.json`).
 
 ## Module/package map
 
 - `.claude-plugin/plugin.json` — plugin manifest; **the single source of truth for the version**.
 - `.claude-plugin/marketplace.json` — marketplace entry; carries a **mirror of the description** (no version field of its own).
 - `commands/*.md` — 11 slash-command specs (`/wow-addon:<name>`), each also invocable as a Skill of the same name. Two of them (`review.md`, `standards-audit.md`) are thin **wrappers that dispatch to the subagent of the same name**; the other nine act directly.
-- `agents/*.md` — 2 subagent specs: `review` (WoW-specific principal-level review → `reviews/<date>/`) and `standards-audit` (read-only compliance audit → `audit/<date>/`).
+- `agents/*.md` — 2 subagent specs: `review` (WoW-specific principal-level review → `docs/reviews/<date>/`) and `standards-audit` (read-only compliance audit → `docs/audits/<date>/`).
 - `hooks/hooks.json` + `scripts/normalize-crlf.sh` — the CRLF-normalization hook.
 - `README.md` — user-facing docs. `LICENSE` — MIT.
 
@@ -40,7 +40,7 @@ None. No env vars, no config files, no persistent state. Some specs need externa
   4. the version in `plugin.json` (bump it).
 - **Command wrappers for subagents** (`review`, `standards-audit`) are documented under **Subagents** in the README, not the Commands table — follow that taxonomy for any future wrapper.
 - **Runtime-fetch specs** (`standards-audit`, `new-addon`): fetch the playbook + standard with `curl -fsSL` (verbatim); WebFetch is a **lossy fallback only** — its summarizer mangles verbatim content. If the standard can't be resolved, the spec must **hard-stop**, not improvise.
-- **`standards-audit` is read-only** on the audited addon — it only writes under `audit/<date>/`. Don't let it edit addon code.
+- **`standards-audit` is read-only** on the audited addon — it only writes under `docs/audits/<date>/`. Don't let it edit addon code.
 - **Commit style:** terse capitalized imperative subjects, no Conventional-Commits prefix; releases commit **directly to `master`**; commits carry a `Co-Authored-By: Claude …` trailer (match the recent `git log`).
 
 ## Known TODOs
