@@ -7,33 +7,24 @@ Deep-analyze the current state of the WoW addon in the cwd, then rewrite its doc
 
 ## Step 0 — Doc layout decisions
 
-Before doing anything else, decide whether the addon needs ARCHITECTURE and CLAUDE docs, and — if it does — whether they should be a single file or a split layout.
-
-Count the addon's source files (`.lua` and `.xml` files referenced in the TOC, **excluding** `libs/` and `Libs/`). The same count drives both decisions below.
+Before doing anything else, check the addon's doc layout against the Ka0s WoW Addon Standard's fixed structure (documentation). The **root** ships a **full** `README.md`, a **stub** `CLAUDE.md`, and `LICENSE`; everything else lives under `docs/`, which carries the canonical trio — `docs/agent-context.md` (the full agent brief), `docs/ARCHITECTURE.md`, and `docs/smoke-tests.md` — plus any topic-detail docs. This layout is fixed; it does **not** vary with addon size.
 
 ### ARCHITECTURE.md decision
 
-Check if `ARCHITECTURE.md` exists at the addon root, and if `docs/ARCHITECTURE_*.md` files exist.
-
-Apply this rule:
-- **< 10 source files**: a single `ARCHITECTURE.md` at the root is appropriate. If absent, propose creating one with sections: Purpose, Module map, Boot, Data flow, Settings, Slash dispatch, Saved variables, Conventions.
-- **≥ 10 source files**: a top-level `ARCHITECTURE.md` index pointing to `docs/ARCHITECTURE_*.md` per topic is appropriate. If absent, propose the split layout.
-
-If ARCHITECTURE docs already exist in some form (single root file, `docs/ARCHITECTURE_*.md` split, or any other variant), leave the structure alone — just sync content.
+`ARCHITECTURE.md` belongs under `docs/` as part of the canonical trio. Check whether `docs/ARCHITECTURE.md` exists (or an `ARCHITECTURE.md` in some other location/variant).
+- If it already exists in some form, **leave the structure alone — just sync content.**
+- If absent, propose creating `docs/ARCHITECTURE.md` with the standard's sections: Overview, Module Map, Settings Schema, Message Bus (named messages with sender/payload/consumers), Slash Commands, Event Subscriptions, Taint Notes, Known Limitations.
 
 ### CLAUDE.md decision
 
-Check if `CLAUDE.md` exists at the addon root, and if `CLAUDE/*.md` or `docs/CLAUDE_*.md` files exist.
-
-Apply this rule:
-- **< 10 source files**: a single `CLAUDE.md` at the root is appropriate. If absent, propose creating one with sections: Purpose & stack, Project-internal conventions, Module map, Boot & lifecycle, Saved variables, Slash dispatch, Hot zones / footguns, Known TODOs. Keep it concise — CLAUDE.md loads into every future session's context.
-- **≥ 10 source files**: a top-level `CLAUDE.md` index (very concise — pointers only) plus `docs/CLAUDE_*.md` per topic (e.g. `CLAUDE_CONVENTIONS.md`, `CLAUDE_MODULES.md`, `CLAUDE_LIFECYCLE.md`, `CLAUDE_SAVED_VARS.md`, `CLAUDE_HOT_ZONES.md`, and the existing `CLAUDE_SECRET_VALUES.md` if the addon has protected-API safety rules) is appropriate. If absent, propose the split layout.
-
-If CLAUDE docs already exist in some form (single root file, `CLAUDE/*.md` subdirectory, `docs/CLAUDE_*.md` split, or any other variant), leave the structure alone — just sync content.
+The standard splits the agent docs: a **stub** root `CLAUDE.md` (a short pointer — never the full brief) and the **full** agent brief in `docs/agent-context.md`. Check both.
+- If they're already in that shape, **leave the structure alone — just sync content.**
+- If the root `CLAUDE.md` is missing, propose the stub + `docs/agent-context.md` pair.
+- If the root `CLAUDE.md` carries the **full** brief inline (the brief must live in `docs/agent-context.md`, not at root), flag it and propose moving the brief into `docs/agent-context.md`, leaving a stub at root.
 
 ### Confirmation
 
-If you propose creating either layout (ARCHITECTURE or CLAUDE), ask the user to confirm before scaffolding.
+If you propose creating or restructuring either doc (ARCHITECTURE or CLAUDE), ask the user to confirm before scaffolding.
 
 ## Step 1 — Discover the addon
 
@@ -115,8 +106,8 @@ If the drift list is large (>10 items) or any item is ambiguous, ask for confirm
 
 For each doc file:
 - **README.md**: keep its overall shape. Update each section to reflect current state. Don't invent sections that weren't there. Preserve the user's voice — match the existing tone, formatting, and emoji usage (or absence).
-- **CLAUDE.md** (and `CLAUDE.*.md`): project context for future Claude sessions. Update against your Step 1 map. Keep it concise (CLAUDE.md is loaded into every session's context).
-- **ARCHITECTURE.md** (and variants): structural/design documentation. Update component descriptions, dataflow, dependency relationships, lifecycle.
+- **CLAUDE.md** (root **stub**) and **`docs/agent-context.md`** (the full agent brief): project context for future Claude sessions. Update against your Step 1 map. Keep the root `CLAUDE.md` a short pointer (it loads into every session's context); the detail lives in `docs/agent-context.md`.
+- **`docs/ARCHITECTURE.md`** (and variants): structural/design documentation. Update component descriptions, dataflow, dependency relationships, lifecycle.
 
 Use `Edit` for surgical updates. Only `Write` (full rewrite) if the file is completely out of date or the diff would be larger than the rewrite.
 

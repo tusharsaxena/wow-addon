@@ -1,5 +1,5 @@
 ---
-description: Scaffold a new Ka0s WoW addon that is born compliant with the Ka0s WoW Addon Standard. Fetches the NEW_ADDON.md playbook + the standards context pack from the WowAddonStandards repo at runtime and follows them to the letter — Ace3 skeleton, tier layout, MIT, the standards brief dropped into the addon's docs/, and a CLAUDE.md stub so future agents build the rest against the standard.
+description: Scaffold a new Ka0s WoW addon that is born compliant with the Ka0s WoW Addon Standard. Fetches the NEW_ADDON.md playbook + the standards context pack from the WowAddonStandards repo at runtime and follows them to the letter — Ace3 skeleton, the modular layout, MIT, the standards brief dropped into the addon's docs/, and a CLAUDE.md stub so future agents build the rest against the standard.
 argument-hint: <AddonName> [one-line description]
 allowed-tools: [Read, Glob, Grep, Bash, Write, WebFetch]
 ---
@@ -18,8 +18,8 @@ RAW=https://raw.githubusercontent.com/tusharsaxena/WowAddonStandards/master
 
 Fetch these **faithfully** (see the fetch rule below), in order:
 
-1. `$RAW/NEW_ADDON.md` — the new-addon playbook. It is authoritative for *how the addon is scaffolded*: the 8 steps, the tier choice, the identity defaults, and the hard rules.
-2. `$RAW/standards/NEW_ADDON_CONTEXT.md` — the full context pack: kickstart walkthrough, tier trees, starter snippets (TOC, entry, `Compat`, `Locale`, `Database`, `Settings`, debug console, tests, message bus, `.luacheckrc`, `.pkgmeta`), hard-rules cheat sheet, and the Definition-of-Done checklist. **Its contents get dropped into the new addon** (see below).
+1. `$RAW/NEW_ADDON.md` — the new-addon playbook. It is authoritative for *how the addon is scaffolded*: the 8 steps, the identity defaults, and the hard rules.
+2. `$RAW/standards/NEW_ADDON_CONTEXT.md` — the full context pack: kickstart walkthrough, the modular starter tree, starter snippets (TOC, entry, `Compat`, `Locale`, `Database`, `Settings`, debug console, tests, message bus, `.luacheckrc`, `.pkgmeta`), hard-rules cheat sheet, and the Definition-of-Done checklist. **Its contents get dropped into the new addon** (see below).
 3. `$RAW/standards/STANDARDS.md` — the standard's **entry point / index**, fetched when a step references a rule you need to satisfy precisely. Follow its **Sections** list to the specific section file (`$RAW/standards/standards/<file>.md`) on demand. **Don't hard-code section filenames — discover them from the index.** The only fixed paths are `NEW_ADDON.md`, `standards/NEW_ADDON_CONTEXT.md`, and `standards/STANDARDS.md`; everything else you reach by following links, so the standard can be re-organized without changing this command.
 
 **Faithful-fetch rule.** Use `curl -fsSL "<url>"` via Bash and read the saved file — this preserves the document verbatim, which matters most for `NEW_ADDON_CONTEXT.md` since you copy its contents into the new addon. Do **not** rely on WebFetch as the primary path: its summarizer rewrites and truncates content, so the context pack you drop in would be corrupted. WebFetch is a last-resort fallback only if `curl` is unavailable, and then treat its output as lossy. Save fetched docs under a scratch path (e.g. `/tmp` or the session scratchpad), then `Read` them.
@@ -34,7 +34,7 @@ Once fetched, **execute `NEW_ADDON.md`'s steps exactly as written**, scaffolding
 
 1. **Scaffold the skeleton** — the Ace3 stack (AceAddon registration, AceDB saved variables), the modular folder layout, MIT `LICENSE`, and an AceConsole slash command.
 2. **Drop in the context pack** — put the *contents* of `standards/NEW_ADDON_CONTEXT.md` into the new addon's `docs/` as the full agent context, and leave a short root `CLAUDE.md` **stub** that points to it (see `documentation`). This is how the addon carries the standards in its memory: every future agent and contributor gets the complete brief with no external lookup.
-3. **Pick a tier and lay out files** — Tier 1 (flat, ≤8 source files) for utilities, Tier 2 (modular: `core/ modules/ defaults/ settings/ locales/`) for multi-feature addons. Copy the vendored `libs/` set you actually `LibStub()` from an existing Ka0s addon so versions stay consistent.
+3. **Lay out files** — use the single modular layout (`core/ modules/ defaults/ settings/ locales/`) for every addon regardless of size (a small addon just has thin folders). Copy the vendored `libs/` set you actually `LibStub()` from an existing Ka0s addon so versions stay consistent.
 4. **Fill in the starters** — TOC (fixed field order + `#`-section file listing), including the `## X-Standard:` line pointing at the standards repo; entry file, compat shims, locale, database/migrations, schema-driven settings, eager settings-category registration, debug console, message bus — from the context pack's starter snippets.
 5. **Write tests first** — stand up the headless Lua 5.1 `tests/` harness and drive behavior test-first.
 6. **Write the README to `documentation-§1`'s canonical structure.**
