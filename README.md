@@ -15,7 +15,7 @@ A focused toolkit for working on WoW addons: scaffolding new addons that are bor
 | `/wow-addon:new-addon <Name>` | Scaffold a new addon born compliant with the Ka0s WoW Addon Standard. Fetches the `NEW_ADDON.md` playbook + context pack and follows them: Ace3 skeleton, the modular layout, MIT, the standards brief dropped into the addon's `docs/`, and a `CLAUDE.md` stub. |
 | `/wow-addon:bump-interface [number]` | Update `## Interface:` in the current addon's TOC(s) to the current Retail (Live Servers) value. This repo only, not recursive. Pass the number, or omit it to use the current Live value (asks to confirm if unsure). |
 | `/wow-addon:sync-docs` | Deep-analyze the addon and rewrite `README.md` / `CLAUDE*.md` / `ARCHITECTURE*.md` to eliminate drift. Includes count verification, COMMANDS↔README slash parity, dead-export detection, and ARCHITECTURE.md scaffolding. |
-| `/wow-addon:bump-version [X.Y.Z]` | Bump the addon's version everywhere it appears (TOC, code, README badges, Version History table, CHANGELOG). Proposes a bump if no version is given. |
+| `/wow-addon:bump-version [X.Y.Z]` | Bump the addon's version everywhere it appears (TOC, code, README badges, Version History table, `CLAUDE*.md`, CHANGELOG). Proposes a bump if no version is given. |
 | `/wow-addon:diff` | Summarize all uncommitted git changes in the addon — what changed, likely intent, risks. |
 | `/wow-addon:commit` | Stage and commit changes with a generated commit message that matches the project's style. |
 | `/wow-addon:run-tests` | Run the addon's entire test battery — auto-detects and runs luacheck lint, the headless Lua `tests/` harness, and any Makefile `test` target, then reports a combined pass/fail summary. Offers to diagnose and fix failures. |
