@@ -11,7 +11,7 @@ Current version: **1.7.2** (in `.claude-plugin/plugin.json`).
 - `.claude-plugin/plugin.json` — plugin manifest; **the single source of truth for the version**.
 - `.claude-plugin/marketplace.json` — marketplace entry; carries a **mirror of the description** (no version field of its own).
 - `commands/*.md` — 11 slash-command specs (`/wow-addon:<name>`), each also invocable as a Skill of the same name. Two of them (`review.md`, `standards-audit.md`) are thin **wrappers that dispatch to the subagent of the same name**; the other nine act directly.
-- `agents/*.md` — 2 subagent specs: `review` (WoW-specific principal-level review → `docs/reviews/<date>/`) and `standards-audit` (read-only compliance audit → `docs/audits/<date>/`).
+- `agents/*.md` — 2 subagent specs: `review` (WoW-specific principal-level review → `docs/reviews/<date>/`; also fetches the standard to keep its own remediation compliant, but does **not** audit) and `standards-audit` (read-only compliance audit → `docs/audits/<date>/`).
 - `hooks/hooks.json` + `scripts/normalize-crlf.sh` — the CRLF-normalization hook.
 - `README.md` — user-facing docs. `LICENSE` — MIT.
 
@@ -39,7 +39,7 @@ None. No env vars, no config files, no persistent state. Some specs need externa
   3. **both** manifest descriptions (`plugin.json` + `marketplace.json`),
   4. the version in `plugin.json` (bump it).
 - **Command wrappers for subagents** (`review`, `standards-audit`) are documented under **Subagents** in the README, not the Commands table — follow that taxonomy for any future wrapper.
-- **Runtime-fetch specs** (`standards-audit`, `new-addon`): fetch the playbook + standard with `curl -fsSL` (verbatim); WebFetch is a **lossy fallback only** — its summarizer mangles verbatim content. If the standard can't be resolved, the spec must **hard-stop**, not improvise.
+- **Runtime-fetch specs** (`standards-audit`, `new-addon`, and — for its guardrail only — `review`): fetch the playbook + standard with `curl -fsSL` (verbatim); WebFetch is a **lossy fallback only** — its summarizer mangles verbatim content. If the standard can't be resolved: `standards-audit`/`new-addon` must **hard-stop** (their whole output is worthless without it), but `review` must **degrade gracefully** — it fetches the standard only to keep its own remediation compliant, so on failure it proceeds with the review and notes that the standards cross-check was skipped. Don't "fix" `review` to hard-stop.
 - **Hard-code only the entry points; discover the rest by following links.** The standard is **split** — `standards/STANDARDS.md` is an index whose **Sections** list links one file per section under `standards/standards/`. Specs fetch `STANDARDS.md` and then **every section file it lists**; they **must not** hard-code section filenames, so the standard can be re-organized upstream without touching this plugin. The only fixed remote paths are the playbooks (`AUDIT.md`/`NEW_ADDON.md`), `standards/STANDARDS.md`, and `standards/NEW_ADDON_CONTEXT.md` (dropped verbatim into new addons).
 - **Reference the standard's sections as `filename-§N`.** A whole section is its bare filename (`architecture`, `anti-patterns`); a subsection is `filename-§N` (`architecture-§5`, `documentation-§1`), the number being that section's **local** count. The old global `§N.M` notation is retired — don't use or reintroduce it in specs or artifacts.
 - **`standards-audit` is read-only** on the audited addon — it only writes under `docs/audits/<date>/`. Don't let it edit addon code.
