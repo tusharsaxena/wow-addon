@@ -1,5 +1,5 @@
 ---
-description: Bump the addon version to X.Y.Z everywhere it appears — TOC, code constants, README badges and Version History table, CLAUDE*.md, CHANGELOG. Asks for the version if not provided.
+description: Bump the addon version to X.Y.Z everywhere it appears — TOC, code constants, README badges, "What's new" section and Version History table, CLAUDE*.md — and write the CHANGELOG entry for everything since the last tag. Asks for the version if not provided.
 argument-hint: [X.Y.Z]
 allowed-tools: [Read, Glob, Grep, Bash, Edit]
 ---
@@ -36,12 +36,13 @@ Search the addon root recursively (skip `libs/`, `Libs/`, `.git/`, `node_modules
   - `https://img.shields.io/curseforge/v/<id>` (auto-derived — leave alone)
   - `https://img.shields.io/github/v/release/<owner>/<repo>` (auto-derived — leave alone)
   - Manually-pinned badges with the version in the path or `?label=` parameter
+- **"What's new in X.Y.Z" section** near the top of the README (also matches `## What's New`, `## What's new in vX.Y.Z`, `## Latest release`). This section describes only the *current* release — retitle it to the new version and **replace its body** with the highlights from Step 3. If the README has no such section, create one directly below the badges / intro paragraph and above the first content heading (Features / Installation / Usage).
 - **"Version History" table** at the bottom of the README — this lists OLD versions as facts, not "the current version". Add a NEW row for the new version with an auto-generated summary of changes since the last version bump (see Step 3). Do NOT rewrite existing rows.
 
 **Other docs**
 - `CLAUDE*.md` mentions of the version
 - `ARCHITECTURE*.md` mentions
-- `CHANGELOG.md` — if there's an "Unreleased" header, change it to the new version + today's date. If there's no CHANGELOG, don't create one. Do NOT rewrite past entries.
+- `CHANGELOG.md` — gets a full entry for the new release (see Steps 3 and 4). If there's no CHANGELOG, don't create one. Do NOT rewrite past entries.
 - `.pkgmeta` if it pins a version explicitly
 
 **Auto-substituted (do NOT touch)**
@@ -51,39 +52,55 @@ Search the addon root recursively (skip `libs/`, `Libs/`, `.git/`, `node_modules
 
 Report the full list of matches **before** editing.
 
-## Step 3 — Summarize changes since the last version
+## Step 3 — Summarize changes since the last release
 
-Generate a concise, user-visible summary of changes since the previous version. This summary populates the new README "Version History" row in Step 4.
+One pass over the release's changes, written up at **two granularities**:
+
+- **Full list** — every user-relevant change since the last release. Feeds the CHANGELOG entry (Step 4).
+- **Highlights** — the 3–5 changes a user actually cares about. Feeds the README "What's new in X.Y.Z" section and the Version History row (Step 4).
 
 **Determine the "since" reference**, in this order:
-1. Git tag matching the previous version. Try `git tag --list 'v<previous>' '<previous>'`.
-2. The commit that last set the version constant to the previous value. Find via `git log -G '"<previous>"' -- <files-from-Step-2>` and pick the most recent commit that *introduced* the previous version (typically the previous bump-version commit).
-3. The date in the row above the new one in the README's Version History table — use `git log --since=<date>` as a fallback window.
-4. If none of the above can be determined, leave the row's summary empty and warn the user that no `since` reference was found.
+1. **The last git tag** — `git describe --tags --abbrev=0` (fall back to `git tag --list --sort=-v:refname | head -1` if the repo has no annotated tags). This is the release boundary; prefer it over everything below.
+2. Git tag matching the previous version specifically: `git tag --list 'v<previous>' '<previous>'`.
+3. The commit that last set the version constant to the previous value. Find via `git log -G '"<previous>"' -- <files-from-Step-2>` and pick the most recent commit that *introduced* the previous version (typically the previous bump-version commit).
+4. The date in the row above the new one in the README's Version History table — use `git log --since=<date>` as a fallback window.
+5. If none of the above can be determined, skip the generated content, leave the existing README section and the new row's summary alone, and warn the user that no `since` reference was found. Never invent a change list.
 
-**Collect change material**, prefer in this order:
-1. If `CHANGELOG.md` has a populated `## [Unreleased]` (or equivalent) section, use those bullets as the source — they are the user's authoritative list. Condense for the README row; do not re-derive from git on top.
-2. Otherwise, derive from git: `git log <since>..HEAD --oneline` for commit subjects, `git diff --stat <since>..HEAD` for scope, and full commit bodies (`git log <since>..HEAD`) for context on non-trivial commits.
+State which reference you used and how many commits it spans before writing anything.
 
-**Write the summary**:
-- Group bullets by category in this order: **Added**, **Changed**, **Fixed**, **Removed**, **Deprecated**, **Docs**, **Internals**. Skip categories with nothing.
+**Collect change material**:
+1. `git log <since>..HEAD` — full subjects *and* bodies; bodies carry the "why" for non-trivial commits.
+2. `git diff --stat <since>..HEAD` — scope, and a cross-check that nothing sizeable is missing from the log.
+3. If `CHANGELOG.md` has a populated `## [Unreleased]` (or equivalent) section, treat those bullets as **authoritative** — keep their wording and merge anything from git they don't already cover, rather than rewriting them.
+
+**Write the full list** (for the CHANGELOG):
+- Group by category in this order: **Added**, **Changed**, **Fixed**, **Removed**, **Deprecated**, **Docs**, **Internals**. Skip empty categories.
+- Cover every user-relevant change — this list is exhaustive where the highlights are selective.
 - Past tense, user-visible language ("Added /foo command", "Fixed taint regression on PLAYER_REGEN_DISABLED") — not commit-message phrasing.
-- Keep it tight: ~3–8 bullets total. Roll up trivia (whitespace, lint, formatting, dependency bumps) into a single "Internals" bullet rather than listing each.
-- Format for a markdown table cell: separate bullets with `<br>` so the cell stays one row. Example: `Added /foo command<br>Fixed taint on combat exit<br>Updated deDE locale`.
-- No commit hashes, PR numbers, or author names in the README row.
+- Roll up genuine trivia (whitespace, lint, formatting, dependency bumps) into a single "Internals" bullet.
+- No commit hashes, PR numbers, or author names.
+
+**Write the highlights** (for the README):
+- 3–5 bullets, drawn from the full list — the headline features and the fixes users were waiting on. Not a second derivation from git.
+- Same past-tense, user-visible voice. One line each, no sub-bullets.
+- If the release is purely internal (no user-visible change), say so in one line rather than padding with trivia.
+- For the Version History table cell, join the highlight bullets with `<br>` so the cell stays one row. Example: `Added /foo command<br>Fixed taint on combat exit<br>Updated deDE locale`.
 
 ## Step 4 — Update
 
 For each match, replace the old version with the new version using `Edit`. Be precise — match the exact context to avoid touching unrelated strings (e.g. don't replace `1.0.0` if it's an Interface number, a library version, or a Lua version requirement).
 
-For the README "Version History" table: insert a NEW row at the top (or wherever the table is ordered to put the latest), with the new version and the summary from Step 3 in the release-notes cell. Do NOT modify existing rows.
+For the README **"What's new in X.Y.Z"** section: retitle the heading to the new version and replace the body with the Step 3 highlights as a plain bullet list. This section always describes only the current release — the previous release's text is *replaced*, not appended to (its record lives on in the Version History table). If the section doesn't exist, create it below the badges/intro and above the first content heading, matching the README's existing heading level and tone.
 
-For `CHANGELOG.md`: if an "Unreleased" or `## [Unreleased]` header exists, rewrite it to `## [X.Y.Z] — YYYY-MM-DD` with today's date. Do NOT generate the CHANGELOG change list — that's the user's job. (Different from the README row, which IS auto-filled.)
+For the README **"Version History" table**: insert a NEW row at the top (or wherever the table is ordered to put the latest), with the new version, today's date if the table has a date column, and the `<br>`-joined highlights in the release-notes cell. Do NOT modify existing rows.
+
+For **`CHANGELOG.md`**: write a full entry for this release — `## [X.Y.Z] — YYYY-MM-DD` with today's date, followed by the Step 3 **full list** grouped by category. If an "Unreleased" or `## [Unreleased]` header exists, that entry becomes this one (retitle it and merge its existing bullets in — see Step 3). Follow the file's established formatting (Keep a Changelog style, link refs at the bottom, etc.) rather than imposing a new one; if the file maintains comparison links, add one for the new version. Do NOT rewrite past entries.
 
 ## Step 5 — Report
 
 Print:
 - Old version → New version
+- The `<since>` reference used and the commit count it spanned
 - Every file changed (path + the line that was updated)
 - Every version-shaped string found but DID NOT change (with reason — e.g. "looks like a library version, not the addon's version", "auto-derived CurseForge badge", "BigWigsMods @project-version@ substitution")
 - Reminder: tag the commit with `vX.Y.Z` if using the BigWigsMods packager (the packager picks the version up from the latest git tag)
@@ -92,6 +109,7 @@ Print:
 
 - **Don't commit.** The user reviews the diffs first.
 - **Don't tag.** Tagging is a deliberate user action.
-- **Don't write a CHANGELOG.md entry's body from scratch** — only rewrite an existing "Unreleased" header. If no CHANGELOG, don't create one. (The README Version History row's summary IS auto-generated — Step 3 — that's a different file with a different rule.)
-- **Don't modify existing Version History rows** — only add a new row for the new version.
+- **Don't create a CHANGELOG.md** that doesn't already exist — but if one does, fill in this release's entry in full (Step 3's full list).
+- **Don't modify existing Version History rows or past CHANGELOG entries** — only add the new version's row/entry.
+- **Don't let the generated text outrun the commits.** Every bullet in the CHANGELOG entry, the "What's new" section, and the Version History row must trace to a real change between `<since>` and HEAD. No aspirational or filler entries; if there's nothing since the last tag, say so and bump the version only.
 - **Don't bump the Interface version.** That's `/wow-addon:bump-interface`.

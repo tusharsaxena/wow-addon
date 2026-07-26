@@ -4,7 +4,7 @@
 
 A **Claude Code plugin** (not a WoW addon itself) that ships helpers for World of Warcraft addon development: standard-compliant scaffolding, compliance auditing, interface/version bumping, doc sync, test-battery running, GitHub issue listing/creation, git diff/commit, a CRLF hook, and a WoW-specific review subagent. Everything here is **Markdown command/agent specs + one Bash hook script + JSON manifests** — there is no compiled code and no test suite.
 
-Current version: **1.7.2** (in `.claude-plugin/plugin.json`).
+Current version: **1.8.0** (in `.claude-plugin/plugin.json`).
 
 ## Module/package map
 
