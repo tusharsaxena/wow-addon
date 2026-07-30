@@ -17,6 +17,8 @@ Discover what's present and run each applicable suite **in this order**, capturi
 2. **tests/ harness (headless Lua unit tests)** — the Ka0s standard's headless Lua 5.1 harness. Discover the runner (in order of preference): an explicit entry like `tests/run_tests.lua` / `tests/run.lua`, else `*_test.lua` / `*_spec.lua` files under `tests/`. Pick an interpreter, preferring `lua5.1` → `lua` → `luajit`. Run the harness and capture its pass/fail counts. If a `tests/` dir exists but no interpreter is found, mark **skipped** with the reason.
 3. **Makefile `test` target** — if a root `Makefile` defines a `test:` target, it is often the canonical entry point that already wraps lint + unit tests. **De-dup:** if `make test` clearly runs the same suites as 1–2, run `make test` **instead of** re-running those suites, and say so in the summary. If it does something additional (e.g. integration tests), run it as its own suite.
 
+**Not a suite: measurement runners.** `tests/perf.lua` — the Ka0s standard's offline performance scenario runner (`performance-§9`) — lives in `tests/` but is deliberately **outside the green gate**: it measures rather than verifies, and it asserts nothing about wall-clock time. **Do not** run it as part of the battery, count its scenarios as test cases, or fold its numbers into the pass/fail summary. If it exists, note in one line that it is available (`lua tests/perf.lua`) and move on. Same for any other runner the addon documents as non-gating.
+
 Run suites read-only — none of this edits addon code.
 
 ## Step 2 — Combined summary

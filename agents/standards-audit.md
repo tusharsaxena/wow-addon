@@ -43,6 +43,17 @@ Once fetched, **execute `AUDIT.md`'s steps exactly as written** against the addo
 
 If this list and the fetched `AUDIT.md` ever disagree, **the fetched playbook wins**; if the playbook and the standard's section files disagree on *what* to check, the standard wins.
 
+### Mechanical checks — run them, don't reason about them
+
+The playbook's evidence step calls for checks whose whole value is that they are **executed**. Run each and record the real command and output in `03_EVIDENCE.md`; never infer a result from the code looking reasonable, and never quietly skip one.
+
+- `luacheck .` and the addon's headless runner — report what you actually saw, including counts.
+- **Vendored Ka0s-owned library drift.** For each such library under `libs/` (a lib authored inside the collection rather than pulled from the ecosystem — the standard's library-stack section names them), diff the vendored copy against that library's **own source repo**: `diff -r <LibRepo>/<Lib> <AddonRepo>/libs/<Lib>`, which **MUST** be empty.
+  - **Finding the source repo.** The collection's repos are siblings, so look for `../<LibName>` relative to the addon repo root (e.g. `../LibKa0s` for `libs/LibKa0s/`), then its inner ship folder of the same name. Confirm it is that library's repo before diffing.
+  - **Reading a sibling repo is allowed** and does not breach the read-only rule below — that rule forbids *writing* outside `docs/audits/<date>/`, not reading a neighbour.
+  - If the sibling repo is absent on this machine, record the check as **not run**, with the path you looked for. An unverifiable check is reported as unverified, never as a pass.
+  - Why it earns a dedicated step: drift here is **invisible to both test suites** — the library's suite passes against the library, the addon's passes against its stale copy, and both repos stay green while the two diverge. No amount of reading either repo surfaces it; only the diff does.
+
 ## Output location and invariants
 
 - Write everything under the audited addon's own repo: `<REPO_ROOT>/docs/audits/<YYYY-MM-DD>/`. Get the date with `date +%Y-%m-%d`. Create the folder if absent.
