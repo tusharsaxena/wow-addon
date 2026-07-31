@@ -43,6 +43,16 @@ Once fetched, **execute `AUDIT.md`'s steps exactly as written** against the addo
 
 If this list and the fetched `AUDIT.md` ever disagree, **the fetched playbook wins**; if the playbook and the standard's section files disagree on *what* to check, the standard wins.
 
+### The shared subsystems are a library — audit the wiring, not the absence
+
+The debug console, the options toolkit, the slash dispatcher, the performance harness and the test framework are **`LibKa0s` modules**, not addon code. **Consuming the library is the compliant state; hand-rolling is the deviation** (anti-patterns #47). The commonest way this audit goes wrong is to grep the addon for a console/widget-maker/dispatcher implementation, not find one, and file a "missing feature" deviation against a correctly lib-consuming addon. Do not do that.
+
+- **An addon with no `modules/DebugLog.lua`, no widget-maker file, no dispatcher of its own is showing you evidence of compliance.** What it owns per module is a **descriptor** plus a **degradation stub**, in its setup file — the addon's `core/`-and-`settings/` setup files (`CoreSetup`, `DebugLogSetup`, `OptionsSetup`, the slash descriptor in the addon's slash file, `PerfSetup`) and `tests/_kit/` for the harness. Snapshot and cite **those**: the `LibStub("LibKa0s-<Module>-1.0", true)` lookup, the descriptor fields, the stub branch.
+- Never cite the library's own source as if it were the addon's implementation, and never re-audit the library here — it is audited in its own repo.
+- The deviation to raise is the opposite one: an addon carrying its own console window, widget makers/flow engine, dispatcher/parser or test framework, or a locally patched `libs/LibKa0s/`, is **#47**.
+- **Stub coverage.** For each setup file, grep the call sites for every member the addon reaches on the library instance and confirm the library-absent branch answers **all** of them — a stub missing one is a crash moved to a rarer code path. Two things **not** to misread as inconsistency: the **Options** stub is deliberately **load-completing rather than member-answering** (page files call members inside schema-row literals at file load, so it publishes real-enough load-time members and no-ops the rest) — that is the one documented exception, with its measured justification, and flagging it is a false positive; and a stub that omits a member *with the reason written down* is a decision, not a gap.
+- **Partial vendoring (#48).** `libs/LibKa0s/` must be the source repo's **whole ship folder**, not a hand-picked subset, and the TOC must list the single aggregate `libs\LibKa0s\LibKa0s.xml` once — never individual module `.lua` files. A folder missing files the ship folder has, or a TOC naming modules individually, is a deviation even when the addon works today: the majors it does not use today are not the ones that will break.
+
 ### Mechanical checks — run them, don't reason about them
 
 The playbook's evidence step calls for checks whose whole value is that they are **executed**. Run each and record the real command and output in `03_EVIDENCE.md`; never infer a result from the code looking reasonable, and never quietly skip one.
@@ -50,8 +60,12 @@ The playbook's evidence step calls for checks whose whole value is that they are
 - `luacheck .` and the addon's headless runner — report what you actually saw, including counts.
 - **Vendored Ka0s-owned library drift.** For each such library under `libs/` (a lib authored inside the collection rather than pulled from the ecosystem — the standard's library-stack section names them), diff the vendored copy against that library's **own source repo**: `diff -r <LibRepo>/<Lib> <AddonRepo>/libs/<Lib>`, which **MUST** be empty.
   - **Finding the source repo.** The collection's repos are siblings, so look for `../<LibName>` relative to the addon repo root (e.g. `../LibKa0s` for `libs/LibKa0s/`), then its inner ship folder of the same name. Confirm it is that library's repo before diffing.
+  - **For `LibKa0s` that is two diffs, both of which MUST be empty**, and both run over the **whole** folder — every module, not just the ones the addon wires:
+    - `diff -r <LibKa0sRepo>/LibKa0s <Addon>/libs/LibKa0s` — the ship payload.
+    - `diff -r <LibKa0sRepo>/testkit <Addon>/tests/_kit` — the vendored headless harness. `testkit/` sits at the library **repo root**, a sibling of the ship folder, and lands under the addon's `tests/`, **never** `libs/`, because it must not ship. A harness found under `libs/` is itself a deviation.
+  - **Reading the diff.** A non-empty diff is the evidence for an **anti-pattern #45** deviation (drifted vendored copy). A file *missing on the addon side* is the evidence for **#48** (partial vendoring) — call it that, not merely "drift".
   - **Reading a sibling repo is allowed** and does not breach the read-only rule below — that rule forbids *writing* outside `docs/audits/<date>/`, not reading a neighbour.
-  - If the sibling repo is absent on this machine, record the check as **not run**, with the path you looked for. An unverifiable check is reported as unverified, never as a pass.
+  - If the sibling repo is absent on this machine, record each check as **not run**, with the path you looked for. An unverifiable check is reported as unverified, never as a pass.
   - Why it earns a dedicated step: drift here is **invisible to both test suites** — the library's suite passes against the library, the addon's passes against its stale copy, and both repos stay green while the two diverge. No amount of reading either repo surfaces it; only the diff does.
 
 ## Output location and invariants

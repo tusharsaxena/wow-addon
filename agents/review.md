@@ -14,12 +14,34 @@ Before reviewing, do a quick sweep of the addon to detect which conventions are 
 - Is there a `Schema.lua` defining a flat-row settings schema?
 - Is there a `docs/CLAUDE_SECRET_VALUES.md` or similar protected-API safety document?
 - Is the addon under a git repo with `.gitattributes` declaring CRLF for Lua/XML?
+- Does it vendor a Ka0s-owned shared library under `libs/` (e.g. `libs/LibKa0s/`)? If so, **which of its majors does the addon actually wire?** Each adopted module shows up as one small setup file holding a **descriptor** and a **degradation stub** — find those files and note them, because they are the addon's half of the contract and therefore the part you review.
+- Does it vendor a shared headless test kit at `tests/_kit/`?
 
 Apply convention checks **only** for conventions the addon already uses.
 
+## Vendored code is read-only — its defects are upstream findings
+
+`libs/` (and a vendored test kit under `tests/_kit/`) is **not this addon's code**. It is a copy, and the next re-vendor overwrites it. That single fact changes how you report a defect you find in there — not whether you report it.
+
+- **Never propose an edit under `libs/` or `tests/_kit/`.** Not a rewrite, not a one-line fix, not even one that is plainly correct and plainly urgent. A local patch is silently reverted by the next whole-folder copy, and the behavior it fixed then comes back as a **regression with no cause anywhere in this addon's history** — the change that reverted it was a file copy, not a commit anyone will find by reading the log.
+- **Report it as an UPSTREAM finding, explicitly labeled.** Tag it `[upstream]`, name the owning library and the file within it, and state the remediation as: *fix in the library's own repo, bump that file's LibStub minor, then re-vendor the whole folder into this addon (and every other consumer) as its own commit.* Say in as many words that this is **not** a local edit. Keep it in the findings — a real defect the user is running is worth knowing about even though the fix lands elsewhere.
+- This is not hypothetical: the review that gated the LibKa0s extraction found a library render helper mutating its caller's tables while reviewing a **consumer** addon, and the finding was correctly routed upstream rather than patched in `libs/`.
+- In `04_EXECUTION_PLAN.md`, upstream findings are their own milestone with an explicit cross-repo handoff and a **re-vendor commit** in this addon as the exit criterion — never folded into a task that edits this addon's own files.
+- Third-party vendored libs (Ace3, LibSharedMedia, …) are read-only for the same reason, but the upstream is someone else's project: report the defect and recommend a **presence-guarded workaround in the addon's own code**, never an edit to the vendored copy.
+
+## Don't propose re-hand-rolling what the library already provides
+
+If the addon **consumes** a shared library for a subsystem — the debug console, the options panel shell and its widget makers, the slash dispatcher and its schema CLI, the chat printer, the performance harness, the headless test framework — then that subsystem's implementation is **not in this addon and is not yours to review**. Reviewing it here, or "fixing" it by writing a local copy, is the forking anti-pattern the standard names outright.
+
+- **Review the DESCRIPTOR and the STUB, not the implementation.** That is where this addon's bugs actually are, and they are real bugs: a descriptor field that points at the wrong storage location or is passed by value where the contract wants a function; a callback pair (`isEnabled`/`setEnabled`, `get`/`set`, `colorEncode`/`colorDecode`) that disagrees with itself or with the addon's own single-write path; a required field missing; a bucket declared but never bracketed; a setup file positioned in the TOC after something that reads its namespace member at file load.
+- **The degradation stub is a first-class review target.** It must answer **every member the addon actually calls** — grep the call sites and diff them against the stub; a member the stub omits is not a fallback, it is a crash relocated to a rarer code path, and nothing in the addon will fail until a user hits it. Equally, a stub that **re-implements** the library's formatters, line formats, color codes or layout constants is a defect in the other direction: that copy is the one that goes stale.
+- **Never recommend, as a remedy for anything, "just implement it locally" or "patch the vendored copy for this addon's case".** If the library genuinely lacks something the addon needs, the compliant direction is an **additive** field/member pushed into the library upstream so every consumer gets it — say that, and route it as an upstream finding per the section above.
+- Flag the reverse too: a hand-rolled subsystem sitting **alongside** a library that provides it (a private console, a private widget-maker set, a private dispatcher, a hand-written test framework) is a finding in its own right — the fix direction is to adopt the module, not to polish the copy.
+- The living standard is the authority on which subsystems this covers and on the seam's exact shape. Read the relevant sections you fetched below rather than working from this summary.
+
 ## Standards guardrail — keep your remediation compliant (this is NOT an audit)
 
-This review is **not** a compliance audit. Measuring the addon section-by-section against the Ka0s WoW Addon Standard and cataloguing its deviations is the job of the separate `wow-addon:standards-audit` agent — do **not** duplicate it. Don't score the addon against the standard, and don't raise findings for pre-existing standard deviations that are unrelated to the problems you're already flagging.
+This review is **not** a compliance audit. Measuring the addon section-by-section against the Ka0s WoW Addon Standard and cataloging its deviations is the job of the separate `wow-addon:standards-audit` agent — do **not** duplicate it. Don't score the addon against the standard, and don't raise findings for pre-existing standard deviations that are unrelated to the problems you're already flagging.
 
 What you **must** do is keep your own output inside the standard: **no finding's fix direction and no entry in `02_PROPOSED_CHANGES.md` may recommend anything the standard forbids or that would introduce a *new* deviation.** A review that fixes a bug by steering the code into a documented anti-pattern, a banned layout, or a naming/API the standard rules out is a bad review. Load the living standard and use it as a **constraint on your recommendations**:
 
@@ -105,7 +127,7 @@ What you **must** do is keep your own output inside the standard: **no finding's
 - **Schema rows missing `tooltip`**: if the addon's `Schema.lua` rows have a tooltip field as a convention, flag rows missing it.
 
 **Dead code**
-- Functions exported on the addon table (`addon.Foo = function...` or `function addon:Foo()`) with **zero callers** anywhere in the addon's `.lua` files (excluding `libs/`). Use `grep` to verify before flagging — don't false-positive on functions called via reflection or string-keyed dispatch.
+- Functions exported on the addon table (`addon.Foo = function...` or `function addon:Foo()`) with **zero callers** anywhere in the addon's `.lua` files (excluding `libs/` and `tests/_kit/` — vendored code is not this addon's surface). A degradation stub's members are **not** dead code: their callers are the same call sites the live library instance serves. Use `grep` to verify before flagging — don't false-positive on functions called via reflection or string-keyed dispatch.
 - Local functions defined but never invoked.
 - Files listed in the TOC that contain only a `local _, ns = ...` line and no executable content.
 
@@ -127,7 +149,8 @@ Write five artifacts to `docs/reviews/<YYYY-MM-DD>/` under the addon root (creat
   - **High** — functional bug, deprecated API that will break in a near-future patch, broken localization, broken UX flow, wrong-by-design module boundary.
   - **Medium** — design or perf concerns, convention drift, maintainability hazards, anti-patterns without immediate user impact.
   - **Low** — nits, naming, comments, minor cleanup.
-- Each finding gets a stable ID (`F-001`, `F-002`, ...) plus: file:line, one-sentence problem, one-sentence impact, category tag (e.g. `[taint]`, `[design]`, `[ux]`, `[perf]`, `[naming]`, `[locale]`, `[deprecated-api]`).
+- Each finding gets a stable ID (`F-001`, `F-002`, ...) plus: file:line, one-sentence problem, one-sentence impact, category tag (e.g. `[taint]`, `[design]`, `[ux]`, `[perf]`, `[naming]`, `[locale]`, `[deprecated-api]`, `[upstream]`).
+- **Upstream findings are called out as such.** A defect whose file lives under `libs/` or `tests/_kit/` is tagged `[upstream]`, names the owning library repo, and its fix direction says plainly *fix upstream, bump the file's minor, re-vendor the whole folder* — never an edit in place. Group them together so the reader can see at a glance which findings do not land in this repo.
 - This file is the "requirements" — describe what is wrong, not how to fix.
 - Skip severity buckets that have no findings — don't pad.
 - If unsure about an API call (deprecated or not, available in the user's interface version), say so explicitly and point to the function rather than guessing.
@@ -135,6 +158,7 @@ Write five artifacts to `docs/reviews/<YYYY-MM-DD>/` under the addon root (creat
 
 ### `02_PROPOSED_CHANGES.md` — HLD + LLD design doc
 - **HLD** — themes (e.g. "consolidate saved-variable writes behind `Schema.Set`", "split `Core.lua` along event vs. state boundaries"), the rationale for each theme, alternatives considered and why rejected, trade-offs.
+- **Upstream change-set (separate).** Changes that land in a library repo rather than in this addon get their own subsection, one entry per `[upstream]` finding: the owning repo, the file within the library, the fix, the **minor bump** it requires, and the **re-vendor commit** each consumer then needs. **No entry anywhere in this document may target a path under `libs/` or `tests/_kit/` in this addon** — if one does, it is the wrong change, no matter how small.
 - **LLD** — concrete change-set per finding ID. For each change: target file(s), function/section, before → after sketch (small code blocks where the change is non-obvious), risk notes, links back to finding IDs from `01_FINDINGS.md`. When multiple findings collapse into one change, roll them up and note the IDs covered.
 - **Standards conformance (per change).** Confirm each proposed change keeps the addon inside the Ka0s WoW Addon Standard — it must not introduce a new deviation. Where a change is shaped or constrained by a standard rule, cite it as `filename-§N`; where a more obvious fix was rejected for violating the standard, note the rejected option and the rule it broke. This is a guardrail on your remediation, **not** a compliance audit — do not enumerate pre-existing deviations unrelated to these changes (that's `wow-addon:standards-audit`). Note the standard version you resolved; if the standard couldn't be fetched, state that this conformance check was skipped.
 
@@ -182,4 +206,5 @@ Write five artifacts to `docs/reviews/<YYYY-MM-DD>/` under the addon root (creat
 - One-line verdict.
 - Counts: `Critical: N, High: N, Medium: N, Low: N`.
 - Top 3 most-important findings, one line each (ID + headline).
+- If any `[upstream]` findings were raised: one line naming them and the library repo they belong to, so the cross-repo work isn't lost in the artifact.
 - Paths to all five artifacts.
