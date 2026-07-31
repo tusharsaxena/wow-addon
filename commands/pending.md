@@ -139,13 +139,19 @@ Write `docs/pending/LEDGER.md` (create `docs/pending/` if needed). Merge with th
 
 Format: a header explaining what the file is and that `/wow-addon:pending` maintains it, then one table with columns **ID | Evidence hash | Source | Decision | Date | Rationale**.
 
-`Decision` is exactly one of:
+`Decision` is exactly one of the three values below, written as **marker + value** (`🟢 done`) so the column scans visually as well as textually:
 
-| Value | Meaning | Re-surfaces? |
-|---|---|---|
-| `done` | Implemented this run | No — closed |
-| `wont-do` | User decided it will never be done | No — closed |
-| `deferred` | Not now; still on the books | Yes, as a collapsed count |
+| Marker | Value | Meaning | Re-surfaces? |
+|---|---|---|---|
+| 🟢 | `done` | Implemented this run | No — closed |
+| 🔵 | `wont-do` | User decided it will never be done | No — closed |
+| 🟡 | `deferred` | Not now; still on the books | Yes, as a collapsed count |
+
+The colours are chosen to read at a glance: **green** = resolved, the good outcome; **blue** = a deliberate, settled close (cool and final rather than alarming — declining to do something isn't a failure); **yellow** = the only row type still demanding attention, so a column of yellow is the file telling you what's left. There is deliberately **no red**: nothing in this ledger is an error state.
+
+Always write both the marker and the word. The marker alone is unreadable to a screen reader, fails on terminals without emoji support, and is invisible to a `grep wont-do` — the word is the data, the marker is the affordance. Never introduce a fourth marker or recolour an existing one; a reader who has learned the three should never have to re-learn them.
+
+Reproduce this legend in the ledger file itself, immediately above the table, so `LEDGER.md` explains its own notation to anyone who opens it without ever having run the command.
 
 `Rationale` is the user's reason in one line — their words where they gave them. For `wont-do` the rationale is the most valuable column in the file: it's what stops a future reader (or a future agent) from re-opening a settled question. Never leave it blank; if the user gave no reason, write what you understood their reason to be and mark it as inferred.
 
