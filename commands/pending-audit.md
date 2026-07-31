@@ -137,7 +137,7 @@ When the edits are in, run the test battery if the addon has one — luacheck, t
 
 Write `docs/pending/LEDGER.md` (create `docs/pending/` if needed). Merge with the existing file — never clobber rows for items outside this run.
 
-Format: a header explaining what the file is and that `/wow-addon:pending` maintains it, then one table with columns **ID | Evidence hash | Source | Decision | Date | Rationale**.
+Format: a header explaining what the file is and that `/wow-addon:pending-audit` maintains it, then one table with columns **ID | Evidence hash | Source | Decision | Date | Rationale**.
 
 `Decision` is exactly one of the three values below, written as **marker + value** (`🟢 done`) so the column scans visually as well as textually:
 
