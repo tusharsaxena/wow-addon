@@ -1,5 +1,5 @@
 ---
-description: Sweep the addon for everything still hanging — TODO/FIXME markers, unexecuted audit and review plan items, doc open questions, stale CHANGELOG entries, open GitHub issues, and recorded-but-unacted Claude memory — then bucketize by type and severity, interview you one item at a time (every item can be deferred or closed as "will not do"), and implement what you accept. Records decisions in docs/pending/LEDGER.md so deferrals stay quiet and closed items never come back.
+description: Sweep the addon for everything still hanging — TODO/FIXME markers, unexecuted audit and review plan items, doc open questions, stale CHANGELOG entries, open GitHub issues, and recorded-but-unacted Claude memory — then bucketize by type and severity, interview you one item at a time (every item can be deferred — ledger only or ledger plus a filed GitHub issue — or closed as "will not do"), and implement what you accept. Records decisions in docs/pending/LEDGER.md so deferrals stay quiet and closed items never come back.
 argument-hint: [code|docs|issues|memory|<path>]
 allowed-tools: [Read, Glob, Grep, Bash, Edit, Write, AskUserQuestion]
 ---
@@ -51,7 +51,7 @@ Older audit/review bundles are frozen history; don't re-litigate them. If the ne
 
 ### 1c. Git and GitHub
 
-- `gh issue list --state open --limit 100` — one item per open issue. If `gh` is missing, unauthenticated, or the repo has no GitHub remote, **skip this sweep and say so in the report**; it is not a failure.
+- `gh issue list --state open --limit 100` — one item per open issue. Keep the numbers; Step 2 needs them to recognise issues this command filed on an earlier run. If `gh` is missing, unauthenticated, or the repo has no GitHub remote, **skip this sweep and say so in the report**; it is not a failure.
 - `git stash list` — each stash is unfinished work
 - `git status --porcelain` — uncommitted changes in the working tree
 - `git log --oneline -50` — subjects/bodies containing `follow-up`, `followup`, `temporary`, `revert later`, `part 1`, `WIP`, `first pass`
@@ -80,14 +80,32 @@ Classify each item on two axes.
 **Ledger reconciliation.** For each item, look for a `docs/pending/LEDGER.md` row with the same ID *and* the same evidence hash:
 - match found, decision was `done` or `wont-do` → **drop it entirely.** It is closed. Don't list it, don't count it, don't mention it in the report. These two are terminal: the work happened, or the user decided it never will. Either way it is no longer pending and must not surface again.
 - match found, decision was `deferred` → file under **Previously deferred**; don't interview it. Deferral is *not* terminal — it's a "not now", so it stays visible as a collapsed count.
+- match found, decision was `untriaged` → **interview it in full, as if new.** Nobody has ever been asked about this item; the row only records that it was seen. Don't collapse it, don't count it as previously deferred, and don't let its age imply it was considered and passed over.
 - ID matches but hash differs → the item changed since the decision, including if that decision was `done` or `wont-do`. Interview it, and say in the question that it was previously decided, what the decision was, and that the evidence has since changed.
 - no match → new item, interview it
 
 The distinction that matters: **`deferred` keeps an item alive and quiet; `wont-do` kills it.** If a user has to keep re-declining the same thing, the command is broken.
 
+**Issue-linked items are one item, not two.** An issue this command filed comes back through sweep 1c on the next run as an `ISS-NN` item — the same pending work wearing a different hat. Before listing any issue from 1c, check whether its number appears in a ledger row's `Issue` column. If it does, **drop the `ISS` item** and keep only the original row, which already carries the real evidence and location; the issue is a pointer to it, not a second thing to decide. The same applies when 1c finds an issue that a `wont-do` row links: it's closed, so it doesn't surface, even though it's still open on GitHub.
+
+Getting this wrong is the most likely way this command becomes annoying: a user defers something with an issue, and next run gets asked about it twice.
+
 Print the inventory as a table grouped by severity (Critical first), showing ID, type, location, and a one-line summary — plus a collapsed count line for **Previously deferred**. Do not print the full evidence for every item here; that's noise. Print evidence when you interview the item.
 
 If the sweep found nothing, say so plainly and stop. That's a good outcome, not a failed run.
+
+## Step 2.5 — Interview now, or just the inventory?
+
+With the inventory on screen, ask once — plainly, not as a `AskUserQuestion` ceremony:
+
+> "N items found. Want to go through them now, or take the inventory and stop here?"
+
+The analysis has value on its own. Someone running this to see where a project stands is not necessarily ready to spend twenty decisions on it, and a command that forces the interview to get the list trains people not to run it.
+
+- **Yes, interview** → Step 3 as normal.
+- **No, inventory only** → skip Steps 3, 3.5 and 4 entirely. **Change nothing in the addon.** Record every uninterviewed item in the ledger as `untriaged` (Step 5), then print the report (Step 6). Say clearly in the report that no decisions were recorded and nothing was implemented, and that re-running picks up exactly where this left off.
+
+The point of writing `untriaged` rows rather than nothing: the ledger becomes a durable inventory with evidence hashes attached, so the next run can tell what's genuinely new from what was already seen. It is **not** a decision and must never be treated as one.
 
 ## Step 3 — Interview
 
@@ -95,10 +113,23 @@ One item at a time, **most severe first**, using `AskUserQuestion`. Never batch.
 
 For each item, show its verbatim evidence and location, then offer:
 - **2–3 concrete resolution options specific to that item.** Not "fix it" / "don't fix it" — say what fixing it means here. For a stub function: implement it / delete it and its callers / leave the stub and document the limitation. For an unexecuted audit deviation: apply the remediation the bundle already designed / apply a different fix you describe / accept the deviation.
-- **"Defer for now"** — always present, second-to-last. A "not now": the item stays on the books and reappears as a collapsed line next run. Note what deferring costs (nothing, usually; say so if it's not nothing).
+- **"Defer — ledger only"** — always present. A "not now" recorded in `LEDGER.md` and nowhere else: the item stays on the books and reappears as a collapsed line next run. Invisible outside this repo's working copy.
+- **"Defer — ledger + file a GitHub issue"** — always present. Same deferral, but the item also becomes a tracked issue so it's visible to anyone who doesn't run this command. Use it for work that needs to outlive the local ledger or be picked up by someone else.
 - **"Will not do"** — always present, always last. A permanent close: the item is never raised again. Say plainly in the option text that this is permanent, and say what stays behind if they pick it (the TODO comment still sits in the code, the deviation stays in the frozen audit bundle, the issue stays open on GitHub) so the choice is made with eyes open.
 
 The user can always answer free-text instead of picking. If they do, take their answer over your options.
+
+### Filing the issue on a "ledger + issue" deferral
+
+Both deferrals record the same `deferred` decision. The second one additionally files an issue, via `gh`:
+
+1. **Check for an existing issue first.** You already listed the open issues in sweep 1c. If one clearly covers this item, **don't file a duplicate** — link the existing number into the ledger row and say so. Filing a second issue for the same thing is worse than filing none.
+2. **Draft it, show it, then create it.** Title from the item's one-line summary; body carrying the verbatim evidence, the `file:line` location, the severity and its justification, and the pending-audit item ID. Show the draft and get approval before it goes up, the same way `/wow-addon:add-issue` does — an issue is public and other people get notified.
+3. **Record the number** in the ledger row's `Issue` column.
+
+If `gh` is missing, unauthenticated, or the repo has no GitHub remote, **don't offer this option at all** — offer plain "Defer — ledger only" and say in one line why the issue variant isn't available. Never present an option that can't be carried out.
+
+If the user picks this option and issue creation then fails, the deferral still stands: write the ledger row with an empty `Issue`, and report the failure. Losing the decision because a network call failed would be the worse outcome.
 
 ### Follow-through on "will not do"
 
@@ -112,7 +143,7 @@ Never bundle these into the main decision. Ask separately, accept a plain no, an
 
 ### Stopping early
 
-If the user says to stop interviewing partway through, treat every un-interviewed item as **deferred** — never as `wont-do`. Silence is "not now", not "never". Then go to Step 4 with what you have.
+If the user says to stop interviewing partway through, record every un-interviewed item as **`untriaged`** — never `wont-do`, never `deferred`, and never with an issue filed. They weren't declined or postponed; they were never asked, so they come back in full next run. Silence is not a decision, and it is certainly not consent to publish something. Then go to Step 4 with the answers you did get.
 
 ## Step 3.5 — Branch decision
 
@@ -137,7 +168,9 @@ When the edits are in, run the test battery if the addon has one — luacheck, t
 
 Write `docs/pending/LEDGER.md` (create `docs/pending/` if needed). Merge with the existing file — never clobber rows for items outside this run.
 
-Format: a header explaining what the file is and that `/wow-addon:pending-audit` maintains it, then one table with columns **ID | Evidence hash | Source | Decision | Date | Rationale**.
+Format: a header explaining what the file is and that `/wow-addon:pending-audit` maintains it, then one table with columns **ID | Evidence hash | Source | Decision | Issue | Date | Rationale**.
+
+`Issue` holds the GitHub issue number (`#42`) when the item was deferred with an issue filed, or when an existing issue was found to already cover it — otherwise `—`. It is what stops the item being counted twice; see the reconciliation rule in Step 2.
 
 `Decision` is exactly one of the three values below, written as **marker + value** (`🟢 done`) so the column scans visually as well as textually:
 
@@ -145,15 +178,18 @@ Format: a header explaining what the file is and that `/wow-addon:pending-audit`
 |---|---|---|---|
 | 🟢 | `done` | Implemented this run | No — closed |
 | 🔵 | `wont-do` | User decided it will never be done | No — closed |
-| 🟡 | `deferred` | Not now; still on the books | Yes, as a collapsed count |
+| 🟡 | `deferred` | Decided: not now. Still on the books | Yes, as a collapsed count |
+| ⚪ | `untriaged` | Found, never put to the user | Yes — interviewed in full next run |
 
-The colours are chosen to read at a glance: **green** = resolved, the good outcome; **blue** = a deliberate, settled close (cool and final rather than alarming — declining to do something isn't a failure); **yellow** = the only row type still demanding attention, so a column of yellow is the file telling you what's left. There is deliberately **no red**: nothing in this ledger is an error state.
+Three of these are decisions; `untriaged` is the absence of one, which is why it's the only value that gets fully re-interviewed rather than collapsed. Never let a `untriaged` row read as agreement to anything.
 
-Always write both the marker and the word. The marker alone is unreadable to a screen reader, fails on terminals without emoji support, and is invisible to a `grep wont-do` — the word is the data, the marker is the affordance. Never introduce a fourth marker or recolour an existing one; a reader who has learned the three should never have to re-learn them.
+The colours are chosen to read at a glance: **green** = resolved, the good outcome; **blue** = a deliberate, settled close (cool and final rather than alarming — declining to do something isn't a failure); **yellow** = decided but outstanding; **white** = nothing has happened here yet. There is deliberately **no red**: nothing in this ledger is an error state.
+
+Always write both the marker and the word. The marker alone is unreadable to a screen reader, fails on terminals without emoji support, and is invisible to a `grep wont-do` — the word is the data, the marker is the affordance. These four are the whole vocabulary: don't add a fifth and don't recolour an existing one, because a reader who has learned them should never have to re-learn them.
 
 Reproduce this legend in the ledger file itself, immediately above the table, so `LEDGER.md` explains its own notation to anyone who opens it without ever having run the command.
 
-`Rationale` is the user's reason in one line — their words where they gave them. For `wont-do` the rationale is the most valuable column in the file: it's what stops a future reader (or a future agent) from re-opening a settled question. Never leave it blank; if the user gave no reason, write what you understood their reason to be and mark it as inferred.
+`Rationale` is the user's reason in one line — their words where they gave them. For `untriaged` there is no reason to give: write why it wasn't asked (`inventory-only run`, `interview stopped early`) so the row can't be misread as a considered judgment. For `wont-do` the rationale is the most valuable column in the file: it's what stops a future reader (or a future agent) from re-opening a settled question. Never leave it blank; if the user gave no reason, write what you understood their reason to be and mark it as inferred.
 
 The two closed states are load-bearing. Getting a row's decision wrong means either losing real work (`wont-do` on something the user wanted) or nagging them forever (`deferred` on something they closed). If you're unsure which the user meant, ask rather than guess.
 
@@ -162,7 +198,8 @@ The two closed states are load-bearing. Getting a row's decision wrong means eit
 Print:
 - **Implemented** — item ID, what changed, files touched
 - **Will not do** — item ID and reason, plus any follow-through taken (marker rewritten, issue closed). Show these once, here, so the user can see what they just closed permanently — then never again.
-- **Deferred** — item ID and one-line reason (including anything auto-deferred by an early stop)
+- **Deferred** — item ID and one-line reason (including anything auto-deferred by an early stop). Mark which ones had an issue filed and give the number and URL, so the user can see exactly what went public this run. If an existing issue was reused rather than a new one filed, say so.
+- **Untriaged** — count, plus the severity spread (e.g. "2 Critical, 5 Medium"). On the inventory-only path this is the whole report, so make it useful: state plainly that no decisions were recorded, nothing was implemented, and re-running resumes from here.
 - **Previously deferred** — count only, with a pointer to the ledger
 - **Skipped sweeps** — any source that couldn't run (no `gh`, no memory dir, no audit bundle) and why
 - **Blocked** — anything accepted but not implementable, with what stopped you
@@ -176,6 +213,7 @@ Print:
 - **Don't act on an item the user didn't accept.** Deferring and "will not do" are real answers; both leave the code untouched unless the user separately opted into a follow-through tidy-up.
 - **Don't resurrect closed items.** A `done` or `wont-do` ledger row with a matching evidence hash means the question is settled. Don't surface it, don't count it, don't "just check in" about it. The only thing that re-opens it is the evidence itself changing.
 - **Don't infer "will not do" from silence.** Only a user explicitly choosing it makes an item `wont-do`. An early stop, a skipped question, or an ambiguous answer is `deferred`.
+- **Don't file an issue the user didn't ask for.** Only the "ledger + issue" option creates one, only after the draft is approved, and never as a default, a batch, or a consolation prize for an item nobody got to.
 - **Don't invent pending items.** Every item traces to verbatim evidence at a real location. If you think something *should* be done but nothing in the repo, docs, issues, or memory says so, that's your opinion — leave it out, or raise it once in the report under a clearly labelled "Not a pending item, but noticed" line.
 - **Don't edit frozen artifacts.** `docs/audits/<date>/` and `docs/reviews/<date>/` bundles are history. Implement their unexecuted items in the code; leave the bundles as written.
 - **Don't re-interview settled items.** The ledger exists so a deferral means something.
