@@ -1,5 +1,5 @@
 ---
-description: Sweep the addon for everything still hanging — TODO/FIXME markers, unexecuted audit and review plan items, doc open questions, stale CHANGELOG entries, open GitHub issues, and recorded-but-unacted Claude memory — then bucketize by type and severity, interview you one item at a time (every item can be deferred), and implement what you accept. Records decisions in docs/pending/LEDGER.md so deferrals don't re-surface.
+description: Sweep the addon for everything still hanging — TODO/FIXME markers, unexecuted audit and review plan items, doc open questions, stale CHANGELOG entries, open GitHub issues, and recorded-but-unacted Claude memory — then bucketize by type and severity, interview you one item at a time (every item can be deferred or closed as "will not do"), and implement what you accept. Records decisions in docs/pending/LEDGER.md so deferrals stay quiet and closed items never come back.
 argument-hint: [code|docs|issues|memory|<path>]
 allowed-tools: [Read, Glob, Grep, Bash, Edit, Write, AskUserQuestion]
 ---
@@ -78,10 +78,12 @@ Classify each item on two axes.
 - `Low` — polish, naming, cosmetic, speculative-future notes
 
 **Ledger reconciliation.** For each item, look for a `docs/pending/LEDGER.md` row with the same ID *and* the same evidence hash:
-- match found, decision was `deferred` → file under **Previously deferred**; do not interview
-- match found, decision was `done` / `rejected` → drop it entirely; it's settled
-- ID matches but hash differs → the item changed since the decision. Interview it, and say in the question that it was previously decided and has since changed.
+- match found, decision was `done` or `wont-do` → **drop it entirely.** It is closed. Don't list it, don't count it, don't mention it in the report. These two are terminal: the work happened, or the user decided it never will. Either way it is no longer pending and must not surface again.
+- match found, decision was `deferred` → file under **Previously deferred**; don't interview it. Deferral is *not* terminal — it's a "not now", so it stays visible as a collapsed count.
+- ID matches but hash differs → the item changed since the decision, including if that decision was `done` or `wont-do`. Interview it, and say in the question that it was previously decided, what the decision was, and that the evidence has since changed.
 - no match → new item, interview it
+
+The distinction that matters: **`deferred` keeps an item alive and quiet; `wont-do` kills it.** If a user has to keep re-declining the same thing, the command is broken.
 
 Print the inventory as a table grouped by severity (Critical first), showing ID, type, location, and a one-line summary — plus a collapsed count line for **Previously deferred**. Do not print the full evidence for every item here; that's noise. Print evidence when you interview the item.
 
@@ -93,11 +95,24 @@ One item at a time, **most severe first**, using `AskUserQuestion`. Never batch.
 
 For each item, show its verbatim evidence and location, then offer:
 - **2–3 concrete resolution options specific to that item.** Not "fix it" / "don't fix it" — say what fixing it means here. For a stub function: implement it / delete it and its callers / leave the stub and document the limitation. For an unexecuted audit deviation: apply the remediation the bundle already designed / apply a different fix you describe / accept the deviation.
-- **"Defer for now"** — always present, always last, with a note on what deferring costs (nothing, usually; say so if it's not nothing).
+- **"Defer for now"** — always present, second-to-last. A "not now": the item stays on the books and reappears as a collapsed line next run. Note what deferring costs (nothing, usually; say so if it's not nothing).
+- **"Will not do"** — always present, always last. A permanent close: the item is never raised again. Say plainly in the option text that this is permanent, and say what stays behind if they pick it (the TODO comment still sits in the code, the deviation stays in the frozen audit bundle, the issue stays open on GitHub) so the choice is made with eyes open.
 
 The user can always answer free-text instead of picking. If they do, take their answer over your options.
 
-If the user says to stop interviewing partway through, treat every un-interviewed item as deferred and go straight to Step 4 with what you have.
+### Follow-through on "will not do"
+
+The ledger alone is enough to stop the item re-surfacing, so **no further action is required** and none is taken by default. But a dead marker left in the code is a trap for the next reader, so where there's an obvious tidy-up, offer it as a single yes/no follow-up:
+
+- **code marker** → remove the `TODO`/`FIXME`, or rewrite it as a statement of intent (`-- Deliberately not handled: <reason>`). Prefer rewriting over deleting when the comment explains a real constraint.
+- **doc entry** (Known Limitations, `Unreleased`, `TODO.md`) → leave it if it documents a genuine limitation; remove it if it only tracked intent to change.
+- **open GitHub issue** → offer to close it with a comment explaining the decision. **Requires explicit confirmation** — closing someone's issue is outward-facing and visible to others. Default is no: the ledger already keeps it from re-surfacing locally.
+
+Never bundle these into the main decision. Ask separately, accept a plain no, and record the answer in the ledger's rationale.
+
+### Stopping early
+
+If the user says to stop interviewing partway through, treat every un-interviewed item as **deferred** — never as `wont-do`. Silence is "not now", not "never". Then go to Step 4 with what you have.
 
 ## Step 3.5 — Branch decision
 
@@ -122,14 +137,26 @@ When the edits are in, run the test battery if the addon has one — luacheck, t
 
 Write `docs/pending/LEDGER.md` (create `docs/pending/` if needed). Merge with the existing file — never clobber rows for items outside this run.
 
-Format: a header explaining what the file is and that `/wow-addon:pending` maintains it, then one table with columns **ID | Evidence hash | Source | Decision | Date | Rationale**. `Decision` is `done`, `deferred`, or `rejected`. `Rationale` is the user's reason in one line — their words where they gave them.
+Format: a header explaining what the file is and that `/wow-addon:pending` maintains it, then one table with columns **ID | Evidence hash | Source | Decision | Date | Rationale**.
+
+`Decision` is exactly one of:
+
+| Value | Meaning | Re-surfaces? |
+|---|---|---|
+| `done` | Implemented this run | No — closed |
+| `wont-do` | User decided it will never be done | No — closed |
+| `deferred` | Not now; still on the books | Yes, as a collapsed count |
+
+`Rationale` is the user's reason in one line — their words where they gave them. For `wont-do` the rationale is the most valuable column in the file: it's what stops a future reader (or a future agent) from re-opening a settled question. Never leave it blank; if the user gave no reason, write what you understood their reason to be and mark it as inferred.
+
+The two closed states are load-bearing. Getting a row's decision wrong means either losing real work (`wont-do` on something the user wanted) or nagging them forever (`deferred` on something they closed). If you're unsure which the user meant, ask rather than guess.
 
 ## Step 6 — Report
 
 Print:
 - **Implemented** — item ID, what changed, files touched
+- **Will not do** — item ID and reason, plus any follow-through taken (marker rewritten, issue closed). Show these once, here, so the user can see what they just closed permanently — then never again.
 - **Deferred** — item ID and one-line reason (including anything auto-deferred by an early stop)
-- **Rejected** — item ID and reason
 - **Previously deferred** — count only, with a pointer to the ledger
 - **Skipped sweeps** — any source that couldn't run (no `gh`, no memory dir, no audit bundle) and why
 - **Blocked** — anything accepted but not implementable, with what stopped you
@@ -140,7 +167,9 @@ Print:
 
 - **Don't commit.** Committing is `/wow-addon:commit`'s job.
 - **Don't bump the version.** That's `/wow-addon:bump-version`'s job, even if an accepted item is about the version.
-- **Don't act on an item the user didn't accept.** Deferring is a real answer; a deferred item is untouched code.
+- **Don't act on an item the user didn't accept.** Deferring and "will not do" are real answers; both leave the code untouched unless the user separately opted into a follow-through tidy-up.
+- **Don't resurrect closed items.** A `done` or `wont-do` ledger row with a matching evidence hash means the question is settled. Don't surface it, don't count it, don't "just check in" about it. The only thing that re-opens it is the evidence itself changing.
+- **Don't infer "will not do" from silence.** Only a user explicitly choosing it makes an item `wont-do`. An early stop, a skipped question, or an ambiguous answer is `deferred`.
 - **Don't invent pending items.** Every item traces to verbatim evidence at a real location. If you think something *should* be done but nothing in the repo, docs, issues, or memory says so, that's your opinion — leave it out, or raise it once in the report under a clearly labelled "Not a pending item, but noticed" line.
 - **Don't edit frozen artifacts.** `docs/audits/<date>/` and `docs/reviews/<date>/` bundles are history. Implement their unexecuted items in the code; leave the bundles as written.
 - **Don't re-interview settled items.** The ledger exists so a deferral means something.
