@@ -1,30 +1,41 @@
 ---
-description: Finish a changeset that spans several sibling repos — sync docs, commit, merge any feature branch to master, push, and delete the branch, in each repo, in dependency order. Detects which repos changed; a vendored shared library is always finalized before its consumers.
-argument-hint: [repo names or paths, space-separated]  |  omit to auto-detect changed siblings
+description: Finish a changeset — sync docs, commit, merge any feature branch to master, push, and delete the branch. Works on the current repo alone or on several sibling repos in dependency order; establishes which by evidence and asks when the scope is not certain.
+argument-hint: [repo names or paths, space-separated | "here" for this repo only]  |  omit to establish scope
 allowed-tools: [Bash, Read, Glob, Grep, Edit, Write, Task, Skill]
 ---
 
-Finish a piece of work that touched **more than one repository** — the case a per-repo commit command cannot handle, because the repos have to land in the right order and each one still needs its own docs synced and its own gate run.
+Finish a piece of work: get it synced, gated, committed, merged and **pushed**. The changeset may live in one repo or span several sibling repos — this command handles both, and the first thing it does is establish which.
 
-Per repo, in this order: `/wow-addon:sync-docs` → `/wow-addon:commit` → merge any feature branch to `master` → push to origin → delete the branch. Repos that depend on another repo wait for it.
+Per repo, in this order: `/wow-addon:sync-docs` → gate → `/wow-addon:commit` → merge any feature branch to `master` → push to origin → delete the branch. When more than one repo is in scope, repos that depend on another repo wait for it.
 
-`$ARGUMENTS` names the repos to finalize (names relative to the parent directory, or paths). Omit it and the scope is auto-detected — see Step 1.
+`$ARGUMENTS` is optional. It may name the repos to finalize (names relative to the parent directory, or paths), or be `here` to mean the current repo and nothing else. Omit it and the scope is established in Step 1.
 
 ## Step 1 — Establish the scope
 
-The unit of work is a **changeset**: the repos that were changed together, for one reason, in this session.
+The unit of work is a **changeset**: the repos that were changed together, for one reason. Getting this wrong in either direction is expensive — too narrow and half the changeset sits unpushed while the other half references it on origin; too wide and unrelated work-in-progress gets committed under a message that is now wrong for both.
 
-1. From the cwd repo, take the parent directory as the collection root. List every sibling that is a git repo (`ls -d ../*/.git`).
-2. For each, run `git -C <repo> status --porcelain` and `git -C <repo> log --oneline origin/HEAD..HEAD 2>/dev/null`. A repo is **in scope** if it has uncommitted changes **or** unpushed commits.
-3. If `$ARGUMENTS` is non-empty, use exactly those repos instead — but still run the status check on each and say so if one is already clean, rather than pretending you finalized it.
+**Never guess the scope.**
 
-Print the scope as a list before doing anything, and **stop if it is empty** ("Nothing to finalize.").
+1. If `$ARGUMENTS` is `here` (or names exactly the cwd repo), the scope is this repo alone. Skip to Step 2.
+2. If `$ARGUMENTS` names repos, use exactly those — but still run the status check on each and say so if one is already clean, rather than pretending you finalized it. Skip to Step 2.
+3. Otherwise, survey. From the cwd repo, take the parent directory as the collection root and list every sibling that is a git repo (`ls -d ../*/.git`). For each, plus the cwd repo, run `git -C <repo> status --porcelain` and `git -C <repo> log --oneline origin/HEAD..HEAD 2>/dev/null`. A repo is a **candidate** if it has uncommitted changes **or** unpushed commits.
 
-**A repo with a dirty tree you did not expect is a stop, not a step.** If a repo in scope holds changes that are obviously not part of this changeset — an unrelated feature half-written, a stash-shaped mess, files you cannot account for from the session's own work — name them and ask before proceeding. Committing someone else's work-in-progress under your changeset's message is not recoverable by a revert, because the message is now wrong for both.
+Then decide, and only proceed without asking when the answer is certain:
+
+- **No candidates** → stop: "Nothing to finalize."
+- **Exactly one candidate** → that is the scope. Say which repo and continue.
+- **Several candidates, conclusively one changeset** → the scope is all of them. "Conclusively" means hard evidence, not a hunch: this session's own work touched each of them; or a vendored library in one is a byte-for-byte match for the changed source in another; or a changed file in one cites a sibling path (`../<Repo>/…`) that changed in this same set. Print the evidence per repo, then continue.
+- **Anything else** → **ask.** This includes: candidates whose changes look unrelated to each other, candidates you did not touch this session, or any repo holding changes you cannot account for (an unrelated feature half-written, a stash-shaped mess). Do not resolve it by picking the likely answer.
+
+To ask, print one block per candidate — repo name, branch, unpushed commit subjects, and the changed files with a one-line reading of what the change is — then ask which repos are in scope for this finalize. Offer the obvious groupings (all of them / just the cwd repo / a named subset) rather than an open-ended question. Wait for the answer; do not start Step 2 on a provisional scope.
+
+Print the final scope as a list before doing anything.
 
 ## Step 2 — Derive the dependency chain
 
-Order is not cosmetic. Get it wrong and a repo lands on origin citing a path or a version that does not exist there yet.
+**Single repo in scope?** There is nothing to order. Note it ("single-repo changeset — no dependency chain") and go to Step 3.
+
+With more than one repo, order is not cosmetic. Get it wrong and a repo lands on origin citing a path or a version that does not exist there yet.
 
 Establish, with evidence rather than assumption:
 
@@ -36,13 +47,13 @@ Repos with **no** dependency on each other are independent and should be finaliz
 
 ## Step 3 — Execute, per repo
 
-Run the stages below **in the repo's own root**. When several repos are independent, run them concurrently — one `Task` per repo, or a workflow if the user has opted into multi-agent orchestration — but never let two agents touch the same repo, and never start a dependent repo before its dependency has **pushed**.
+Run the stages below **in the repo's own root**. When several repos are independent, run them concurrently — one `Task` per repo, or a workflow if the user has opted into multi-agent orchestration — but never let two agents touch the same repo, and never start a dependent repo before its dependency has **pushed**. With a single repo in scope, run the stages inline; there is nothing to fan out.
 
 ### 3a. Sync the docs
 
-Run `/wow-addon:sync-docs` for that repo. Two bindings that matter here more than in a single-repo run:
+Run `/wow-addon:sync-docs` for that repo. Two bindings that matter when the scope is more than one repo:
 
-- **Content sync only.** That command asks the user to confirm before scaffolding or restructuring a missing `docs/ARCHITECTURE.md` or `CLAUDE.md`/`docs/agent-context.md` pair. In a multi-repo run — especially a parallel one — nobody is there to answer per repo. Do not create or move documents; record what you would have proposed and surface it in the final report.
+- **Content sync only.** That command asks the user to confirm before scaffolding or restructuring a missing `docs/ARCHITECTURE.md` or `CLAUDE.md`/`docs/agent-context.md` pair. In a multi-repo run — especially a parallel one — nobody is there to answer per repo. Do not create or move documents; record what you would have proposed and surface it in the final report. In a **single-repo** run the user is right there: ask, as that command normally would.
 - **A repo in the collection may not be an addon.** A shared library has no `.toc`, no slash commands, no schema. Skip the TOC-derived steps and apply the rest: does the README still describe what it ships, do the counts hold, is the version claim true.
 
 ### 3b. Re-run that repo's gate
@@ -67,7 +78,7 @@ diff -r ../<Lib>/<Lib> libs/<Lib>                       # bytes  — SHOULD be e
 
 Run `/wow-addon:commit` for that repo, in its default (auto) mode, and honour everything that command already says: named files only, never `git add -A`, never `--amend`, never `--no-verify`, match the repo's own commit-message style, and pause for anything secret-shaped.
 
-One addition for the multi-repo case: **one commit per repo, and the message is written for that repo's reader.** The same changeset looks different from each side — the library's commit is about what it published, the consumer's is about what it now carries and what changed for its users. A message that only makes sense if you have read the other four repos' commits is the wrong message.
+One addition when the scope spans repos: **one commit per repo, and the message is written for that repo's reader.** The same changeset looks different from each side — the library's commit is about what it published, the consumer's is about what it now carries and what changed for its users. A message that only makes sense if you have read the other four repos' commits is the wrong message.
 
 ### 3d. Merge the branch, if there is one
 
@@ -77,7 +88,7 @@ If there is a feature branch:
 
 1. `git checkout master && git pull --ff-only origin master` — a diverged master is a stop, not something to force.
 2. `git merge --no-ff <branch>` — `--no-ff` so the branch's shape survives in history.
-3. Conflicts are a **stop**. Do not resolve a conflict you did not anticipate as part of a bulk finalize; report it and leave the repo mid-merge for the user, naming the conflicted paths.
+3. Conflicts are a **stop**. Do not resolve a conflict you did not anticipate as part of a finalize; report it and leave the repo mid-merge for the user, naming the conflicted paths.
 4. Re-run the gate on the merge result. A merge that compiles is not a merge that passes.
 
 ### 3e. Push
@@ -99,7 +110,7 @@ git push origin --delete <branch>
 
 ## Step 4 — Report
 
-One table, one row per repo:
+One table, one row per repo — even when there is only one:
 
 | Repo | Docs synced | Gate | Commit | Branch | Pushed |
 |---|---|---|---|---|---|
@@ -110,12 +121,13 @@ Then, below it:
 - **What was deliberately not done** — every restructuring 3a declined to make, per repo, so the user can decide.
 - **Dead exports** surfaced by the doc sync (never deleted).
 - **Anything that stopped** — a red gate, a conflict, a rejected push — with the real output and what state that repo is in now.
-- The dependency chain you executed, so the ordering is auditable after the fact.
+- The scope you finalized and, when it was more than one repo, the dependency chain you executed — so the ordering is auditable after the fact.
 
 Be exact about partial success. "Four of five repos are pushed; ConsumableMaster stopped on a red gate and is committed but unpushed" is useful. "Done" is not.
 
 ## Hard rules
 
+- **Never guess the scope.** When the candidates are not conclusively one changeset, present them and ask. A wrong scope is not fixable by a revert.
 - **Never `git add -A` / `git add .`** — named files only, in every repo.
 - **Never `--force`, `--amend`, `--no-verify`, or `git branch -D`.** Each of them turns a stop into silent data loss.
 - **Never commit a repo whose gate is red**, and never push one, even if the failure looks unrelated to the changeset.

@@ -1,6 +1,6 @@
 {
   "name": "wow-addon",
-  "description": "World of Warcraft addon development helpers \u2014 standard-compliant scaffolding, standards compliance auditing, pending-work triage, interface-version bumping, doc sync, version bumping, test-battery running, GitHub issue listing/creation, git diff/commit, multi-repo changeset finalization (sync-docs, commit, merge, push and branch cleanup across sibling repos in dependency order), CRLF hook, and a focused WoW-specific review subagent.",
-  "version": "1.13.0",
+  "description": "World of Warcraft addon development helpers \u2014 standard-compliant scaffolding, standards compliance auditing, pending-work triage, interface-version bumping, doc sync, version bumping, test-battery running, GitHub issue listing/creation, git diff/commit, changeset finalization (sync-docs, commit, merge, push and branch cleanup — for the current repo or across sibling repos in dependency order), CRLF hook, and a focused WoW-specific review subagent.",
+  "version": "1.14.0",
   "license": "MIT"
 }
