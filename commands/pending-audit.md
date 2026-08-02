@@ -40,7 +40,7 @@ Read enough surrounding lines to state what the marker actually asks for. A bare
 
 ### 1b. Docs and frozen artifacts
 
-- `README.md`, root `CLAUDE.md`, `docs/agent-context.md`, `docs/*.md` — open questions, "not yet", "planned", "TBD", "known issue" phrasing
+- `README.md`, root `CLAUDE.md`, `docs/*.md` — open questions, "not yet", "planned", "TBD", "known issue" phrasing
 - `docs/ARCHITECTURE.md` → **Known Limitations** section, every entry
 - `CHANGELOG.md` → an `Unreleased` section with content in it
 - `TODO.md` if present — every unchecked item

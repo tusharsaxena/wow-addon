@@ -53,7 +53,7 @@ Run the stages below **in the repo's own root**. When several repos are independ
 
 Run `/wow-addon:sync-docs` for that repo. Two bindings that matter when the scope is more than one repo:
 
-- **Content sync only.** That command asks the user to confirm before scaffolding or restructuring a missing `docs/ARCHITECTURE.md` or `CLAUDE.md`/`docs/agent-context.md` pair. In a multi-repo run — especially a parallel one — nobody is there to answer per repo. Do not create or move documents; record what you would have proposed and surface it in the final report. In a **single-repo** run the user is right there: ask, as that command normally would.
+- **Content sync only.** That command asks the user to confirm before scaffolding or restructuring a missing `docs/ARCHITECTURE.md` or root `CLAUDE.md` stub. In a multi-repo run — especially a parallel one — nobody is there to answer per repo. Do not create or move documents; record what you would have proposed and surface it in the final report. In a **single-repo** run the user is right there: ask, as that command normally would.
 - **A repo in the collection may not be an addon.** A shared library has no `.toc`, no slash commands, no schema. Skip the TOC-derived steps and apply the rest: does the README still describe what it ships, do the counts hold, is the version claim true.
 
 ### 3b. Re-run that repo's gate

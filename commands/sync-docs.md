@@ -7,7 +7,7 @@ Deep-analyze the current state of the WoW addon in the cwd, then rewrite its doc
 
 ## Step 0 — Doc layout decisions
 
-Before doing anything else, check the addon's doc layout against the Ka0s WoW Addon Standard's fixed structure (documentation). The **root** ships a **full** `README.md`, a **stub** `CLAUDE.md`, and `LICENSE`; everything else lives under `docs/`, which carries the canonical trio — `docs/agent-context.md` (the full agent brief), `docs/ARCHITECTURE.md`, and `docs/smoke-tests.md` — plus any topic-detail docs. This layout is fixed; it does **not** vary with addon size.
+Before doing anything else, check the addon's doc layout against the Ka0s WoW Addon Standard's fixed structure (documentation). The **root** ships a **full** `README.md`, a **stub** `CLAUDE.md`, and `LICENSE`; everything else lives under `docs/`, which carries the canonical trio — `docs/ARCHITECTURE.md`, `docs/testing.md` and `docs/smoke-tests.md` — plus the generated `docs/test-cases.md` and any topic-detail docs. There is **no** `docs/agent-context.md` (documentation-§3). This layout is fixed; it does **not** vary with addon size.
 
 ### ARCHITECTURE.md decision
 
@@ -17,10 +17,22 @@ Before doing anything else, check the addon's doc layout against the Ka0s WoW Ad
 
 ### CLAUDE.md decision
 
-The standard splits the agent docs: a **stub** root `CLAUDE.md` (a short pointer — never the full brief) and the **full** agent brief in `docs/agent-context.md`. Check both.
-- If they're already in that shape, **leave the structure alone — just sync content.**
-- If the root `CLAUDE.md` is missing, propose the stub + `docs/agent-context.md` pair.
-- If the root `CLAUDE.md` carries the **full** brief inline (the brief must live in `docs/agent-context.md`, not at root), flag it and propose moving the brief into `docs/agent-context.md`, leaving a stub at root.
+The root `CLAUDE.md` is a **stub** — identity, `## Standards compliance (read first)`, a pointer list into `docs/`, and the green gate (documentation-§2). It is the **only** agent brief a Ka0s addon ships.
+- If it is already in that shape, **leave the structure alone — just sync content.**
+- If it is missing, propose creating the stub.
+- If it carries a **full** brief inline, flag it: the durable per-addon detail belongs in `docs/ARCHITECTURE.md`, and the rest is scaffolding that does not belong in the repo at all.
+
+### CRITICAL — `docs/agent-context.md` MUST NOT exist
+
+**If the addon has a `docs/agent-context.md`, that is a compliance failure, not a doc to sync** (documentation-§3, anti-pattern #49). It is `NEW_ADDON_CONTEXT.md` — the **scaffolding pack** — which is fetched at runtime and never stored. Every question it answers is answered the moment the addon exists, and because it is loaded as *working context* a stale copy gets **followed**: a pack still showing how to hand-write a debug console, a dispatcher or a harness will get one hand-written in an addon that replaced all three with `LibKa0s` (#47). No gate can see it — no test covers a doc, lint does not read prose.
+
+Do **not** sync its content. Instead:
+1. Read it and identify anything genuinely **addon-specific** that accumulated in it — real invariants, real module structure, real hard rules for *this* addon.
+2. Move that content to its proper home: structure and invariants → `docs/ARCHITECTURE.md`; hard rules → the root `CLAUDE.md` stub.
+3. **Delete the file.** The pack's own generic content — kickstart walkthrough, starter tree, starter snippets, definition-of-done — is deleted outright, never migrated.
+4. Fix every reference to it: the `CLAUDE.md` pointer list, `docs/*.md`, and any Claude memory file that names it.
+
+Report the deletion and what was migrated. This one does **not** wait for confirmation — the standard forbids the file.
 
 ### Confirmation
 
@@ -106,7 +118,7 @@ If the drift list is large (>10 items) or any item is ambiguous, ask for confirm
 
 For each doc file:
 - **README.md**: keep its overall shape. Update each section to reflect current state. Don't invent sections that weren't there. Preserve the user's voice — match the existing tone, formatting, and emoji usage (or absence).
-- **CLAUDE.md** (root **stub**) and **`docs/agent-context.md`** (the full agent brief): project context for future Claude sessions. Update against your Step 1 map. Keep the root `CLAUDE.md` a short pointer (it loads into every session's context); the detail lives in `docs/agent-context.md`.
+- **CLAUDE.md** (root **stub**): project context for future Claude sessions, and the only agent brief in the repo. Update against your Step 1 map. Keep it short — it loads into every session's context — and keep the detail in `docs/ARCHITECTURE.md`. There is no `docs/agent-context.md`; see the CRITICAL note in Step 0.
 - **`docs/ARCHITECTURE.md`** (and variants): structural/design documentation. Update component descriptions, dataflow, dependency relationships, lifecycle.
 
 Use `Edit` for surgical updates. Only `Write` (full rewrite) if the file is completely out of date or the diff would be larger than the rewrite.

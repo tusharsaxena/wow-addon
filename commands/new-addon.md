@@ -53,7 +53,7 @@ If this list and the fetched `NEW_ADDON.md` ever disagree, **the fetched playboo
 
 ## After scaffolding, print
 
-- The created file tree (just the paths), including `docs/` (the dropped-in context pack), the root `CLAUDE.md` stub, the vendored `libs/LibKa0s/`, and `tests/_kit/`.
+- The created file tree (just the paths), including `docs/` (the trio — ARCHITECTURE.md, testing.md, smoke-tests.md; **no** agent-context.md), the root `CLAUDE.md` stub, the vendored `libs/LibKa0s/`, and `tests/_kit/`.
 - **Which `LibKa0s` modules the scaffold wired** (one setup file each) versus which were vendored but not yet wired — adoption is per module and on the addon's own schedule, so "vendored, not wired" is a normal state, not an omission. Say where each payload was copied **from** (the `LibKa0s` repo, not a sibling addon) so the provenance is on the record.
 - The exact `## Interface:` value used and where it came from.
 - The exact `## X-Standard:` URL written into the TOC.
