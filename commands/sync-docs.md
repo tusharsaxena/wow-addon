@@ -1,5 +1,5 @@
 ---
-description: Deep-analyze the current state of the addon and rewrite README.md, CLAUDE*.md, and ARCHITECTURE*.md to match — eliminating documentation drift. Includes count-claim verification, slash/COMMANDS parity, dead-export detection, and ARCHITECTURE.md / CLAUDE.md scaffolding.
+description: Deep-analyze the current state of the addon and rewrite README.md, CLAUDE*.md, DEPENDENCIES.md, and ARCHITECTURE*.md to match — eliminating documentation drift. Includes count-claim verification, slash/COMMANDS parity, dead-export detection, toolchain-vs-DEPENDENCIES.md drift, and ARCHITECTURE.md / CLAUDE.md / DEPENDENCIES.md scaffolding.
 allowed-tools: [Read, Glob, Grep, Bash, Edit, Write]
 ---
 
@@ -7,7 +7,7 @@ Deep-analyze the current state of the WoW addon in the cwd, then rewrite its doc
 
 ## Step 0 — Doc layout decisions
 
-Before doing anything else, check the addon's doc layout against the Ka0s WoW Addon Standard's fixed structure (documentation). The **root** ships a **full** `README.md`, a **stub** `CLAUDE.md`, and `LICENSE`; everything else lives under `docs/`, which carries the canonical trio — `docs/ARCHITECTURE.md`, `docs/testing.md` and `docs/smoke-tests.md` — plus the generated `docs/test-cases.md` and any topic-detail docs. There is **no** `docs/agent-context.md` (documentation-§3). This layout is fixed; it does **not** vary with addon size.
+Before doing anything else, check the addon's doc layout against the Ka0s WoW Addon Standard's fixed structure (documentation). The **root** ships exactly three docs plus `LICENSE`, and never a fourth: a **full** `README.md`, a **stub** `CLAUDE.md`, and `DEPENDENCIES.md` (documentation-§7). Everything else lives under `docs/`, which carries the canonical trio — `docs/ARCHITECTURE.md`, `docs/testing.md` and `docs/smoke-tests.md` — plus the four **required** topic-detail docs: the generated `docs/test-cases.md`, `docs/performance.md`, `docs/perf-runs/README.md` and the generated `docs/complexity.md`, and any further topic-detail docs. There is **no** `docs/agent-context.md` (documentation-§3). This layout is fixed; it does **not** vary with addon size.
 
 ### ARCHITECTURE.md decision
 
@@ -21,6 +21,16 @@ The root `CLAUDE.md` is a **stub** — identity, `## Standards compliance (read 
 - If it is already in that shape, **leave the structure alone — just sync content.**
 - If it is missing, propose creating the stub.
 - If it carries a **full** brief inline, flag it: the durable per-addon detail belongs in `docs/ARCHITECTURE.md`, and the rest is scaffolding that does not belong in the repo at all.
+
+### `DEPENDENCIES.md` decision
+
+Root `DEPENDENCIES.md` is **mandatory** (documentation-§7): every piece of software needed to build, run, test or release the addon, split **runtime (in-game) / development / release-and-assets**, with copy-pasteable WSL2 / Ubuntu install commands and a one-line verification per tool. It answers *what to install*; `docs/testing.md` answers *how to verify* — the two point at each other and neither restates the other.
+
+This command is the one that can write it, because it is the one that reads the repo. Every entry **MUST** be **evidence-based** — a `file:line`, a script's `import`, a documented command — and a speculative entry is worse than an omission, because a reader who installs three unnecessary things stops trusting the list and then misses the one that mattered. Build the list from what Step 1 actually found: the TOC's `## Dependencies` / `## OptionalDeps`, the interpreter and version the harness requires (the headless kit uses `setfenv`, which is Lua 5.1-only — state that as a requirement with its reason, never a preference), `luacheck` and its `.luacheckrc`, `lizard` for `docs/complexity.md`, anything the tests shell out to, and anything a script or asset-regeneration step imports. Note the Ubuntu 24.04 trap: `pip install <tool>` fails on PEP 668's `EXTERNALLY-MANAGED` marker, so the instruction that works is `pipx`.
+
+- If it exists, **sync it against the evidence** — a dependency added since it was written, or a tool no longer used, is drift like any other. Report each change with what proved it.
+- If it is absent, propose creating it (an undocumented toolchain is anti-pattern #50) and confirm before writing, as with the other scaffolded docs.
+- If the repo genuinely has no release/asset tooling, the release section says so plainly. "None" is a **result**; a missing section reads as an omission.
 
 ### CRITICAL — `docs/agent-context.md` MUST NOT exist
 
@@ -55,7 +65,9 @@ If you propose creating or restructuring either doc (ARCHITECTURE or CLAUDE), as
 
 ## Step 2 — Discover the docs
 
-Find every documentation file: `README.md`, `README.*`, `CLAUDE.md`, `CLAUDE.*.md`, `CLAUDE/*.md`, `ARCHITECTURE.md`, `ARCHITECTURE.*.md`, `docs/*.md`. List them.
+Find every documentation file: `README.md`, `README.*`, `CLAUDE.md`, `CLAUDE.*.md`, `CLAUDE/*.md`, `DEPENDENCIES.md`, `ARCHITECTURE.md`, `ARCHITECTURE.*.md`, `docs/*.md`, `docs/**/*.md` (the nested one that exists today is `docs/perf-runs/README.md`). List them.
+
+**Two of them are generated and are not synced by hand:** `docs/test-cases.md` (the inventory the harness emits) and `docs/complexity.md` (the `lizard` report, `performance-§10`). Read both — a count claim elsewhere in the docs must agree with `test-cases.md`, and `complexity.md` dates itself in its own header — but never edit their numbers. `test-cases.md` is refreshed by regenerating it; `complexity.md` is regenerated at **release** by `/wow-addon:bump-version`. A hand-edited complexity report is worse than an absent one because it reads as measured (anti-pattern #51). If `complexity.md`'s header is older than the last release, that is a **finding** to report, not something to fix here.
 
 For each, read the current contents and build a drift inventory across these axes:
 
@@ -63,6 +75,7 @@ For each, read the current contents and build a drift inventory across these axe
 - Numeric counts in prose or headings ("8 macros", "tracks 12 spells", "5 modules") vs. the actual count from Step 1. Flag any mismatch.
 - Wrong slash commands, wrong file paths, wrong saved-variable name, wrong Interface number
 - Wrong/missing dependencies, removed-but-still-listed modules
+- **`DEPENDENCIES.md` vs. what the repo actually needs** — a tool the tests or a script now require but the file does not name; a tool named there that nothing in the repo uses any more; an install command that no longer works (`pip install <tool>` on Ubuntu 24.04); a stated Lua version that disagrees with what the harness requires. Cite the evidence for each direction.
 - Outdated version number anywhere docs mention it
 
 **Slash command parity (COMMANDS ↔ README)**
@@ -120,6 +133,7 @@ For each doc file:
 - **README.md**: keep its overall shape. Update each section to reflect current state. Don't invent sections that weren't there. Preserve the user's voice — match the existing tone, formatting, and emoji usage (or absence).
 - **CLAUDE.md** (root **stub**): project context for future Claude sessions, and the only agent brief in the repo. Update against your Step 1 map. Keep it short — it loads into every session's context — and keep the detail in `docs/ARCHITECTURE.md`. There is no `docs/agent-context.md`; see the CRITICAL note in Step 0.
 - **`docs/ARCHITECTURE.md`** (and variants): structural/design documentation. Update component descriptions, dataflow, dependency relationships, lifecycle.
+- **`DEPENDENCIES.md`** (root): the toolchain contract. Update entries against the evidence from Step 1, keeping the runtime / development / release-and-assets split and each entry's install command plus its verification line. Never add an entry you cannot point at a file for.
 
 Use `Edit` for surgical updates. Only `Write` (full rewrite) if the file is completely out of date or the diff would be larger than the rewrite.
 
@@ -140,5 +154,7 @@ Print a summary:
 - **Don't add documentation for things the user didn't document.** If there's no "Configuration" section currently, don't add one.
 - **Don't bump the version.** Even if you find drift in version numbers, do NOT change `## Version:` in the TOC, the `VERSION` constant in code, or the README badge URL. Changing the version is `/wow-addon:bump-version`'s job.
 - **Don't auto-delete dead exports.** Surface them; the user decides.
+- **Don't hand-edit a generated doc.** `docs/complexity.md` and `docs/test-cases.md` are produced by tools, not written. Report staleness; never edit the numbers, and never run `lizard` here — the complexity report's checkpoint is **release**, and it MUST NOT gate a commit (`performance-§10`).
+- **Don't invent a dependency.** Every `DEPENDENCIES.md` entry traces to something in this repo. If you suspect a requirement but cannot evidence it, say so in words or leave it out.
 - **Don't touch LICENSE, CHANGELOG.md, TODO.md, or any file that isn't a project doc.**
 - **Don't commit.**
