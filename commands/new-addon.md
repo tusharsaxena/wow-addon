@@ -1,5 +1,5 @@
 ---
-description: Scaffold a new Ka0s WoW addon that is born compliant with the Ka0s WoW Addon Standard. Fetches the NEW_ADDON.md playbook + the standards context pack from the WowAddonStandards repo at runtime and follows them to the letter — Ace3 skeleton, the modular layout, MIT, the root doc set (README.md, the CLAUDE.md stub, DEPENDENCIES.md), the canonical docs/ trio (ARCHITECTURE.md, testing.md, smoke-tests.md) and the first generated complexity report. The context pack is read at runtime and never written into the addon.
+description: Scaffold a new Ka0s WoW addon that is born compliant with the Ka0s WoW Addon Standard. Fetches the NEW_ADDON.md playbook + the standards context pack from the WowAddonStandards repo at runtime and follows them to the letter — Ace3 skeleton, the modular layout, MIT, the root doc set (README.md, the CLAUDE.md stub, DEPENDENCIES.md), the canonical docs/ trio (ARCHITECTURE.md, testing.md, smoke-tests.md) and the first automated-test bundle. The context pack is read at runtime and never written into the addon.
 argument-hint: <AddonName> [one-line description]
 allowed-tools: [Read, Glob, Grep, Bash, Write, WebFetch]
 ---
@@ -7,6 +7,21 @@ allowed-tools: [Read, Glob, Grep, Bash, Write, WebFetch]
 Scaffold a new WoW addon named **$ARGUMENTS** in the current working directory, **born compliant** with the Ka0s WoW Addon Standard. You do not carry the scaffolding rules yourself — the canonical rules and the new-addon procedure live in the `WowAddonStandards` repo and evolve there. Fetch the current playbook and context pack, then **follow them to the letter**.
 
 **CRITICAL — the context pack is never stored in the addon.** You fetch `NEW_ADDON_CONTEXT.md` to a scratch path and build from it. Creating `docs/agent-context.md` — under that name or any other — is a compliance failure (`documentation-§3`, anti-pattern #49). The addon's `docs/` holds the canonical trio `ARCHITECTURE.md`, `testing.md` and `smoke-tests.md`, plus the four **required** topic-detail docs — the generated `test-cases.md`, `performance.md`, `perf-runs/README.md` and the generated `complexity.md` — and any further topic-detail docs the addon needs; the root `CLAUDE.md` stub is the repo's only agent brief.
+
+## Automated test records — scaffold them with the addon
+
+A new addon is born having adopted `automated-tests`. Before the first commit:
+
+1. Vendor `tests/_kit/` whole-folder from the `LibKa0s` release the README's provenance line names —
+   it now carries `run-automated-tests.sh` — and `chmod +x tests/_kit/run-automated-tests.sh`.
+2. Add **`*.sh   text eol=lf`** to `.gitattributes`. Everything else in a Ka0s repo is CRLF, and a
+   shebang followed by CRLF makes the kernel look for an interpreter literally named `bash\r`. Without
+   this line the vendored runner is broken on every checkout.
+3. Create `docs/automated-tests/README.md` (what it is, how to run it, which suites gate).
+4. Run `tests/_kit/run-automated-tests.sh` once, which writes the first bundle and creates
+   `RESULTS.md`.
+
+`docs/complexity.md` is **retired** (standard v2.19.0) — do not scaffold one.
 
 ## Standards source
 

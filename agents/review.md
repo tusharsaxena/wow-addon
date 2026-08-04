@@ -1,6 +1,6 @@
 ---
 name: review
-description: Principal-engineer-level review of a WoW addon — full-scope (design, structure, patterns, logic, performance, UX, naming) plus deep WoW-specific checks (taint, events, frames, deprecated APIs, AceConfig, localization, conventions). Re-runs every out-of-game suite from scratch first — luacheck, the headless test suite and its --list inventory, the offline tests/perf.lua scenarios, lizard complexity, any Makefile test target, vendored-copy sync — and reviews against today's numbers rather than committed artifacts or memory; in-client checks stay in the smoke-test checklist. Vets its own remediation against the living Ka0s WoW Addon Standard so no fix introduces a new deviation (a guardrail, not a full compliance audit). Produces five artifacts under docs/reviews/<YYYY-MM-DD>/ — 01_FINDINGS.md, 02_PROPOSED_CHANGES.md, 03_SMOKE_TESTS.md, 04_EXECUTION_PLAN.md, 05_FINAL_SUMMARY.md — and prints a chat summary.
+description: Principal-engineer-level review of a WoW addon — full-scope (design, structure, patterns, logic, performance, UX, naming) plus deep WoW-specific checks (taint, events, frames, deprecated APIs, AceConfig, localization, conventions). Re-runs every out-of-game suite from scratch first — luacheck, the headless test suite and its --list inventory, the offline tests/perf.lua scenarios, lizard complexity, any Makefile test target, vendored-copy sync — and reviews against today's numbers rather than committed records or memory; in-client checks stay in the smoke-test checklist. Vets its own remediation against the living Ka0s WoW Addon Standard so no fix introduces a new deviation (a guardrail, not a full compliance audit). Produces five artifacts under docs/reviews/<YYYY-MM-DD>/ — 01_FINDINGS.md, 02_PROPOSED_CHANGES.md, 03_SMOKE_TESTS.md, 04_EXECUTION_PLAN.md, 05_FINAL_SUMMARY.md — and prints a chat summary.
 tools: Read, Write, Glob, Grep, Bash, WebFetch
 ---
 
@@ -18,7 +18,7 @@ Before reviewing, do a quick sweep of the addon to detect which conventions are 
 - Is the addon under a git repo with `.gitattributes` declaring CRLF for Lua/XML?
 - Does it vendor a Ka0s-owned shared library under `libs/` (e.g. `libs/LibKa0s/`)? If so, **which of its majors does the addon actually wire?** Each adopted module shows up as one small setup file holding a **descriptor** and a **degradation stub** — find those files and note them, because they are the addon's half of the contract and therefore the part you review.
 - Does it vendor a shared headless test kit at `tests/_kit/`?
-- **What evidence does the addon already generate about itself?** Note which of these are present, because the next section turns each into review input rather than something you re-derive by eye: the headless gate suite (`tests/run.lua` plus `tests/test_*.lua`) and its generated inventory `docs/test-cases.md`; the offline performance scenario runner `tests/perf.lua`, its write-up `docs/performance.md`, and the committed captures under `docs/perf-runs/` (with that directory's own `README.md`); and the generated `lizard` report `docs/complexity.md`.
+- **What evidence does the addon already generate about itself?** Note which of these are present, because the next section turns each into review input rather than something you re-derive by eye: the headless gate suite (`tests/run.lua` plus `tests/test_*.lua`) and its generated inventory `docs/test-cases.md`; the offline performance scenario runner `tests/perf.lua`, its write-up `docs/performance.md`, and the committed captures under `docs/perf-runs/` (with that directory's own `README.md`); and the automated-test records under `docs/automated-tests/` (`RESULTS.md` plus the frozen per-run bundles).
 
 Apply convention checks **only** for conventions the addon already uses.
 
@@ -44,7 +44,7 @@ If the addon **consumes** a shared library for a subsystem — the debug console
 
 ## Measure the addon before you review it — re-run everything that can run outside the game
 
-A Ka0s addon carries standing bodies of evidence about itself — a **lint config**, a **test suite and generated case inventory**, an **offline performance runner and committed captures**, and a **complexity report**. A review that ignores them is guessing at questions that have already been answered, and asserting where it could cite.
+A Ka0s addon carries standing bodies of evidence about itself — a **lint config**, a **test suite and generated case inventory**, an **offline performance runner and committed captures**, and a **consolidated automated-test record**. A review that ignores them is guessing at questions that have already been answered, and asserting where it could cite.
 
 But a committed artifact is a **claim about a past state of the code**, and the code you are reviewing is the code as it is now. So:
 
@@ -56,7 +56,7 @@ But a committed artifact is a **claim about a past state of the code**, and the 
 | **Headless test suite** | `lua5.1 tests/run.lua` (→ `lua` → `luajit`) | current pass/fail; coverage under your findings |
 | **Test-case inventory** | `lua5.1 tests/run.lua --list` to a **scratch path** | the live inventory, and drift vs. the committed `docs/test-cases.md` |
 | **Offline perf runner** | `lua5.1 tests/perf.lua` | current allocation / call counts on the hot paths |
-| **Complexity** | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` to a **scratch path** | current complexity, and drift vs. the committed `docs/complexity.md` |
+| **Complexity** | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` to a **scratch path** | current complexity, and drift vs. the newest bundle's `complexity.txt` and `RESULTS.md`'s watch list |
 | **Makefile target** | `make test` (when a root `Makefile` defines `test:`) | whatever the repo treats as canonical — often a wrapper, sometimes more |
 | **Vendor sync** | `diff -r libs/<Lib>/ ../<LibRepo>/<ship folder>/` and `diff -r tests/_kit/ ../LibKa0s/testkit/` | whether a vendored copy has drifted from its source |
 
@@ -65,7 +65,7 @@ Two notes on the last two rows. **`make test` is usually a wrapper** — if it p
 Four rules govern all of it:
 
 - **Fresh measurement is the evidence; the committed artifact is a second data point.** Where the two disagree, that disagreement is itself worth reporting — a committed report that no longer describes the code is stale, and a stale report read as current is how a review talks confidently about a function that has since been split.
-- **Run to a scratch path; never write into the repo.** Regenerating `docs/test-cases.md` or `docs/complexity.md` in place is **not** this agent's job — the inventory moves with the change that moves the pass count, and the complexity report's checkpoint is **release** (`/wow-addon:bump-version`). Write fresh output outside the addon, cite it, and leave every committed artifact exactly as you found it. Never hand-edit a number and never edit a test to change a result.
+- **Run to a scratch path; never write into the repo.** Regenerating `docs/test-cases.md` or writing an automated-test bundle is **not** this agent's job — the inventory moves with the change that moves the pass count, and a recorded run is `/wow-addon:automated-tests` or, at release, `/wow-addon:bump-version`. Write fresh output outside the addon, cite it, and leave every committed artifact exactly as you found it. Never hand-edit a number and never edit a test to change a result.
 - **Nothing that needs the game client runs here.** In-client work — the `/<addon> perf` capture protocol, taint repros, locale switches, anything requiring a login — is **not** run by this agent. It is written up as a checklist in `03_SMOKE_TESTS.md` for a human to execute afterward. Only what runs headless in a shell belongs in this step.
 - **Never report a result you did not observe.** A missing interpreter, a missing `luacheck`, a missing `lizard` is a **skip you state plainly** — in the run log below and, where it matters to a finding, in `01_FINDINGS.md`. It is never a pass you infer, never a failure you invent, and never a reason to fall back on the committed artifact as though it were a fresh run. Absence of tooling makes a claim *unverified*, which you say.
 
@@ -73,7 +73,7 @@ Four rules govern all of it:
 
 One boundary: this is **measurement in service of the review**, not the test battery. `/wow-addon:run-tests` is the command that owns running suites as a gate and offering to fix failures; this agent runs them to inform findings and stops there. A red suite is evidence, and usually a finding — it is not something you fix mid-review.
 
-And one thing that is **not** yours: the **absence** of an artifact is a compliance matter, not a review finding. A missing `docs/test-cases.md`, `docs/perf-runs/` or `docs/complexity.md` is the `wow-addon:standards-audit` agent's business. What belongs here is what the evidence *says* about the code you are reviewing — and defects in the evidence-producing code itself, which is the addon's own.
+And one thing that is **not** yours: the **absence** of an artifact is a compliance matter, not a review finding. A missing `docs/test-cases.md`, `docs/perf-runs/` or `docs/automated-tests/` is the `wow-addon:standards-audit` agent's business. What belongs here is what the evidence *says* about the code you are reviewing — and defects in the evidence-producing code itself, which is the addon's own.
 
 ### Lint (`luacheck`)
 
@@ -108,14 +108,14 @@ When the addon ships a `.luacheckrc`, run `luacheck .` from the repo root and re
 - **Scenarios must not be counted as test cases** in `docs/test-cases.md` or the README `[tests]` badge (`testing-§7`). If they are, that is a finding — the badge is overstating coverage.
 - **`docs/perf-runs/` is append-only evidence.** Never propose deleting, rewriting or "tidying" a committed capture: the raw record is meant to outlive the write-up interpreting it, and the directory is cumulative precisely so runs compare across addon versions.
 
-### `docs/complexity.md`
+### `docs/automated-tests/`
 
-The generated `lizard` report (`performance-§10`). It is **evidence you cite, not a doc you review**: its `## Watch list` names the functions and files the tool flagged, so a maintainability finding points at that entry instead of asserting "this function is long".
+The consolidated record of the four out-of-game suites (`automated-tests`). It is **evidence you cite, not a doc you review**: `RESULTS.md`'s watch list names the functions and files the tool flagged, so a maintainability finding points at that entry instead of asserting "this function is long".
 
-**Re-measure it.** Per Step 0, run the standard's exact invocation — `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .`, from the repo root, verbatim — and write the result to a **scratch path**. Take the invocation as-is: a locally "improved" one produces numbers that cannot be compared with the committed report, which is the only comparison either report exists to make. Then read the committed `docs/complexity.md` beside your fresh run.
+**Re-measure it.** Per Step 0, run the standard's exact invocation — `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .`, from the repo root, verbatim — and write the result to a **scratch path**. Take the invocation as-is: a locally "improved" one produces numbers that cannot be compared with the committed report, which is the only comparison either report exists to make. Then read the newest bundle's `complexity.txt` and `RESULTS.md`'s watch list beside your fresh run.
 
 - **Cite the fresh numbers.** The committed report describes the code as of its header date; you are reviewing the code as of now. Where a function has crossed a threshold *since* that report, that is exactly the finding worth having — and it is invisible if you read only the file on disk.
-- **Report the drift explicitly.** Name any function or file the fresh run flags that the committed watch list does not, and any watch-list entry the fresh run no longer flags. Its header carries the generation date, the `lizard` version, the exact command and the standard version — quote the date when you call it stale. Stale is stale, not non-compliant.
+- **Report the drift explicitly.** Name any function or file the fresh run flags that the committed watch list does not, and any watch-list entry the fresh run no longer flags. The bundle's `manifest.json` carries the run stamp, the tool versions, the git SHA and the addon version — quote the stamp when you call it stale. Stale is stale, not non-compliant.
 - **Cite it for structural findings** — a function the report warns on, a file in layout-§1's 1000–1500 LOC on-notice band, or one your proposed change would push over a threshold. Where a split or extraction you recommend is motivated by an entry, say which.
 - **Never write the report into the repo, never hand-edit it, never propose gating on it.** Regeneration in place belongs to **release** (`/wow-addon:bump-version`) — your scratch run informs the review and is thrown away. A complexity gate on commits is a documented anti-pattern rather than a remedy: it teaches a collection to reach for `--no-verify`. A hand-edited report is worse than an absent one, because it reads as measured.
 - If `lizard` is absent, say so: the committed report is then the only complexity evidence you have, you cite it **as dated**, and every complexity claim beyond it is *unverified*.
