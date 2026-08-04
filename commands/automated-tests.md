@@ -72,15 +72,24 @@ Diff against the **previous** run — the row above this one in `RESULTS.md` —
 this is the first run, say so and treat every figure as a baseline rather than describing it as
 unchanged.
 
-## Step 4 — Refresh the `RESULTS.md` watch list
+## Step 4 — Refresh the `RESULTS.md` standing sections
 
-Below the table, describe the **current** state: every function `lizard` warned on and every file in
-`layout-§1`'s 1000–1500 on-notice band, each with a one-line disposition — *accepted and why*, *peel
-next*, or *already tracked as `<deviation-id>`*. Mark anything that **newly** crossed since the
-previous run.
+Below the table, describe the **current** state — four sections, one per suite (the playbook gives
+each in full):
 
-Carry forward a disposition that is still true rather than re-arguing it. `None.` if the list is
-empty — an empty watch list is a **result**, not a reason to drop the heading.
+- **`## Test suite`** — case count and coverage; flag a count that has not moved while the addon has.
+- **`## Lint`** — clean or not, over how many files, and **what `.luacheckrc` excludes**. A `0/0` row
+  means nothing without knowing what was in scope.
+- **`## Perf`** — the scenarios and what they pin, or a plain statement that the addon ships none and
+  that the run is therefore silent about runtime cost.
+- **`## Complexity watch list`** — every warned function and every file in the on-notice LOC band,
+  each with a one-line disposition, and anything that **newly** crossed marked as such.
+
+Do not let the complexity watch list be the only prose. It came first, and a record whose only
+narrative is about complexity teaches the reader that the other three suites are pass/fail lights.
+
+Carry forward a disposition that is still true rather than re-arguing it. `None.` where a section has
+nothing to report — that is a **result**, not a reason to drop the heading.
 
 ## Step 5 — Report
 
