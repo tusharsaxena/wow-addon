@@ -82,8 +82,10 @@ each in full):
   means nothing without knowing what was in scope.
 - **`## Perf`** — the scenarios and what they pin, or a plain statement that the addon ships none and
   that the run is therefore silent about runtime cost.
-- **`## Complexity watch list`** — every warned function and every file in the on-notice LOC band,
-  each with a one-line disposition, and anything that **newly** crossed marked as such.
+- **`## Complexity watch list`** — **two tables, both with header rows** (a bare row of pipes renders
+  as literal pipes, not a table): warned functions as Function / CCN / Location / Disposition, and
+  files as **Band** / File / LOC / Disposition with the band as a *column* so more than today's two
+  bands render uniformly. Anything that **newly** crossed is marked as such.
 
 Do not let the complexity watch list be the only prose. It came first, and a record whose only
 narrative is about complexity teaches the reader that the other three suites are pass/fail lights.
