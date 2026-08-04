@@ -16,6 +16,7 @@ Before reviewing, do a quick sweep of the addon to detect which conventions are 
 - Is the addon under a git repo with `.gitattributes` declaring CRLF for Lua/XML?
 - Does it vendor a Ka0s-owned shared library under `libs/` (e.g. `libs/LibKa0s/`)? If so, **which of its majors does the addon actually wire?** Each adopted module shows up as one small setup file holding a **descriptor** and a **degradation stub** — find those files and note them, because they are the addon's half of the contract and therefore the part you review.
 - Does it vendor a shared headless test kit at `tests/_kit/`?
+- Does it ship a generated `docs/complexity.md` (the `lizard` report)? If so it is **evidence you may cite**, not a doc to review: its `## Watch list` already names the functions and files the tool flagged, so a maintainability or complexity finding can point at that entry instead of asserting "this function is long". Read it, never edit it — it is generated, and a hand-edited complexity report reads as measured when it is not. Its absence is a **compliance** matter, which is the audit agent's job and not a finding for this review.
 
 Apply convention checks **only** for conventions the addon already uses.
 
@@ -115,6 +116,7 @@ What you **must** do is keep your own output inside the standard: **no finding's
 - `pairs` over very large tables in `OnUpdate`/event handlers.
 - `print(...)` left in (should be the prefix helper if user-facing, or removed if debug).
 - Calling expensive APIs (`C_UnitAuras.GetAuraDataByIndex` in a loop) once per UI element when one batched scan would do.
+- Where the addon commits `docs/complexity.md`, cite it for structural findings — a function the report already flags, or one whose complexity your proposed change would push over a threshold. Never propose regenerating it as part of a fix, and never propose gating a commit on it: its checkpoint is **release**, and a complexity gate on commits is a documented anti-pattern in the standard, not a remedy.
 
 **AceConfig / Settings UI**
 - Execute-button icons specified via `|T...|t` escapes inside the button's `name` field — **wrong**. Use the dedicated `image`, `imageWidth`, `imageHeight` (and optionally `imageCoords`) fields on the option entry instead. The `|T...|t`-in-name approach renders the icon literally as text and breaks layout.

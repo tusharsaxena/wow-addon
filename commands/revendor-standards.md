@@ -8,7 +8,7 @@ Refresh the **in-repo reference to the Ka0s WoW Addon Standard** in the addon(s)
 
 ## What this is, and what it is not
 
-The standard evolves upstream. An addon that was compliant when it was written keeps a *snapshot* of that standard in its docs — the `X-Standard:` line, the README badge, the `CLAUDE.md` compliance section, and every doc sentence that names a section, counts the canonical `docs/` set, or cites a file the standard has since retired. None of that goes red. No test covers a doc, lint does not read prose, and a stale brief does not go quiet — it is loaded as working context and gets **followed**. This command is the sweep that closes that gap.
+The standard evolves upstream. An addon that was compliant when it was written keeps a *snapshot* of that standard in its docs — the `X-Standard:` line, the README badge, the `CLAUDE.md` compliance section, and every doc sentence that names a section, counts a doc set (root or `docs/`) without naming its members, or cites a file the standard has since retired. None of that goes red. No test covers a doc, lint does not read prose, and a stale brief does not go quiet — it is loaded as working context and gets **followed**. This command is the sweep that closes that gap.
 
 Three commands touch the same doc set from different directions; keep them apart:
 
@@ -59,7 +59,9 @@ Fetch these **faithfully** (see the fetch rule below), in order:
 
 ## Step 3 — Build the refresh inventory (per repo, read-only)
 
-Read the repo's doc set: root `README.md`, root `CLAUDE.md` (and `CLAUDE.*.md` variants), every `docs/*.md`, and the `.toc` file(s) — the TOC only for its `## X-Standard:` field. Then inventory drift across five areas.
+Read the repo's doc set: root `README.md`, root `CLAUDE.md` (and `CLAUDE.*.md` variants), root `DEPENDENCIES.md`, every `docs/*.md` (including `docs/perf-runs/README.md`), and the `.toc` file(s) — the TOC only for its `## X-Standard:` field. Then inventory drift across five areas.
+
+Two files in that set are **generated**, not prose: `docs/test-cases.md` and `docs/complexity.md`. Read them for stale *references* only — a retired notation or a dead section name in their headers is fair game — and never touch their numbers. A hand-edited complexity report is worse than an absent one, because it reads as measured (`performance-§10`, anti-pattern #51).
 
 ### 3a. The three-place standards reference (`documentation-§6`)
 
@@ -77,7 +79,9 @@ Grep the repo's docs for forms the standard has retired and record each hit with
 
 - **Global `§N.M` notation** (e.g. `§4.2`, `Section 12.1`) → the `filename-§N` scheme. Resolve each old reference to the section it actually means by reading the fetched section files; if a reference cannot be resolved with confidence, flag it for the user rather than guessing a target.
 - **Section filenames that no longer exist upstream** — any doc citing a section file not in the fetched Sections list. Renamed sections get rewritten to the new name; genuinely deleted ones are flagged.
-- **The canonical `docs/` set stated as a count without its members** — "the four canonical docs", "the quartet", or any count that leaves a slot open. This is the specific failure that reconstructs a deleted file from memory: a model that reads "quartet", counts three names and supplies the fourth produces exactly one answer, and it is the forbidden one. Rewrite to name the members inline (`ARCHITECTURE.md`, `testing.md`, `smoke-tests.md`, plus the generated `test-cases.md` and any topic-detail docs).
+- **A doc set stated as a count without its members** — "the four canonical docs", "the quartet", "the three root docs", or any count that leaves a slot open. This is the specific failure that reconstructs a deleted file from memory: a model that reads "quartet", counts three names and supplies the fourth produces exactly one answer, and it is the forbidden one. Rewrite to name the members inline, in both places a count is now made:
+  - **Root** — the full `README.md`, the `CLAUDE.md` stub, and `DEPENDENCIES.md`, plus `LICENSE` (`documentation`, `documentation-§7`).
+  - **`docs/`** — the canonical trio `ARCHITECTURE.md`, `testing.md`, `smoke-tests.md`, plus the four required topic-detail docs `test-cases.md`, `performance.md`, `perf-runs/README.md`, `complexity.md`, and any further topic-detail docs the addon ships.
 - **The retired "drop-in" label** for the scaffolding context pack, and any live imperative to copy the pack's contents into `docs/` — that instruction *is* the forbidden file in everything but name, so an agent following it ships the file without ever reading the name. Rewrite to fetch-and-discard wording.
 
 Sweep hits are the fetched standard's current vocabulary applied to this repo's prose — do not invent a rename the standard has not made, and do not touch quoted historical text inside `docs/audits/` or `docs/reviews/` (see the hard rules).
@@ -85,7 +89,9 @@ Sweep hits are the fetched standard's current vocabulary applied to this repo's 
 ### 3c. `CLAUDE.md` pointer list and the `docs/` shape
 
 - The `CLAUDE.md` pointer list **MUST NOT** name a file the standard forbids (`documentation-§2`). Record any such pointer, and any pointer to a file that does not exist in the repo.
-- Verify `docs/` against the canonical set — `ARCHITECTURE.md`, `testing.md`, `smoke-tests.md`, plus the generated `test-cases.md` and topic-detail docs. **Flag missing members; do not create them.** Writing an `ARCHITECTURE.md` requires reading the addon's code, which this command does not do — an empty or invented one is worse than an absent one, and `/wow-addon:sync-docs` owns that scaffolding.
+- Verify **root** against the standard's root doc set — the full `README.md`, the `CLAUDE.md` stub and `DEPENDENCIES.md`, plus `LICENSE` (`documentation-§7`). A missing `DEPENDENCIES.md`, or a fourth doc sitting at root, is recorded.
+- Verify `docs/` against the canonical set — `ARCHITECTURE.md`, `testing.md`, `smoke-tests.md`, plus the four required topic-detail docs `test-cases.md`, `performance.md`, `perf-runs/README.md` and `complexity.md`, and any further topic-detail docs.
+- **Flag missing members; do not create them** — root and `docs/` alike. Writing an `ARCHITECTURE.md` requires reading the addon's code, which this command does not do; a `DEPENDENCIES.md` must be **evidence-based** (`documentation-§7`), which means reading the scripts, the harness and the TOC, and a speculative one costs the reader's trust in the whole list; and `docs/complexity.md` is generated by running `lizard`, which this command does not run. An empty or invented one is worse than an absent one — `/wow-addon:sync-docs` owns the scaffolding, and the complexity report is regenerated at release by `/wow-addon:bump-version`.
 
 ### 3d. The vendored quirks catalogue
 
@@ -120,7 +126,7 @@ You **may** still fix references *to* it — a `CLAUDE.md` pointer naming it is 
 Print the inventory before writing anything, grouped by repo and file, one line per item:
 
 ```
-STANDARDS REFRESH — KickCD (standard v2.17.1, 2026-08-03)
+STANDARDS REFRESH — KickCD (standard v2.18.0, 2026-08-04)
 
 KickCD.toc
   MISSING: ## X-Standard: line absent (documentation-§6 #1, anti-pattern #34)
@@ -134,11 +140,15 @@ CLAUDE.md
 
 docs/ARCHITECTURE.md
   RETIRED: cites §4.2 → architecture-§5 (line 31)
-  RETIRED: "the four canonical docs" → name the trio inline (line 88)
+  RETIRED: "the canonical quartet" → name the members inline (line 88)
 
 FLAGGED (not changed here)
   docs/agent-context.md exists — run /wow-addon:sync-docs to migrate and delete it
   docs/smoke-tests.md absent — canonical member missing; /wow-addon:sync-docs scaffolds it
+  DEPENDENCIES.md absent at root — required by documentation-§7 (anti-pattern #50); it must be
+    written from this repo's own evidence, so /wow-addon:sync-docs owns it, not this command
+  docs/complexity.md absent — required by performance-§10; regenerated at release by
+    /wow-addon:bump-version, never written here
 ```
 
 Then apply:
@@ -172,7 +182,8 @@ Then, once for the run:
 - **Never write the standard's rules into the repo.** No copy of `STANDARDS.md`, no section files, no context pack, under any name. What lives in the addon is the reference, the canonical `CLAUDE.md` block the standard itself prescribes, and the vendored quirks block — that block is the *only* upstream text carried in, and it is carried whole or not at all.
 - **Never merge inside the vendored quirks markers.** Replace the block wholesale; a local edit found inside it is reported and relocated to the addon's own section, never quietly preserved and never quietly overwritten.
 - **Never edit the addon's own quirks section.** It is `/wow-addon:harvest-standards`' input; the only change permitted below the end marker is removing an entry that has since been promoted upstream, which is reported.
-- **Never create missing `docs/` members.** Flag them; `/wow-addon:sync-docs` scaffolds them from the code.
+- **Never create missing `docs/` members, and never create a missing root `DEPENDENCIES.md`.** Flag them; `/wow-addon:sync-docs` scaffolds them from the repo's own evidence.
+- **Never hand-edit `docs/complexity.md` or `docs/test-cases.md`.** They are generated. Correcting a retired section reference in their header text is allowed; touching a number is not, and a hand-edited complexity report reads as measured when it is not (`performance-§10`, anti-pattern #51). This command does not run `lizard`.
 - **Never delete `docs/agent-context.md`.** Report it and name the command that removes it.
 - **Never touch `docs/audits/<date>/` or `docs/reviews/<date>/`.** Those bundles are frozen history — they record what was true on their date, against the standard of their date, and rewriting their notation falsifies the record. This holds even when they use retired forms; that is what a dated artifact is *for*.
 - **Don't bump the version, don't commit, don't push.** Version bumping is `/wow-addon:bump-version`'s job; pushing is `/wow-addon:finalize`'s alone.
