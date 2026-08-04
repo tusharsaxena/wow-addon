@@ -61,7 +61,10 @@ Use the playbook's template **verbatim in structure**. Two rules from it are wor
 they are the ones under pressure:
 
 - **Never fabricate a number.** Every figure comes from `manifest.json` or a suite artifact in this
-  bundle. Cite the file.
+  bundle. Cite the file, and **link it from the row** — a reader should reach the evidence in one click.
+- **Report complexity in full — totals *and* averages.** `manifest.json`'s `suites.complexity` carries
+  every field of `lizard`'s footer. A total that rose because the addon grew is a different fact from
+  an average that rose because it got denser, and only the second is a complexity signal.
 - **Never soften a skip into a pass.** "luacheck unavailable" is not "lint clean". If a suite was
   skipped, the analysis says what was not measured and why.
 
