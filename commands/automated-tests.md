@@ -112,7 +112,7 @@ Print:
   **`(recorded, non-gating)`** so nobody reads a complexity count as a gate.
 - The verdict (`green` / `amber` / `red`) and the bundle path.
 - Anything that newly crossed a threshold, with its disposition.
-- Every **skipped** suite, with what is missing and its install hint (`pipx install luacheck`,
+- Every **skipped** suite, with what is missing and its install hint (`sudo luarocks install luacheck`,
   `pipx install lizard`, a Lua 5.1 interpreter). Never let a skip pass silently — recording skips is
   the whole reason a green run can be trusted.
 - A reminder that the bundle and `RESULTS.md` are uncommitted changes for the user to review.

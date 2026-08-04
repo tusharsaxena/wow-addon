@@ -56,7 +56,8 @@ and corrosive at the other one.
 3. **A `skip` is not a pass.** A suite that did not run cannot satisfy its gate: a release claiming
    zero CCN > 15 on a run where `lizard` never executed is an unmeasured claim. Report it as
    **NOT EVALUATED** — visibly distinct from FAILED — name the tool and the install command from
-   `DEPENDENCIES.md` (`pipx install lizard`, `pipx install luacheck`, a Lua 5.1 interpreter), and stop.
+   `DEPENDENCIES.md` (`pipx install lizard`, `sudo luarocks install luacheck`, a Lua 5.1 interpreter),
+   and stop.
 
    **One narrow exception:** `perf` skipped because the addon ships no `tests/perf.lua` — nothing was
    there to run. That passes the gate and **MUST** be stated as such in the Step 6 report and the
