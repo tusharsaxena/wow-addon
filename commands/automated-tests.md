@@ -87,6 +87,17 @@ each in full):
   files as **Band** / File / LOC / Disposition with the band as a *column* so more than today's two
   bands render uniformly. Anything that **newly** crossed is marked as such.
 
+A disposition has a **shelf life**. An entry carried as **Accepted** across three consecutive
+release runs is owed either a fix or a tracked deviation ID with an owner — check the previous rows
+in `RESULTS.md`'s git history before writing "accepted" again, and say so in the run summary when one
+crosses that line (`automated-tests-§4`, anti-pattern #53). A watch list where everything is accepted
+costs maintenance and carries no signal.
+
+When writing dispositions, remember `lizard` counts every `and`/`or` short-circuit as a decision: in
+Lua a run of `t.k = rec.k or D.k` defaulting lines scores high with no visible branching, so say
+whether a warned function is dense **defaulting/guarding** or genuinely tangled control flow. The two
+want different fixes and carry different risk.
+
 Do not let the complexity watch list be the only prose. It came first, and a record whose only
 narrative is about complexity teaches the reader that the other three suites are pass/fail lights.
 
@@ -114,8 +125,11 @@ Print:
 - **Never edit `tests/_kit/`.** It is vendored. A runner problem is fixed in `LibKa0s` and
   re-vendored; a local patch is reverted silently by the next re-vendor, and the behavior it fixed
   returns as a regression with no cause anywhere in this repo's history.
-- **Never turn perf or complexity into a gate**, and never present them as one. They are measured and
-  recorded. A complexity warning count is not a failure.
+- **Never make this command gate on perf or complexity**, and never present a run as failed because of
+  them. They are measured and recorded; a complexity warning count does not fail a run. The **release**
+  gate — all four suites plus zero functions above CCN 15 — belongs to `/wow-addon:bump-version`, which
+  reads this run's `manifest.json` before it edits anything. Do not implement it here, and never edit
+  the vendored runner's exit code to implement it: the same script is the commit gate.
 - **Never hand-write a number into a bundle.** Everything in it came from a tool. A hand-edited
   record is worse than an absent one, because it reads as measured.
 - **A missing tool is a skip, not a failure** — report it as skipped with an install hint, never as a

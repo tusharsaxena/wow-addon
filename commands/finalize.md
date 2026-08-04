@@ -74,7 +74,7 @@ diff -r ../<Lib>/<Lib> libs/<Lib>                       # bytes  — SHOULD be e
 
 **A red gate stops that repo.** Do not commit it, do not push it, and do not start anything that depends on it. Finish the other repos, then report the failure with its real output.
 
-**The complexity report is not part of the gate.** Do not run `lizard` here and do not let `docs/complexity.md` block a commit: its checkpoint is **release, not commit** (`performance-§10`), and a complexity gate on commits is the fastest way to teach a collection to reach for `--no-verify`. There is one thing to *check*, without regenerating anything: if this changeset bumps the version — a new `## Version:` in the TOC, or a fresh `## Version History` row — then it is a release change, and the release change is where the report is refreshed. If `docs/complexity.md` is untouched in it, say so in the Step 4 report and name `/wow-addon:bump-version` as the command that owns the refresh. Do not regenerate it yourself, do not hold the push for it, and never hand-edit it.
+**The complexity record is not part of *this* gate.** (The **release** gate is all four suites plus zero CCN > 15, and it lives in `/wow-addon:bump-version`, which refuses to bump when any of them fails — `automated-tests-§3`. This command neither evaluates nor re-evaluates it.) Do not run `lizard` here and do not let the complexity record block a commit: its checkpoint is **release, not commit** (`performance-§10`), and a complexity gate on commits is the fastest way to teach a collection to reach for `--no-verify`. There is one thing to *check*, without regenerating anything: if this changeset bumps the version — a new `## Version:` in the TOC, or a fresh `## Version History` row — then it is a release change, and the release change is where the report is refreshed. If no fresh `docs/automated-tests/<run>/` bundle is present in it, say so in the Step 4 report and name `/wow-addon:bump-version` as the command that owns the refresh. Do not regenerate it yourself, do not hold the push for it, and never hand-edit it.
 
 ### 3c. Commit
 
@@ -136,6 +136,6 @@ Be exact about partial success. "Four of five repos are pushed; ConsumableMaster
 - **Never start a dependent repo before its dependency has pushed.** The whole reason for Step 2.
 - **Never edit a vendored folder** (`libs/`, `tests/_kit/`) to make anything pass. A defect there is an upstream finding: fix it in the library repo, bump the file's LibStub minor, re-vendor as its own commit. A local patch is reverted silently by the next copy.
 - **Do not bump versions or write CHANGELOG entries.** That is `/wow-addon:bump-version`'s job, and a changeset's CHANGELOG entry is usually already written by the work itself.
-- **Never gate a commit on the complexity report, and never regenerate it here.** Report a release changeset that left `docs/complexity.md` untouched; that is the whole of this command's involvement.
+- **Never gate a commit on the complexity record, and never regenerate it here.** Report a release changeset that produced no fresh automated-test bundle; that is the whole of this command's involvement.
 - **Do not tag.** If the changeset needs a release tag, that is a separate, deliberate act.
 - **One repo, one agent.** Concurrency is per repo; two agents in one working tree will interleave `git add` and stage each other's files.
