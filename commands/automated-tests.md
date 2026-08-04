@@ -1,5 +1,5 @@
 ---
-description: Run the addon's full automated-test battery through the vendored runner and record it — lint, headless tests, offline perf scenarios and lizard complexity — writing a frozen bundle to docs/automated-tests/<YYYY-MM-DD-HHMMSS>/, rolling the run into RESULTS.md, and writing the ANALYSIS.md write-up. Fetches the living AUTOMATED_TESTS.md playbook from the standards repo.
+description: Run the addon's full automated-test battery through the vendored runner and record it — lint, headless tests, offline perf scenarios and lizard complexity — writing a frozen bundle to docs/automated-tests/<YYYYMMDD-HHMMSS>/, rolling the run into RESULTS.md, and writing the ANALYSIS.md write-up. Fetches the living AUTOMATED_TESTS.md playbook from the standards repo.
 allowed-tools: [Bash, Read, Write, Edit, Glob, Grep, WebFetch]
 ---
 

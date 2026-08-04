@@ -113,7 +113,7 @@ the fresh record in the release commit where the trend line stays readable.
    tests/_kit/run-automated-tests.sh --release X.Y.Z
    ```
 
-   It writes a frozen bundle to `docs/automated-tests/<YYYY-MM-DD-HHMMSS>/` and prepends the run's
+   It writes a frozen bundle to `docs/automated-tests/<YYYYMMDD-HHMMSS>/` and prepends the run's
    row to `docs/automated-tests/RESULTS.md`. Use the **vendored** runner, never a hand-assembled
    equivalent and never the four tools invoked separately — a bundle that did not come from the
    runner will not compare against one that did.
