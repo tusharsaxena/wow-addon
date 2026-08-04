@@ -145,7 +145,7 @@ Print:
 - Old version → New version
 - The `<since>` reference used and the commit count it spanned
 - Every file changed (path + the line that was updated)
-- Whether `docs/complexity.md` was regenerated (with the command run), plus anything that **newly** crossed a threshold and its disposition — or, if `lizard` was absent, that the committed report is now stale, what its header dates it to, and that the release notes should say so
+- Whether a fresh automated-test bundle was produced (with the command run), plus anything that **newly** crossed a threshold and its disposition — or, if `lizard` was absent, that the complexity suite is recorded as a **skip with its reason** and that the release notes should say so. Also report any watch-list entry that has now carried an **Accepted** disposition across three consecutive release runs: it is owed a fix or a tracked deviation ID (`anti-pattern #53`)
 - Every version-shaped string found but DID NOT change (with reason — e.g. "looks like a library version, not the addon's version", "auto-derived CurseForge badge", "BigWigsMods @project-version@ substitution")
 - Reminder: tag the commit with `vX.Y.Z` if using the BigWigsMods packager (the packager picks the version up from the latest git tag)
 
