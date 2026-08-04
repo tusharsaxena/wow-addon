@@ -125,8 +125,11 @@ Print:
 - **Never edit `tests/_kit/`.** It is vendored. A runner problem is fixed in `LibKa0s` and
   re-vendored; a local patch is reverted silently by the next re-vendor, and the behavior it fixed
   returns as a regression with no cause anywhere in this repo's history.
-- **Never turn perf or complexity into a gate**, and never present them as one. They are measured and
-  recorded. A complexity warning count is not a failure.
+- **Never make this command gate on perf or complexity**, and never present a run as failed because of
+  them. They are measured and recorded; a complexity warning count does not fail a run. The **release**
+  gate — all four suites plus zero functions above CCN 15 — belongs to `/wow-addon:bump-version`, which
+  reads this run's `manifest.json` before it edits anything. Do not implement it here, and never edit
+  the vendored runner's exit code to implement it: the same script is the commit gate.
 - **Never hand-write a number into a bundle.** Everything in it came from a tool. A hand-edited
   record is worse than an absent one, because it reads as measured.
 - **A missing tool is a skip, not a failure** — report it as skipped with an install hint, never as a

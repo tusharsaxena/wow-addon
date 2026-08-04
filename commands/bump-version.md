@@ -1,5 +1,5 @@
 ---
-description: Bump the addon version to X.Y.Z everywhere it appears — TOC, code constants, README badges, "What's new" section and Version History table, CLAUDE*.md — write the CHANGELOG entry for everything since the last tag, and produce the release automated-test bundle (lint, tests, perf, complexity) with its ANALYSIS.md and RESULTS.md watch list. Asks for the version if not provided.
+description: Bump the addon version to X.Y.Z everywhere it appears — TOC, code constants, README badges, "What's new" section and Version History table, CLAUDE*.md — write the CHANGELOG entry for everything since the last tag, and write the release automated-test bundle's ANALYSIS.md and RESULTS.md watch list. Gated: runs the full four-suite battery FIRST and refuses to bump anything unless lint, tests, perf and complexity all pass with zero functions above CCN 15. Asks for the version if not provided.
 argument-hint: [X.Y.Z]
 allowed-tools: [Read, Glob, Grep, Bash, Edit, Write]
 ---
@@ -20,7 +20,88 @@ Otherwise:
 3. Ask the user: "Current version is X.Y.Z. Propose bumping to A.B.C ([reason]). Confirm or specify another version."
 4. Wait for the user's reply before proceeding.
 
-## Step 2 — Find every version reference
+## Step 2 — The release gate (all four suites; STOP on any failure)
+
+A release is gated on **all four** suites plus **zero functions above CCN 15**
+(`automated-tests-§3`, *The release gate*). This runs **before any file is edited**, so a failed gate
+leaves the repo exactly as it was found.
+
+This is **not** the commit gate and **MUST NOT** become one. Commits stay gated on lint + the harness
+only (`testing-§4`), the runner's own exit code is unchanged, and `perf`/`complexity` still never fail
+a run — the threshold lives here, in the release command, read off the manifest the run already
+writes. A release has no `--no-verify`, which is exactly why a threshold is safe at this checkpoint
+and corrosive at the other one.
+
+1. **Run the full battery**, tagged with the version from Step 1:
+
+   ```sh
+   tests/_kit/run-automated-tests.sh --release X.Y.Z
+   ```
+
+   Use the **vendored** runner — never the four tools invoked separately, and never a hand-assembled
+   equivalent. If the runner is **missing**, the addon has not adopted `automated-tests`: stop, say so,
+   and tell the user adoption is its own change. Do not improvise a gate from loose tool invocations.
+
+2. **Evaluate the gate from `docs/automated-tests/<stamp>/manifest.json`** — read the file, do not
+   infer from console text. All five conditions must hold:
+
+   | Gate | Condition |
+   |---|---|
+   | Lint | `suites.lint.status == "pass"` — which already means **0 warnings and 0 errors**, since `luacheck` exits non-zero on either |
+   | Tests | `suites.tests.status == "pass"` **and** `suites.tests.failed == 0` |
+   | Perf | `suites.perf.status == "pass"` |
+   | Complexity | `suites.complexity.status == "pass"` |
+   | CCN | `suites.complexity.warnings == 0` — no function above CCN 15 |
+
+3. **A `skip` is not a pass.** A suite that did not run cannot satisfy its gate: a release claiming
+   zero CCN > 15 on a run where `lizard` never executed is an unmeasured claim. Report it as
+   **NOT EVALUATED** — visibly distinct from FAILED — name the tool and the install command from
+   `DEPENDENCIES.md` (`pipx install lizard`, `pipx install luacheck`, a Lua 5.1 interpreter), and stop.
+
+   **One narrow exception:** `perf` skipped because the addon ships no `tests/perf.lua` — nothing was
+   there to run. That passes the gate and **MUST** be stated as such in the Step 6 report and the
+   release notes. A perf skip for any *other* reason (no interpreter) is NOT EVALUATED and stops.
+
+4. **On any failure or non-evaluation: STOP.** Change nothing — no version string, no README, no
+   CHANGELOG, no `RESULTS.md` beyond the row the run itself wrote. Do not tag, do not commit, do not
+   push. A partial bump is worse than a clean refusal, because the next attempt starts from a state
+   nobody chose.
+
+5. **Report every failed gate, not the first.** Evaluate all five and print the full picture, so a
+   release blocked for a lint error that also has four failing tests and a CCN 62 function is
+   understood once rather than across three rounds. Use this shape:
+
+   ```
+   RELEASE GATE FAILED — version NOT bumped (still X.Y.Z)
+
+   | Gate       | Result       | Detail                                          |
+   |------------|--------------|-------------------------------------------------|
+   | Lint       | PASS         | 0 warnings / 0 errors in 24 files                |
+   | Tests      | FAIL         | 3 failed of 689                                  |
+   | Perf       | PASS         | 6 scenarios                                      |
+   | Complexity | PASS         | ran; lizard 1.17.31                              |
+   | CCN <= 15  | FAIL         | 14 functions over 15, max CCN 33                 |
+
+   Failing tests:
+     - <case name>  (tests/test_ledger.lua:212)
+     ...
+   Functions over CCN 15 (worst first):
+     - Database:QueryList  CCN 33  core/Database.lua:90
+     ...
+   Bundle: docs/automated-tests/<stamp>/  (written; it is the evidence for this refusal)
+
+   Nothing was modified. Fix the above and re-run /wow-addon:bump-version.
+   ```
+
+   Name **every** failing test case and **every** function over CCN 15 with its file:line and CCN,
+   worst first — a count alone sends the user back to the bundle to find out what to do, and the
+   command has already read it.
+
+6. **Only when all five pass**, print a one-line `RELEASE GATE PASSED` with the same table and
+   continue to Step 3. The bundle is written either way: it is the evidence for the decision, and a
+   refusal with no record is not reviewable.
+
+## Step 3 — Find every version reference
 
 Search the addon root recursively (skip `libs/`, `Libs/`, `.git/`, `node_modules/`) for the **current** version string. Targets to check explicitly (don't rely on the regex search alone for these — verify each):
 
@@ -36,8 +117,8 @@ Search the addon root recursively (skip `libs/`, `Libs/`, `.git/`, `node_modules
   - `https://img.shields.io/curseforge/v/<id>` (auto-derived — leave alone)
   - `https://img.shields.io/github/v/release/<owner>/<repo>` (auto-derived — leave alone)
   - Manually-pinned badges with the version in the path or `?label=` parameter
-- **"What's new in X.Y.Z" section** near the top of the README (also matches `## What's New`, `## What's new in vX.Y.Z`, `## Latest release`). This section describes only the *current* release — retitle it to the new version and **replace its body** with the highlights from Step 3. If the README has no such section, create one directly below the badges / intro paragraph and above the first content heading (Features / Installation / Usage).
-- **"Version History" table** at the bottom of the README — this lists OLD versions as facts, not "the current version". Add a NEW row for the new version with an auto-generated summary of changes since the last version bump (see Step 3). Do NOT rewrite existing rows.
+- **"What's new in X.Y.Z" section** near the top of the README (also matches `## What's New`, `## What's new in vX.Y.Z`, `## Latest release`). This section describes only the *current* release — retitle it to the new version and **replace its body** with the highlights from Step 3b. If the README has no such section, create one directly below the badges / intro paragraph and above the first content heading (Features / Installation / Usage).
+- **"Version History" table** at the bottom of the README — this lists OLD versions as facts, not "the current version". Add a NEW row for the new version with an auto-generated summary of changes since the last version bump (see Step 3b). Do NOT rewrite existing rows.
 
 **Other docs**
 - `CLAUDE*.md` mentions of the version
@@ -56,7 +137,7 @@ Search the addon root recursively (skip `libs/`, `Libs/`, `.git/`, `node_modules
 
 Report the full list of matches **before** editing.
 
-## Step 3 — Summarize changes since the last release
+## Step 3b — Summarize changes since the last release
 
 One pass over the release's changes, written up at **two granularities**:
 
@@ -100,48 +181,35 @@ For the README **"Version History" table**: insert a NEW row at the top (or wher
 
 For **`CHANGELOG.md`**: write a full entry for this release — `## [X.Y.Z] — YYYY-MM-DD` with today's date, followed by the Step 3 **full list** grouped by category. If an "Unreleased" or `## [Unreleased]` header exists, that entry becomes this one (retitle it and merge its existing bullets in — see Step 3). Follow the file's established formatting (Keep a Changelog style, link refs at the bottom, etc.) rather than imposing a new one; if the file maintains comparison links, add one for the new version. Do NOT rewrite past entries.
 
-## Step 4b — Produce the release automated-test bundle and read its diff
+## Step 5 — Write up the release run
 
-A version bump **is** the release change, and the release is the automated-test record's checkpoint
-(`automated-tests-§6`). Produce it here, in the same change that rolls "What's new" and the Version
-History row forward, **before** the tag — that is the moment the addon is looked at whole, and it puts
-the fresh record in the release commit where the trend line stays readable.
+The bundle already exists: Step 2 produced it, and the gate passed on it. Nothing is re-run here —
+re-running would produce a *second* bundle whose numbers are the ones nobody gated on, and two release
+bundles for one version is a trend line with a fork in it.
 
-1. **Run the vendored runner from the repo root**, stamping the release:
-
-   ```sh
-   tests/_kit/run-automated-tests.sh --release X.Y.Z
-   ```
-
-   It writes a frozen bundle to `docs/automated-tests/<YYYYMMDD-HHMMSS>/` and prepends the run's
-   row to `docs/automated-tests/RESULTS.md`. Use the **vendored** runner, never a hand-assembled
-   equivalent and never the four tools invoked separately — a bundle that did not come from the
-   runner will not compare against one that did.
-
-   If the runner is **missing**, the addon has not adopted `automated-tests`. Say so in the Step 5
-   report and continue the bump; adoption is its own change, not something to improvise mid-release.
-
-2. **Read the diff against the previous run** — the row above this one in `RESULTS.md` — and write
+1. **Read the diff against the previous run** — the row above this one in `RESULTS.md` — and write
    the bundle's **`ANALYSIS.md`** to the uniform prompt in the standards repo's `AUTOMATED_TESTS.md`.
    A release run **MUST** carry one (`automated-tests-§5`).
 
-3. **Refresh the `RESULTS.md` watch list**: every function `lizard` warned on and every file in the
+2. **Refresh the `RESULTS.md` watch list**: every function `lizard` warned on and every file in the
    1000–1500 LOC on-notice band, each with a one-line disposition, and anything that **newly** crossed
    marked as such. A regeneration that yields no disposition for what newly crossed has performed the
-   ritual and skipped the point (anti-pattern #51). "None." when empty.
+   ritual and skipped the point (anti-pattern #51).
 
-4. **`perf` and `complexity` do not gate the release.** They are recorded (`automated-tests-§3`). A
-   rising complexity count is a thing to *report and decide about*, never a reason to fail the bump.
-   A **`red`** verdict means lint or the harness failed, and that *is* a stop: do not tag a red
-   release.
+   After a passing gate the **functions** table reads **"None."** by construction — zero CCN > 15 is
+   what the gate enforced. That is a result, not an empty section: write "None." rather than dropping
+   the heading. The **files** table is unaffected; the LOC band is not part of the gate, so a file in
+   the 1000–1500 band still needs its disposition, and an entry carried as *Accepted* across three
+   consecutive release runs is owed a fix or a tracked deviation ID (anti-pattern #53).
 
-5. **Surface the verdict in the release summary** (Step 5), with anything that newly crossed and any
-   suite that was **skipped** — a release recorded with two of four suites measured must say so while
-   the user is deciding whether to tag.
+3. **Surface the gate result in the release summary** (Step 6), including a `perf` gate satisfied by
+   the no-scenarios exception — a release whose perf gate passed because there was nothing to run must
+   say so while the user is deciding whether to tag.
 
-## Step 5 — Report
+## Step 6 — Report
 
 Print:
+- **`RELEASE GATE PASSED`** with the Step 2 table — lint, tests, perf, complexity, CCN ≤ 15 — and, where the perf gate passed because the addon ships no `tests/perf.lua`, say so plainly rather than letting it read as measured
 - Old version → New version
 - The `<since>` reference used and the commit count it spanned
 - Every file changed (path + the line that was updated)
@@ -153,8 +221,11 @@ Print:
 
 - **Don't commit.** The user reviews the diffs first.
 - **Don't tag.** Tagging is a deliberate user action.
-- **Don't create a CHANGELOG.md** that doesn't already exist — but if one does, fill in this release's entry in full (Step 3's full list).
+- **Don't create a CHANGELOG.md** that doesn't already exist — but if one does, fill in this release's entry in full (Step 3b's full list).
 - **Don't modify existing Version History rows or past CHANGELOG entries** — only add the new version's row/entry.
 - **Don't let the generated text outrun the commits.** Every bullet in the CHANGELOG entry, the "What's new" section, and the Version History row must trace to a real change between `<since>` and HEAD. No aspirational or filler entries; if there's nothing since the last tag, say so and bump the version only.
 - **Don't bump the Interface version.** That's `/wow-addon:bump-interface`.
-- **Don't hand-edit an automated-test record.** Produce it with the vendored runner or leave the previous one standing and report it as stale. Never write a number into a bundle, never edit a bundle once written, and never gate the release on `perf` or `complexity` — they inform the release, they do not block it. A `red` verdict (lint or tests) *does* block: don't tag a red release.
+- **Don't hand-edit an automated-test record.** Produce it with the vendored runner. Never write a number into a bundle and never edit a bundle once written — the bundle is the evidence the gate was decided on, including when it refused.
+- **Don't bump anything when the Step 2 gate fails.** No version string, no README, no CHANGELOG, no tag, no commit, no push. Report every failed gate with its detail and stop. Never "bump anyway and note it" — a release the gate refused is not a release with a caveat.
+- **Don't move the gate to commit time, and don't edit the vendored runner to implement it.** The runner is shared with the commit gate; a threshold inside it would fire on every commit, which is the `--no-verify` failure the standard refuses (`automated-tests-§3`). Read the manifest here instead.
+- **Don't re-run the battery in Step 5.** Step 2's bundle is the release bundle. A second run for one version forks the trend line.
