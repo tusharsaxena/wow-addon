@@ -182,6 +182,25 @@ For the README **"Version History" table**: insert a NEW row at the top (or wher
 
 For **`CHANGELOG.md`**: write a full entry for this release — `## [X.Y.Z] — YYYY-MM-DD` with today's date, followed by the Step 3 **full list** grouped by category. If an "Unreleased" or `## [Unreleased]` header exists, that entry becomes this one (retitle it and merge its existing bullets in — see Step 3). Follow the file's established formatting (Keep a Changelog style, link refs at the bottom, etc.) rather than imposing a new one; if the file maintains comparison links, add one for the new version. Do NOT rewrite past entries.
 
+### The perf-skip exception goes into the release notes, not just the chat
+
+Step 2 item 3 makes it a **MUST** that a `perf` gate satisfied by the no-scenarios exception "be stated as such in the Step 6 report and the release notes" (`automated-tests-§3`). Step 6 is the chat report and it scrolls away; **this** step is the one that authors the release notes, so this is where the obligation is discharged. Do not leave it to Step 6 alone.
+
+When Step 2 recorded the perf gate as passing because **the addon ships no `tests/perf.lua`**, the release notes carry **one sentence** saying so, in both places Step 4 writes them:
+
+- the **`CHANGELOG.md`** entry for this release, if the repo has one (see Step 6's note on when it should); and
+- the README **"What's new in X.Y.Z"** body.
+
+Use this substance, adapted to the file's voice:
+
+> Verified against lint, tests and complexity. This addon ships no `tests/perf.lua`, so the perf suite was skipped rather than measured — the release gate covered three suites, not four.
+
+Rules for that sentence:
+
+- **It is a note, not a highlight.** Put it on its own line at the end of the "What's new" body and at the end of the CHANGELOG entry — not as one of the 3–5 highlight bullets, and not in the Version History row's `<br>`-joined cell. It describes how the release was *verified*, not what changed since the last one, and Step 3b's rule that every bullet trace to a real commit does not apply to it.
+- **Write it only when the exception actually fired.** A release where `perf` ran gets no such sentence; a release where `perf` was NOT EVALUATED never reaches Step 4 at all (Step 2 item 4 stopped it).
+- **Only this release's notes.** Past CHANGELOG entries and existing Version History rows are never retro-fitted, per the hard rules — five addons in the collection are permanent perf-skippers and their history stays as written.
+
 ## Step 5 — Write up the release run
 
 The bundle already exists: Step 2 produced it, and the gate passed on it. Nothing is re-run here —
@@ -203,9 +222,18 @@ bundles for one version is a trend line with a fork in it.
    the 1000–1500 band still needs its disposition, and an entry carried as *Accepted* across three
    consecutive release runs is owed a fix or a tracked deviation ID (anti-pattern #53).
 
-3. **Surface the gate result in the release summary** (Step 6), including a `perf` gate satisfied by
-   the no-scenarios exception — a release whose perf gate passed because there was nothing to run must
-   say so while the user is deciding whether to tag.
+3. **Surface the gate result in both places it is owed**, including a `perf` gate satisfied by the
+   no-scenarios exception — a release whose perf gate passed because there was nothing to run must say
+   so while the user is deciding whether to tag, **and** must say so in the artifact the user still has
+   a year later:
+
+   - **Step 4 — the release notes.** The CHANGELOG entry and the README "What's new" body each carry
+     the one-sentence note (see Step 4, *The perf-skip exception goes into the release notes*). This is
+     the half `automated-tests-§3` MUSTs and the half that is easy to skip, because the chat report
+     feels like it discharged the obligation.
+   - **Step 6 — the chat report.** Printed beside the gate table while the tag decision is live.
+
+   Neither substitutes for the other.
 
 ## Step 6 — Report
 
@@ -225,6 +253,7 @@ Print:
 - **Don't create a CHANGELOG.md** that doesn't already exist — but if one does, fill in this release's entry in full (Step 3b's full list).
 - **Don't modify existing Version History rows or past CHANGELOG entries** — only add the new version's row/entry.
 - **Don't let the generated text outrun the commits.** Every bullet in the CHANGELOG entry, the "What's new" section, and the Version History row must trace to a real change between `<since>` and HEAD. No aspirational or filler entries; if there's nothing since the last tag, say so and bump the version only.
+- **Don't let the release notes omit a skipped suite.** When the gate passed because the addon ships no `tests/perf.lua`, Step 4 writes the one-sentence note into the CHANGELOG entry and the README "What's new" body. Printing it in the Step 6 chat report is not enough — the chat is gone by the time anyone reads the release, and notes that say only "verified" over a three-suite gate read as four. This is the mirror of the rule above: that one stops the notes claiming changes that did not happen, this one stops them claiming verification that did not happen.
 - **Don't bump the Interface version.** That's `/wow-addon:bump-interface`.
 - **Don't hand-edit an automated-test record.** Produce it with the vendored runner. Never write a number into a bundle and never edit a bundle once written — the bundle is the evidence the gate was decided on, including when it refused.
 - **Don't bump anything when the Step 2 gate fails.** No version string, no README, no CHANGELOG, no tag, no commit, no push. Report every failed gate with its detail and stop. Never "bump anyway and note it" — a release the gate refused is not a release with a caveat.
