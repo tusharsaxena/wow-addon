@@ -1,5 +1,5 @@
 ---
-description: Deep-analyze the current state of the addon and rewrite README.md, CLAUDE*.md, DEPENDENCIES.md, and ARCHITECTURE*.md to match — eliminating documentation drift. Includes count-claim verification, slash/COMMANDS parity, dead-export detection, toolchain-vs-DEPENDENCIES.md drift, and ARCHITECTURE.md / CLAUDE.md / DEPENDENCIES.md scaffolding.
+description: Deep-analyze the current state of the addon and rewrite README.md, CLAUDE*.md, DEPENDENCIES.md, and ARCHITECTURE*.md to match — eliminating documentation drift. Includes count-claim verification, slash/COMMANDS parity, dead-export detection, toolchain-vs-DEPENDENCIES.md drift, a comment-citation check over the addon's own source (a comment naming a path that does not exist or a caller that does not call, reported with file:line and corrected only on confirmation, comment-only), and ARCHITECTURE.md / CLAUDE.md / DEPENDENCIES.md scaffolding.
 allowed-tools: [Read, Glob, Grep, Bash, Edit, Write]
 ---
 
@@ -101,6 +101,27 @@ For each, read the current contents and build a drift inventory across these axe
 **Dead exports** (separate finding, often surfaces while building the API parity check)
 - Functions on the addon table with **zero callers** in the addon's own `.lua` files (excluding libs). Use `grep -r` to verify. List these as candidates for deletion — don't auto-delete.
 
+### Comment-citation check
+
+A comment that names a file, a line or a caller is documentation, and it drifts exactly like a README does — except that nothing reads it but the next person to touch that function, and no gate can see it. `luacheck` does not read prose, no test covers a comment, and a header block naming `core/DebugLog.lua` in a repo whose `core/` never held that file survives every green suite indefinitely. The same class shows up as a comment naming a reader that does not read, a member that no longer exists, or a `file:line` that resolves to something unrelated. Treat it as a drift axis of its own.
+
+**Scope.** The addon's *own* source and config: `.lua`, `.xml`, `.toc`, `.luacheckrc`, `.pkgmeta`. **Exclude `libs/`, `Libs/` and `tests/_kit/`** — those are vendored payloads, byte-identical to their upstream tag, and a comment inside them is upstream's to fix; editing one reddens the repo's vendor-sync gate. Read only **comment** text: Lua `--` lines and `--[[ … ]]` blocks, XML `<!-- … -->`, and `#` lines in `.toc`/`.pkgmeta`. A path or a name inside a string literal, a key or a value is not a citation and is not in scope.
+
+**Extract two kinds of token, and resolve each:**
+
+- **Path-like tokens** — anything shaped `some/dir/File.lua`, `File.xml`, `docs/testing.md`, with an optional `:N` or `:N-M` suffix. Resolve the path relative to the repo root first, then relative to the commenting file's own directory. Report it when **no such file exists**. When the path resolves and carries a line suffix, check the suffix too: report a `:N` (or a range whose end) that is **past the end of the file**. A line number that resolves but now points at unrelated code is *not* mechanically detectable — see the limits below.
+- **`Symbol.Member` references** — dotted or colon-qualified names such as `KCM.DebugLog.AddLine`, `Core.ApplySkin`, `O.AceGUI`, `Kit.assertSurfaceParity`. Report one that has **no call site**: `grep -rn` the member name across the addon's own `.lua`/`.xml` (same exclusions) and find zero definition and zero call. Resolve against `libs/` and `tests/_kit/` as well when the root is a vendored table — a comment may legitimately name a library member the addon only calls indirectly, and a hit anywhere in the loaded tree clears it.
+
+**Keep the false-positive rate near zero, because a noisy check gets ignored and then the real hit rides through with it.** Do not report:
+
+- A root that is a Blizzard global or a live client API — the addon does not define it and is not expected to.
+- Prose that merely contains a dot: sentence-ending words, `e.g.`, version strings, ellipses, a decimal number, a URL's host. Require a path token to end in a known source/doc extension, and a symbol token to be at least two `[A-Za-z_][A-Za-z0-9_]*` segments with the final segment starting upper-case or matching a name Step 1 actually found on the addon table.
+- A member reached only through a vendored library's own dispatch, when a grep of the loaded tree finds it.
+
+**What this check cannot see, stated plainly so nobody assumes it is covered:** a comment that is *countably* wrong — "all four of `PollSpell`'s exits" over a function with two — parses as prose, names nothing that fails to resolve, and is out of this check's reach. So is a self-referential explanation ("`O.AceGUI` is reached through `O.AceGUI`"), a stale rationale whose code still exists, and a duplicated paragraph. Those stay a reviewer's job. This check closes the mechanical half: **a named path that is not there, and a named caller that does not call.**
+
+**The edit boundary — identical in shape to `/wow-addon:revendor-standards`'s, and deliberately so.** Widening what this command *reads* does not widen what it may *write*. Every comment-citation hit is **reported with `file:line`** in the Step 3 inventory and applied **only on the user's explicit confirmation**; silence is a decline, not a default. When they confirm, the edit is **comment-only** — the text of a comment or a commented header line, and nothing else. If correcting the citation would require touching a line that runs, do not edit it: report it and say why. And **never guess a target** — a comment naming a file that does not exist may mean the file was renamed, was deleted, or was never right; the user names the replacement, or the item stays flagged. Deleting a comment outright is a correction like any other, and needs the same confirmation. The two commands differ only in what they cite: `revendor-standards` corrects references to the **standard**, this one corrects references to **this repo**.
+
 ## Step 3 — Show drift before writing
 
 Print the drift inventory to the user as a structured summary, grouped by doc file. One line per item. Example:
@@ -123,9 +144,18 @@ ARCHITECTURE.md
 DEAD EXPORTS (candidates for deletion, not auto-removed)
   core/Util.lua:88   addon.ParseColor    (zero callers)
   core/Util.lua:103  addon.PrintLSMList  (zero callers)
+
+COMMENT CITATIONS — comment-only, needs your confirmation before anything is written
+  modules/Bar.lua:5      NO SUCH PATH: "core/DebugLog.lua" — core/ holds DebugLogSetup.lua
+  modules/Bar.lua:86     NO SUCH PATH: "core/DebugLog.lua" — same block, repeated
+  core/CoreSetup.lua:21  NO SUCH PATH: "modules/DebugLog.lua" — modules/ holds Artwork, Canvas,
+                         Registry, SunnArt, SunnArtPacks, Unlock
+  settings/Slash.lua:111 NO CALL SITE: comment names settings/Panel.lua as a reader of
+                         FormatSchemaValue; Panel.lua does not reference it
+  core/Util.lua:40       LINE PAST EOF: "docs/testing.md:210" — the file has 96 lines
 ```
 
-If the drift list is large (>10 items) or any item is ambiguous, ask for confirmation before applying. For small/obvious drift, proceed.
+If the drift list is large (>10 items) or any item is ambiguous, ask for confirmation before applying. For small/obvious drift, proceed. **The `COMMENT CITATIONS` block is exempt from "small/obvious proceeds"** — every item in it is confirmed before anything is written, however mechanical it looks, and each correction's replacement text is named by the user, not guessed.
 
 ## Step 4 — Rewrite
 
@@ -134,6 +164,8 @@ For each doc file:
 - **CLAUDE.md** (root **stub**): project context for future Claude sessions, and the only agent brief in the repo. Update against your Step 1 map. Keep it short — it loads into every session's context — and keep the detail in `docs/ARCHITECTURE.md`. There is no `docs/agent-context.md`; see the CRITICAL note in Step 0.
 - **`docs/ARCHITECTURE.md`** (and variants): structural/design documentation. Update component descriptions, dataflow, dependency relationships, lifecycle.
 - **`DEPENDENCIES.md`** (root): the toolchain contract. Update entries against the evidence from Step 1, keeping the runtime / development / release-and-assets split and each entry's install command plus its verification line. Never add an entry you cannot point at a file for.
+
+Then, and only after the user has confirmed the `COMMENT CITATIONS` block item by item, apply the confirmed **comment-only** corrections in the source files those items name. Nothing in that block applies without an answer, nothing outside a comment is touched, and an item whose replacement text the user did not name stays flagged and unedited.
 
 Use `Edit` for surgical updates. Only `Write` (full rewrite) if the file is completely out of date or the diff would be larger than the rewrite.
 
@@ -145,6 +177,7 @@ Print a summary:
 - Files updated (with line-count delta per file)
 - Files unchanged (already accurate)
 - **Dead exports flagged** (separate section — these are NOT auto-removed; the user decides)
+- **Comment citations**, split into applied-after-confirmation and declined-or-unresolved, and the fact that each applied one was comment-only
 - Anything you couldn't reconcile (e.g. ambiguous intent, missing context) — flag for the user
 - A reminder to review the diffs before committing
 
@@ -154,6 +187,8 @@ Print a summary:
 - **Don't add documentation for things the user didn't document.** If there's no "Configuration" section currently, don't add one.
 - **Don't bump the version.** Even if you find drift in version numbers, do NOT change `## Version:` in the TOC, the `VERSION` constant in code, or the README badge URL. Changing the version is `/wow-addon:bump-version`'s job.
 - **Don't auto-delete dead exports.** Surface them; the user decides.
+- **Documentation only, with exactly one named exception: a confirmed comment-only comment-citation correction.** This command rewrites docs; it does not otherwise edit `.lua`, `.xml`, `.toc`, `.luacheckrc` or `.pkgmeta`. The one exception is the Step 2 comment-citation check, and it is fenced on all four sides — **this check only** (never any other drift the command notices in code), **comments only** (a string literal, a key or a value is reported, never edited), **explicit confirmation every time** (an unanswered prompt is a decline), and **never a guessed target** (the user names the replacement or the item stays flagged). The rule's purpose is intact: this exception cannot reach a line that runs. `/wow-addon:revendor-standards` carries the same boundary for standards citations; the two are written to match, and if they ever disagree, that is the bug.
+- **Never edit `libs/`, `Libs/` or `tests/_kit/`.** They are vendored payloads and must stay byte-identical to their upstream tag — a comment defect in there is fixed upstream and re-vendored, never patched in place.
 - **Don't hand-edit a generated doc.** The automated-test record and `docs/test-cases.md` are produced by tools, not written. Report staleness; never edit the numbers, and never run `lizard` here — the complexity report's checkpoint is **release**, and it MUST NOT gate a commit (`performance-§10`).
 - **Don't invent a dependency.** Every `DEPENDENCIES.md` entry traces to something in this repo. If you suspect a requirement but cannot evidence it, say so in words or leave it out.
 - **Don't touch LICENSE, CHANGELOG.md, TODO.md, or any file that isn't a project doc.**
