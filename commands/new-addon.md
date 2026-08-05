@@ -13,7 +13,20 @@ Scaffold a new WoW addon named **$ARGUMENTS** in the current working directory, 
 A new addon is born having adopted `automated-tests`. Before the first commit:
 
 1. Vendor `tests/_kit/` whole-folder from the `LibKa0s` release the README's provenance line names —
-   it now carries `run-automated-tests.sh` — and `chmod +x tests/_kit/run-automated-tests.sh`.
+   it now carries `run-automated-tests.sh` — then set its executable bit **in the git index**, not
+   just in the working tree:
+
+   ```sh
+   chmod +x tests/_kit/run-automated-tests.sh
+   git update-index --chmod=+x tests/_kit/run-automated-tests.sh
+   git ls-files -s tests/_kit/run-automated-tests.sh   # MUST print mode 100755
+   ```
+
+   `chmod` alone is not enough and in this collection does nothing at all: every repo sits on a WSL
+   **DrvFs** mount that reports every file as `rwxrwxrwx`, so the bit always looks set, and every repo
+   has **`core.fileMode=false`**, so git ignores the working tree's mode even when it does change. The
+   mode that survives a clone is the one git recorded, so `git ls-files -s` reporting `100755` — not
+   `100644` — is the only check worth making (`automated-tests-§2`).
 2. Add **`*.sh   text eol=lf`** to `.gitattributes`. Everything else in a Ka0s repo is CRLF, and a
    shebang followed by CRLF makes the kernel look for an interpreter literally named `bash\r`. Without
    this line the vendored runner is broken on every checkout.

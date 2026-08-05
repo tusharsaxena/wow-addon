@@ -36,8 +36,21 @@ The runner is **vendored**: `tests/_kit/run-automated-tests.sh`, from `LibKa0s`'
 - **Do not** hand-roll a substitute, and **do not** run the four tools individually and assemble a
   bundle yourself. A bundle whose provenance is "an agent ran some commands" is not the artifact the
   standard defines, and it will not compare against one that is.
-- If it is present but **not executable**, `chmod +x` it and say so — `cp` does not reliably carry
-  the bit across filesystems, so this is a normal re-vendor artifact rather than a finding.
+- If it is present, test the **recorded index mode**, never the working-tree bit:
+  `git ls-files -s tests/_kit/run-automated-tests.sh`. If it does not report **`100755`**, fix it and
+  say so — this is a normal re-vendor artifact rather than a finding:
+
+  ```sh
+  chmod +x tests/_kit/run-automated-tests.sh
+  git update-index --chmod=+x tests/_kit/run-automated-tests.sh
+  git ls-files -s tests/_kit/run-automated-tests.sh   # re-check: expect 100755
+  ```
+
+  Do **not** decide this from `ls -l` or a `-x` test. `cp` does not reliably carry the bit; every repo
+  here sits on a WSL **DrvFs** mount that reports every file as `rwxrwxrwx`, so the working tree always
+  claims the file is executable; and every repo has **`core.fileMode=false`**, so git ignores the
+  working tree's mode even when `chmod` does change it. The mode that survives a clone is the one git
+  recorded, which is why `chmod +x` on its own leaves the file `100644` forever (`automated-tests-§2`).
 
 ## Step 2 — Run
 
