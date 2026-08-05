@@ -1,5 +1,5 @@
 ---
-description: Refresh an addon's in-repo reference to the Ka0s WoW Addon Standard so its documentation matches the current upstream standard — the three-place standards reference (TOC X-Standard, README badge, CLAUDE.md "Standards compliance"), plus retired notation and retired file names swept out of docs/. Documentation only; never touches code, never writes the standard's text into the repo. Defaults to the repo at cwd; pass repos or `all` to sweep siblings.
+description: Refresh an addon's in-repo reference to the Ka0s WoW Addon Standard so its documentation matches the current upstream standard — the three-place standards reference (TOC X-Standard, README badge, CLAUDE.md "Standards compliance"), plus retired notation, retired file names and unresolvable section references swept out of the whole repo, excluding libs/, tests/_kit/ and the frozen docs/audits/, docs/reviews/ and docs/automated-tests/ bundles. Documentation only, and never writes the standard's text into the repo; a citation sitting in a code or config comment is reported and corrected only on confirmation, comment-only. Defaults to the repo at cwd; pass repos or `all` to sweep siblings.
 argument-hint: [path | repo names | all]
 allowed-tools: [Read, Glob, Grep, Bash, Edit, Write, AskUserQuestion]
 ---
@@ -59,7 +59,7 @@ Fetch these **faithfully** (see the fetch rule below), in order:
 
 ## Step 3 — Build the refresh inventory (per repo, read-only)
 
-Read the repo's doc set: root `README.md`, root `CLAUDE.md` (and `CLAUDE.*.md` variants), root `DEPENDENCIES.md`, every `docs/*.md` (including `docs/perf-runs/README.md`), and the `.toc` file(s) — the TOC only for its `## X-Standard:` field. Then inventory drift across six areas.
+Read the repo's doc set: root `README.md`, root `CLAUDE.md` (and `CLAUDE.*.md` variants), root `DEPENDENCIES.md`, every `docs/*.md` (including `docs/perf-runs/README.md`), and the `.toc` file(s) — the TOC only for its `## X-Standard:` field. Then inventory drift across six areas. **One of them, 3b, reads wider than the doc set** — a standards citation is bound wherever the repo authored it, so that sweep covers code, tests and config too, under its own edit boundary. Everything else here stays inside the doc set.
 
 Two artifacts in that set are **generated**, not prose: `docs/test-cases.md` and the automated-test record (`docs/automated-tests/RESULTS.md` and the frozen per-run bundles; a standalone `docs/complexity.md` is **retired** as of standard v2.19.0 — finding one is a pre-adoption finding to report, not a doc to sync). Read them for stale *references* only — a retired notation or a dead section name in their headers is fair game — and never touch their numbers. A hand-edited complexity report is worse than an absent one, because it reads as measured (`performance-§10`, anti-pattern #51).
 
@@ -73,18 +73,48 @@ The standard requires the reference in **all three** places; a repo missing any 
 
 The canonical block is **adapt-the-name, keep-the-substance**. A repo that renamed `<Name>` or reflowed the paragraphs is fine. A repo whose version has lost the stop-and-flag directive, dropped the two-way classification, or softened "MUST" into a suggestion has drifted in the way that matters, because that directive is the entire mechanism keeping the collection converged — record it as drift.
 
-### 3b. Retired forms, swept out of every doc
+### 3b. Retired and unresolvable references, swept out of the whole repo
 
-Grep the repo's docs for forms the standard has retired and record each hit with `file:line`:
+**Scope: the whole repo, not just `docs/`.** A standards citation is bound by `documentation-§6` ("Citing the standard") wherever the repo authored it — code comments, `.luacheckrc` and `.pkgmeta` headers, test files, `docs/` pages alike. Scoping this sweep to `docs/` is why most surviving retired notation lives in code: it was never looked at. Grep the whole repo and record each hit with `file:line`:
 
-- **Global `§N.M` notation** (e.g. `§4.2`, `Section 12.1`) → the `filename-§N` scheme. Resolve each old reference to the section it actually means by reading the fetched section files; if a reference cannot be resolved with confidence, flag it for the user rather than guessing a target.
+```sh
+grep -rEn '§[0-9]+\.[0-9]' . \
+  --exclude-dir=.git --exclude-dir=libs --exclude-dir=_kit \
+  --exclude-dir=audits --exclude-dir=reviews --exclude-dir=automated-tests
+```
+
+**Five paths are excluded, and each for its own reason.** Read `documentation-§6` from the fetched section file for the authoritative list; as of this writing:
+
+- **`libs/`** — vendored payload. It is not this repo's authored text, and patching it locally is the vendoring failure `3d` describes at length.
+- **`tests/_kit/`** — the vendored test kit, same rule.
+- **`docs/audits/`**, **`docs/reviews/`** and **`docs/automated-tests/`** — **frozen evidence**, all three. A bundle records what was true on its date against the standard of its date; its notation is part of what it recorded. **`docs/automated-tests/` is the one that gets forgotten, and it is not a rounding error**: in one roster addon, 30 of its 69 `§N.M` lines live inside frozen automated-test bundles (`test-cases.md` and `tests.txt` under three run stamps), so a sweep that omits this exclusion "finishes" only by corrupting three bundles. Those 30 are evidence and are **expected to survive**.
+
+`--exclude-dir` matches by directory **basename**, so `_kit`, `audits`, `reviews` and `automated-tests` are excluded wherever they sit rather than only at their canonical path. That is intended — but it also means the exclusion list is coarser than the five paths it stands for, so state the command you ran in the report and let the count be reproducible rather than asserted.
+
+Then inventory these forms:
+
+- **Global `§N.M` notation** (e.g. `§4.2`, `Section 12.1`) → the `filename-§N` scheme. `documentation-§6` grades this a **SHOULD**: it is uniformly wrong in a way a machine sweeps mechanically, which is what this command is. Resolve each old reference to the section it actually means by reading the fetched section files; if a reference cannot be resolved with confidence, flag it for the user rather than guessing a target.
 - **Section filenames that no longer exist upstream** — any doc citing a section file not in the fetched Sections list. Renamed sections get rewritten to the new name; genuinely deleted ones are flagged.
+- **Out-of-range and malformed `filename-§N` references** — the **MUST-fix** half of `documentation-§6`, and the reason this command range-checks rather than just rewrites. A retired `§N.M` at least tells the reader "this is old"; these send the reader to a section that does not exist while looking perfectly current.
+  - **Malformed** — anything that does not parse as `filename-§N` at all: an empty or non-numeric N (`slash-commands-§:`, `foo-§`, `foo-§a`), an abbreviated filename (`perf-§2` for `performance`), a `STANDARDS.md` reference carrying a number.
+  - **Out-of-range** — the section file exists but has no such section: `options-ui-§41` against a file that carries §1–§11.
+  - **Range-check it, don't eyeball it.** Step 2 already fetched every section file, so this command holds exactly the data needed. For each fetched `<file>.md`, count its **local** `§`-numbered headings (the `### N.` subsection headings the file's own numbering uses — count them, don't infer from the largest number you see, since a renumbering gap is itself the defect). Hold `{filename → highest local N}`. Then extract every `filename-§N` reference the sweep found and flag any whose filename is unknown, whose N exceeds that file's count, or whose N does not parse.
+  - **Report these individually, never rolled up.** The `§N.M` sweep is one line with the command and the count (`documentation-§6`'s reporting shape); these are few and each needs a decision, because the correct target is not mechanically derivable — a citation numbered past the end of a file could mean the section moved, was deleted, or was a typo for a different file. Flag with `file:line`, the reference as written, and the file's real range. **Do not guess a target.**
 - **A doc set stated as a count without its members** — "the four canonical docs", "the quartet", "the three root docs", or any count that leaves a slot open. This is the specific failure that reconstructs a deleted file from memory: a model that reads "quartet", counts three names and supplies the fourth produces exactly one answer, and it is the forbidden one. Rewrite to name the members inline, in both places a count is now made:
   - **Root** — the full `README.md`, the `CLAUDE.md` stub, and `DEPENDENCIES.md`, plus `LICENSE` (`documentation`, `documentation-§7`).
   - **`docs/`** — the canonical trio `ARCHITECTURE.md`, `testing.md`, `smoke-tests.md`, plus the five required topic-detail docs `test-cases.md`, `performance.md`, `perf-runs/README.md`, `automated-tests/README.md`, `automated-tests/RESULTS.md`, and any further topic-detail docs the addon ships. A standalone `complexity.md` is **not** a member — it was retired in v2.19.0.
 - **The retired "drop-in" label** for the scaffolding context pack, and any live imperative to copy the pack's contents into `docs/` — that instruction *is* the forbidden file in everything but name, so an agent following it ships the file without ever reading the name. Rewrite to fetch-and-discard wording.
 
-Sweep hits are the fetched standard's current vocabulary applied to this repo's prose — do not invent a rename the standard has not made, and do not touch quoted historical text inside `docs/audits/` or `docs/reviews/` (see the hard rules).
+Sweep hits are the fetched standard's current vocabulary applied to this repo's prose — do not invent a rename the standard has not made, and do not touch quoted historical text inside `docs/audits/`, `docs/reviews/` or `docs/automated-tests/` (see the hard rules).
+
+#### The edit boundary, now that the sweep reaches code
+
+Widening the *scope* does not widen the *permission*. Sort every 3b hit by where it lives, and treat the two halves differently:
+
+- **A hit in `docs/`, the README, `CLAUDE.md` or any other prose file** — applies automatically, exactly as before. Nothing about doc handling changes.
+- **A hit in `.lua`, `.xml`, `.toc`, `.luacheckrc`, `.pkgmeta` or any other code or config file** — is **reported with `file:line`, listed in the Step 4 inventory, and applied only on the user's explicit confirmation**. When they confirm, the edit is **comment-only**: it changes the text of a comment or a commented header line and nothing else. If correcting a reference would require touching a line that is not a comment — a string literal, a key, a value — do not edit it; report it and say why.
+
+This is a deliberate, narrow relaxation of this command's blanket "never edit code" rule, and it is written as an exception in the hard rules rather than left to be inferred, because the rule and this behaviour would otherwise contradict each other. The rule exists so an agent authorized to rewrite every repo's `CLAUDE.md` cannot also reach into `.lua`; a confirmed comment-only correction of a citation the standard MUSTs or SHOULDs is the one case where the rule's purpose and its letter come apart. It stays narrow: this sweep only, comments only, confirmation always, and never in a multi-repo run without the whole plan confirmed up front (Step 4).
 
 ### 3c. `CLAUDE.md` pointer list and the `docs/` shape
 
@@ -161,6 +191,16 @@ docs/ARCHITECTURE.md
 docs/testing.md
   CHANGED: Gates? table and "Commits are gated on…" state no release checkpoint (automated-tests-§3, line 24)
 
+CODE / CONFIG — comment-only, needs your confirmation before anything is written
+  core/Constants.lua:11        RETIRED:  cites §3.4 → architecture-§4
+  settings/Slash.lua:199       MALFORMED: "slash-commands-§:" — no section number at all
+  settings/OptionsSetup.lua:43 OUT-OF-RANGE: "options-ui-§41" — options-ui.md carries §1–§11
+  .luacheckrc:1                RETIRED:  cites §7.2 → testing-§7
+  Notation sweep: 39 hits, from
+    grep -rEn '§[0-9]+\.[0-9]' . --exclude-dir=.git --exclude-dir=libs --exclude-dir=_kit \
+      --exclude-dir=audits --exclude-dir=reviews --exclude-dir=automated-tests
+    (30 further hits live inside frozen docs/automated-tests/ bundles and are excluded as evidence)
+
 FLAGGED (not changed here)
   docs/automated-tests/RESULTS.md lead-in states the same gate claim, but it is runner-generated
     (tests/_kit/run-automated-tests.sh) — out of this sweep's reach; fixed by re-vendoring a
@@ -175,8 +215,9 @@ FLAGGED (not changed here)
 
 Then apply:
 
-- **Apply automatically** — the mechanical items, where the correct output is fully determined by the fetched standard and no repo prose is lost: the `X-Standard:` URL (adding the field in its correct TOC position, or correcting it), the README badge URL, notation and filename rewrites, retired-label rewrites, **the 3f checkpoint-qualification rewrites** (the correct sentence is fixed by `automated-tests-§3`; a gate statement gains its checkpoint and loses nothing the repo wrote), and **adding** a missing `## Standards compliance (read first)` section verbatim from the canonical wording.
+- **Apply automatically, in prose files only** — the mechanical items, where the correct output is fully determined by the fetched standard and no repo prose is lost: the `X-Standard:` URL (adding the field in its correct TOC position, or correcting it), the README badge URL, notation and filename rewrites, retired-label rewrites, **the 3f checkpoint-qualification rewrites** (the correct sentence is fixed by `automated-tests-§3`; a gate statement gains its checkpoint and loses nothing the repo wrote), and **adding** a missing `## Standards compliance (read first)` section verbatim from the canonical wording.
 - **Ask first** — anything that overwrites the repo's own words. Replacing prose in an existing `Standards compliance` section that has drifted, rewriting a sentence whose intended meaning is ambiguous, and any retired-notation hit whose target you could not resolve with confidence. Show the before and after and let the user decide.
+- **Ask for every code and config hit, always** — every 3b hit outside a prose file, however mechanical it looks. Present the whole `CODE / CONFIG` block, confirm once, then apply **comment-only** edits (see 3b, *The edit boundary*). No confirmation, no edit: an unanswered prompt is a decline, not a default. Out-of-range and malformed references are shown with the reference as written and the file's real section range, and are **not** rewritten to a guessed target even after confirmation — the user names the target or the item stays flagged.
 - **Ask for everything** when more than one repo is in scope. In a multi-repo run nobody is watching each repo, so nothing applies silently there — confirm the whole plan up front, then run it.
 
 Use `Edit` for surgical changes. Only `Write` a whole file when adding one that does not exist, which for this command means nothing under `docs/`.
@@ -190,6 +231,9 @@ Per repo:
 - Files changed, with a line-count delta each.
 - Items applied, items deferred by the user, and items **flagged for another command** (with the command named).
 - Anything you could not reconcile — an unresolvable section reference, a doc whose intent was ambiguous — stated plainly rather than resolved by guess.
+- **The 3b sweep's command and its count**, verbatim, so the number is reproducible rather than asserted (`documentation-§6`'s reporting shape) — one rolled-up line for the retired-notation half, plus the exclusions and, where any exist, how many hits were left standing inside frozen `docs/audits/`, `docs/reviews/` and `docs/automated-tests/` bundles **on purpose**. A count with no stated scope is not a count.
+- **Every out-of-range and malformed reference, individually**, whether it was corrected or left flagged — these are `documentation-§6`'s MUST-fix half and the one part of this sweep that never rolls up.
+- **Every code or config hit**, split into applied-after-confirmation and declined, and the fact that each applied one was comment-only.
 - **Whenever 3f changed anything**: the sentence that the `docs/automated-tests/RESULTS.md` lead-in carries the same gate claim, is **runner-generated**, was therefore **not** swept, and is fixed by re-vendoring a corrected `tests/_kit/run-automated-tests.sh` from `LibKa0s` and re-running. Say it even when the repo's `RESULTS.md` is currently absent.
 
 Then, once for the run:
@@ -201,14 +245,16 @@ Then, once for the run:
 
 ## Hard rules
 
-- **Documentation only.** Never edit `.lua`, `.xml`, or any code. The single exception in the `.toc` is the `## X-Standard:` field, which is documentation living in metadata — leave every other TOC field alone.
+- **Documentation only, with exactly two named exceptions.** Never edit `.lua`, `.xml`, or any code. The exceptions are:
+  1. The `.toc`'s `## X-Standard:` field — documentation living in metadata. Leave every other TOC field alone.
+  2. **A 3b standards-citation correction, in a comment, after the user confirms it.** A citation is bound by `documentation-§6` wherever the repo authored it, including code and config, so the sweep must be able to see those files; this exception is what lets it also fix them, and it is fenced on all four sides — **this sweep only** (never any other drift this command notices in code), **comments only** (a string literal, a key or a value is reported, never edited), **explicit confirmation every time** (silence is a decline, and a multi-repo run confirms the whole plan up front), and **never a guessed target** for an out-of-range or malformed reference. Everything else in code stays untouched and gets reported. The rule's purpose — that an agent licensed to rewrite every repo's `CLAUDE.md` cannot also reach into `.lua` — is intact: this exception cannot reach a line that runs.
 - **Never write the standard's rules into the repo.** No copy of `STANDARDS.md`, no section files, no context pack, under any name. What lives in the addon is the reference, the canonical `CLAUDE.md` block the standard itself prescribes, and the vendored quirks block — that block is the *only* upstream text carried in, and it is carried whole or not at all.
 - **Never merge inside the vendored quirks markers.** Replace the block wholesale; a local edit found inside it is reported and relocated to the addon's own section, never quietly preserved and never quietly overwritten.
 - **Never edit the addon's own quirks section.** It is `/wow-addon:harvest-standards`' input; the only change permitted below the end marker is removing an entry that has since been promoted upstream, which is reported.
 - **Never create missing `docs/` members, and never create a missing root `DEPENDENCIES.md`.** Flag them; `/wow-addon:sync-docs` scaffolds them from the repo's own evidence.
 - **Never hand-edit the automated-test record or `docs/test-cases.md`.** They are generated. Correcting a retired section reference in their header text is allowed; touching a number is not, and a hand-edited complexity report reads as measured when it is not (`performance-§10`, anti-pattern #51). This command does not run `lizard`.
 - **Never delete `docs/agent-context.md`.** Report it and name the command that removes it.
-- **Never touch `docs/audits/<date>/` or `docs/reviews/<date>/`.** Those bundles are frozen history — they record what was true on their date, against the standard of their date, and rewriting their notation falsifies the record. This holds even when they use retired forms; that is what a dated artifact is *for*.
+- **Never touch `docs/audits/<date>/`, `docs/reviews/<date>/` or `docs/automated-tests/<stamp>/`.** All three are frozen history — they record what was true on their date, against the standard of their date, and rewriting their notation falsifies the record. This holds even when they use retired forms; that is what a dated artifact is *for*. **All three are excluded from the 3b sweep, and the third is the one that gets forgotten**: one roster addon carries 30 `§N.M` lines inside its automated-test bundles, so a sweep that reaches zero without this exclusion reached zero by corrupting evidence. If a repo's notation count will not go to zero, check what the surviving hits are *in* before assuming the sweep is unfinished.
 - **Don't bump the version, don't commit, don't push.** Version bumping is `/wow-addon:bump-version`'s job; pushing is `/wow-addon:finalize`'s alone.
 - **Don't sync docs against code.** Count claims, slash parity, dead exports and module maps are `/wow-addon:sync-docs`'s. If you notice such drift, mention it in the report and name that command; do not fix it here.
 - **Never hard-code a section filename.** Discover every one from the fetched `STANDARDS.md` Sections list.
