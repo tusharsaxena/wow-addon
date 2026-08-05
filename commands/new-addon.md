@@ -30,7 +30,15 @@ A new addon is born having adopted `automated-tests`. Before the first commit:
 2. Add **`*.sh   text eol=lf`** to `.gitattributes`. Everything else in a Ka0s repo is CRLF, and a
    shebang followed by CRLF makes the kernel look for an interpreter literally named `bash\r`. Without
    this line the vendored runner is broken on every checkout.
-3. Create `docs/automated-tests/README.md` (what it is, how to run it, which suites gate).
+3. Create `docs/automated-tests/README.md` (what it is, how to run it, which suites gate) — and write
+   its "what gates, and what only records" section, plus `docs/testing.md`'s gate table, so each states
+   **both checkpoints**: `lint` and `tests` gate the **commit**, `perf` and `complexity` never fail a
+   **run** and never gate a commit, and the **release** (the tag) is gated on all four suites plus zero
+   functions above CCN 15, evaluated by `/wow-addon:bump-version` from the run's `manifest.json`. Take
+   the wording from the fetched `automated-tests-§3` — including its release-gate subsection — not from
+   this summary and not from the context pack's one-line version. A gate sentence that names no
+   checkpoint is the drift `/wow-addon:revendor-standards` sweep 3f exists to clean up; a new addon
+   should not be born needing it.
 4. Run `tests/_kit/run-automated-tests.sh` once, which writes the first bundle and creates
    `RESULTS.md`.
 
@@ -75,7 +83,7 @@ Once fetched, **execute `NEW_ADDON.md`'s steps exactly as written**, scaffolding
 5. **Write tests first** — stand up `tests/` on the **vendored** `tests/_kit/` harness (thin extender over its base mock, load list derived from the TOC) and drive behavior test-first. Test what is **yours** — the descriptors, the degradation stubs, the addon's own logic — and do not re-test the library's internals; those cases live in the library repo, and a second copy is exactly the duplication this arrangement exists to remove.
 6. **Write the README to `documentation-§1`'s canonical structure.**
 7. **Write the root `DEPENDENCIES.md`** — the toolchain contract (`documentation-§7`). Every piece of software needed to build, run, test or release *this* addon, split **runtime (in-game) / development / release-and-assets**, each entry carrying the **evidence** for it (the TOC's dependency fields, a script's import, the command the harness runs) — never what a new addon usually needs, because one speculative entry costs the reader's trust in the whole list. Copy-pasteable WSL2 / Ubuntu install commands plus a one-line verification per tool. A new addon's honest runtime section is normally "World of Warcraft (Retail); nothing else", since every library is vendored. It answers *what to install*; `docs/testing.md` answers *how to verify* — point at it rather than restating it.
-8. **Produce the first automated-test bundle** — run the vendored `tests/_kit/run-automated-tests.sh` and commit the frozen `docs/automated-tests/<YYYYMMDD-HHMMSS>/` bundle plus the first `RESULTS.md` row (`automated-tests-§1/§4`), **before** tagging `v0.1.0`. That bundle's `complexity.txt` is the first `lizard` report and `RESULTS.md` carries the watch list; there is **no** `docs/complexity.md` (retired, v2.19.0). Take the invocation from the fetched section rather than from memory and run it **verbatim**, because the record's whole value is that later releases can be diffed against this one. `lint` and `tests` gate; `perf` and `complexity` only record. If a tool is not installed, that suite is a **skip with its reason** — never a pass, and never a fabricated number.
+8. **Produce the first automated-test bundle** — run the vendored `tests/_kit/run-automated-tests.sh` and commit the frozen `docs/automated-tests/<YYYYMMDD-HHMMSS>/` bundle plus the first `RESULTS.md` row (`automated-tests-§1/§4`), **before** tagging `v0.1.0`. That bundle's `complexity.txt` is the first `lizard` report and `RESULTS.md` carries the watch list; there is **no** `docs/complexity.md` (retired, v2.19.0). Take the invocation from the fetched section rather than from memory and run it **verbatim**, because the record's whole value is that later releases can be diffed against this one. `lint` and `tests` gate the commit; `perf` and `complexity` only record there — but the **tag** is gated on all four plus zero functions above CCN 15, so `v0.1.0` waits on a green run of every suite. If a tool is not installed, that suite is a **skip with its reason** — never a pass, and never a fabricated number, and a skip is not a pass for the release gate either.
 9. **Check the Definition of Done** before tagging `v0.1.0`.
 10. **Register in the roster** — add the addon's row to `standards/ADDONS.md` in the `WowAddonStandards` repo. Note that this edit is in a *different* repo; if you can't push there, tell the user this row still needs adding rather than silently skipping it.
 

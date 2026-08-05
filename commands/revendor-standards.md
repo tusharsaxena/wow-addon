@@ -59,7 +59,7 @@ Fetch these **faithfully** (see the fetch rule below), in order:
 
 ## Step 3 — Build the refresh inventory (per repo, read-only)
 
-Read the repo's doc set: root `README.md`, root `CLAUDE.md` (and `CLAUDE.*.md` variants), root `DEPENDENCIES.md`, every `docs/*.md` (including `docs/perf-runs/README.md`), and the `.toc` file(s) — the TOC only for its `## X-Standard:` field. Then inventory drift across five areas.
+Read the repo's doc set: root `README.md`, root `CLAUDE.md` (and `CLAUDE.*.md` variants), root `DEPENDENCIES.md`, every `docs/*.md` (including `docs/perf-runs/README.md`), and the `.toc` file(s) — the TOC only for its `## X-Standard:` field. Then inventory drift across six areas.
 
 Two artifacts in that set are **generated**, not prose: `docs/test-cases.md` and the automated-test record (`docs/automated-tests/RESULTS.md` and the frozen per-run bundles; a standalone `docs/complexity.md` is **retired** as of standard v2.19.0 — finding one is a pre-adoption finding to report, not a doc to sync). Read them for stale *references* only — a retired notation or a dead section name in their headers is fair game — and never touch their numbers. A hand-edited complexity report is worse than an absent one, because it reads as measured (`performance-§10`, anti-pattern #51).
 
@@ -121,6 +121,22 @@ If the file exists (under that name or any other stored copy of the context pack
 
 You **may** still fix references *to* it — a `CLAUDE.md` pointer naming it is 3c drift — but say plainly in the report that the file itself is still there and which command removes it.
 
+### 3f. Normative claims the standard has since changed
+
+3b sweeps forms the standard has **retired**. This sweep is the other half: a doc sentence that still *paraphrases correctly-named rules the standard has since rewritten*. It is scoped narrowly and deliberately — to statements about **which checkpoint gates on what** — because that is where the collection's docs are one template with nine copies, and because the rewrite is fully determined by the fetched section rather than by judgement.
+
+Read `automated-tests-§3` ("What gates, and what only records", including its release-gate subsection) from the fetched section file and hold its current wording. Then check these locations, by name:
+
+- **`docs/testing.md`** — its `Gates?` table (the per-suite yes/no column) **and** its "Commits are gated on…" paragraph.
+- **`docs/automated-tests/README.md`** — the section headed "What gates, and what only records", including its per-suite rows.
+- **root `CLAUDE.md`** — any sentence of the form "complexity — recorded, never a gate", or the same claim about `perf`.
+
+The drift is always the same shape: a **gate statement that names no checkpoint**. `automated-tests-§3` gates lint and tests at the **commit**, and gates all four suites plus zero functions above CCN 15 at the **release**, so a bare "perf and complexity never fail a run" is now only half true and reads as the whole truth. Rewrite so every gate statement names its checkpoint — for example "…never fail a **run** and never gate a **commit**; the **tag** is gated on all four suites plus zero functions above CCN 15, evaluated by `/wow-addon:bump-version` from the run's `manifest.json`". Take the wording from the fetched section, not from this example, and change nothing about a sentence that already qualifies its checkpoint.
+
+Record each hit with `file:line` like any other sweep item. A doc that already names both checkpoints is not a hit — do not rewrite prose that is already correct.
+
+**One statement of this claim is out of this sweep's reach, and the report must say so.** The lead-in paragraph of `docs/automated-tests/RESULTS.md` is **generated** — the vendored runner writes it on every run (`tests/_kit/run-automated-tests.sh`, from `LibKa0s`'s `testkit/`). Editing it here would be reverted by the next run, and the record is generated besides (Step 3's note, and the hard rule below). Fixing it means re-vendoring a corrected runner from `LibKa0s` and re-running. So the report **MUST** state plainly that the `RESULTS.md` lead-in is runner-generated, that this sweep did not touch it, and that it is fixed upstream — a report that lists three fixed locations and stays silent about the fourth reads as having finished the job.
+
 ## Step 4 — Show the inventory, then apply
 
 Print the inventory before writing anything, grouped by repo and file, one line per item:
@@ -142,7 +158,13 @@ docs/ARCHITECTURE.md
   RETIRED: cites §4.2 → architecture-§5 (line 31)
   RETIRED: "the canonical quartet" → name the members inline (line 88)
 
+docs/testing.md
+  CHANGED: Gates? table and "Commits are gated on…" state no release checkpoint (automated-tests-§3, line 24)
+
 FLAGGED (not changed here)
+  docs/automated-tests/RESULTS.md lead-in states the same gate claim, but it is runner-generated
+    (tests/_kit/run-automated-tests.sh) — out of this sweep's reach; fixed by re-vendoring a
+    corrected runner from LibKa0s and re-running
   docs/agent-context.md exists — run /wow-addon:sync-docs to migrate and delete it
   docs/smoke-tests.md absent — canonical member missing; /wow-addon:sync-docs scaffolds it
   DEPENDENCIES.md absent at root — required by documentation-§7 (anti-pattern #50); it must be
@@ -153,7 +175,7 @@ FLAGGED (not changed here)
 
 Then apply:
 
-- **Apply automatically** — the mechanical items, where the correct output is fully determined by the fetched standard and no repo prose is lost: the `X-Standard:` URL (adding the field in its correct TOC position, or correcting it), the README badge URL, notation and filename rewrites, retired-label rewrites, and **adding** a missing `## Standards compliance (read first)` section verbatim from the canonical wording.
+- **Apply automatically** — the mechanical items, where the correct output is fully determined by the fetched standard and no repo prose is lost: the `X-Standard:` URL (adding the field in its correct TOC position, or correcting it), the README badge URL, notation and filename rewrites, retired-label rewrites, **the 3f checkpoint-qualification rewrites** (the correct sentence is fixed by `automated-tests-§3`; a gate statement gains its checkpoint and loses nothing the repo wrote), and **adding** a missing `## Standards compliance (read first)` section verbatim from the canonical wording.
 - **Ask first** — anything that overwrites the repo's own words. Replacing prose in an existing `Standards compliance` section that has drifted, rewriting a sentence whose intended meaning is ambiguous, and any retired-notation hit whose target you could not resolve with confidence. Show the before and after and let the user decide.
 - **Ask for everything** when more than one repo is in scope. In a multi-repo run nobody is watching each repo, so nothing applies silently there — confirm the whole plan up front, then run it.
 
@@ -168,6 +190,7 @@ Per repo:
 - Files changed, with a line-count delta each.
 - Items applied, items deferred by the user, and items **flagged for another command** (with the command named).
 - Anything you could not reconcile — an unresolvable section reference, a doc whose intent was ambiguous — stated plainly rather than resolved by guess.
+- **Whenever 3f changed anything**: the sentence that the `docs/automated-tests/RESULTS.md` lead-in carries the same gate claim, is **runner-generated**, was therefore **not** swept, and is fixed by re-vendoring a corrected `tests/_kit/run-automated-tests.sh` from `LibKa0s` and re-running. Say it even when the repo's `RESULTS.md` is currently absent.
 
 Then, once for the run:
 
