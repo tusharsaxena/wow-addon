@@ -37,11 +37,27 @@ Once fetched, **execute `AUDIT.md`'s steps exactly as written** against the addo
 
 - Snapshot the addon section-by-section into `01_CURRENT_STATE.md` (citing files), noting the standard version audited against.
 - Measure the addon against every section of the standard and the `anti-patterns` list; record one deviation per MUST/SHOULD it fails or partially meets.
-- Catalogue deviations in `02_DEVIATIONS.md`, each with a **stable per-addon-prefixed ID** (2–3 letters from the addon name), the section violated (as `filename-§N`), MUST/SHOULD severity, a one-line description, and a fix direction. Reuse a prior audit's prefix and IDs for deviations that recur.
+- Catalogue deviations in `02_DEVIATIONS.md`, each with a **stable per-addon-prefixed ID** (2–3 letters from the addon name), the section violated (as `filename-§N`), the **impact grade** (see *Grading a deviation* below), a one-line description, and a fix direction. Reuse a prior audit's prefix and IDs for deviations that recur.
 - Back every finding with `file:line` evidence in `03_EVIDENCE.md` — no unsourced claims.
 - Design remediation in `04_TECHNICAL_DESIGN.md` and order it into `05_EXECUTION_PLAN.md`, both keyed to the deviation IDs.
 
 If this list and the fetched `AUDIT.md` ever disagree, **the fetched playbook wins**; if the playbook and the standard's section files disagree on *what* to check, the standard wins.
+
+### Grading a deviation
+
+Two rules govern every row in `02_DEVIATIONS.md`. The fetched `AUDIT.md` carries both; they are restated here because they are the two an audit drifts away from first, and both are about the **headline count meaning something**.
+
+- **Severity is impact, not rule strength.** The grade answers *what can go wrong, and to whom* — never *was the word MUST or SHOULD*. **High** is reserved for something a **user**, their **SavedVariables** or their **game session** can hit **today**: a Lua error on a reachable path, corrupted or dropped saved data, a feature dead until `/reload`, a user-visible wrong value, a taint or combat-lockdown failure. **Medium** is reachable but degraded. **Low** is not reachable by a user in the current code — a latent risk, a structural or convention gap, a wrong doc or config file. **Info** is an observation, or a decision recorded elsewhere and confirmed here.
+
+  So a **doc-only or config-only failure is Low or Info even when the rule it fails is a MUST** — and the entry **MUST still name that MUST**, so the lower grade never reads as the rule being optional. A missing `## Documented deviations` heading is a MUST failure and it is Low: no user can reach a heading. Say both. Filing it High instead does not make it more likely to be fixed; it makes the High list mostly documentation, which is how a High list stops being read.
+
+  Where a section states an **applicability condition** or names a **terminal compliant state** (`architecture-§4`, `localization-§3`, `events-frames-taint-§8`, `performance-§12`), check the condition **before** grading — an addon outside a rule's scope is compliant, not deviant, and is not an entry at all.
+
+- **One root, derived dependents.** Where several observations follow from a **single unadopted subsystem or single upstream cause**, file **one root deviation** and list the rest beneath it as `derived from <ID>`. Dependents are **excluded from the headline tally** and from the MUST count. Without this, one declined subsystem inflates into a dozen rows, the headline number stops meaning anything, and the actual decision — adopt it or record why not — is buried under its own consequences.
+
+  A dependent **graduates** to a root of its own when any of these holds, and the entry says which: the root is **closed or accepted** and the dependent survives it; the dependent is reachable by a user **independently** of the root, so it would still be a defect if the subsystem were adopted tomorrow; or the dependent's own impact grade is **higher** than the root's — a High never hides under a Low.
+
+  Report **both** numbers, never one: the headline tally (roots only) and the total including dependents. A tally whose basis is not stated is the failure this rule exists to prevent.
 
 ### The shared subsystems are a library — audit the wiring, not the absence
 
@@ -81,7 +97,7 @@ The playbook's evidence step calls for checks whose whole value is that they are
 ## Chat summary (always print after writing the files)
 
 - One-line verdict: compliant / minor deviations / major deviations.
-- Counts: `MUST failures: N, SHOULD failures: N` (and partials if the playbook distinguishes them).
-- Top 3 deviations, one line each (ID + `filename-§N` + headline).
+- Counts, **both numbers with their basis stated**: the headline tally (root deviations only) and the total including `derived from <ID>` dependents, broken down by impact grade (High / Medium / Low / Info) — plus MUST failures counted the same way, so a Low that fails a MUST is visible as both.
+- Top 3 deviations, one line each (ID + `filename-§N` + grade + headline).
 - The standard version audited against.
 - Paths to all five artifacts under `docs/audits/<date>/`.
