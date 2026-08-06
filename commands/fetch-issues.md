@@ -17,7 +17,9 @@ Issues on a Ka0s addon repo are the durable store of pending work — `docs/pend
 | `[done]` | Implemented | closed |
 | `[will-not-do]` | Decided it will never be done | closed |
 
-An issue with **no** prefix is externally filed — real work that has not been through `/wow-addon:issue-audit`. Report it as `—` in the Status column rather than guessing a status for it.
+**Every issue always carries one of these four**, so a missing prefix is a defect rather than a fifth state. This command is a plain listing and deliberately does **not** repair it: show the issue with `—` in the Status column, say plainly that its prefix is missing, and point at `/wow-addon:issue-audit` or `/wow-addon:issue-triage`, which repair strays on sight. Don't guess a status for it, and don't fix it here — a listing that edits what it lists is a surprise nobody asked for.
+
+For status, description and age together rather than a bare listing, use `/wow-addon:issue-details`; for counts across repos, `/wow-addon:issue-summary`.
 
 **GitHub API guardrail.** Use the `gh` CLI subcommands — here that is `gh issue list` and, if a single issue needs expanding, `gh issue view` — with `--json` for structured data. **Never use `gh api graphql`** for issue work, and never hand-roll GraphQL queries against `api.github.com/graphql` — reaching for GraphQL first is a real, observed failure that wastes a round trip on a deprecated path before falling back. If a REST call is genuinely unavoidable, use `gh api repos/{owner}/{repo}/issues` — never the GraphQL endpoint. Because status lives in the title prefix, **filtering by status is a title filter you apply to the `gh issue list --json number,title,state` result yourself** — it is not a label query, not `--search`, and not a GraphQL search.
 
@@ -35,7 +37,6 @@ Parse `$ARGUMENTS` (trimmed), in this order:
 - Empty → list **open** issues (default).
 - `closed` → closed issues. `all` → open + closed.
 - One of `untriaged`, `deferred`, `done`, `will-not-do` (with or without brackets) → a **status filter**. Fetch with `--state all` and then keep only issues whose title starts with that prefix — `done` and `will-not-do` live in the closed set, so filtering an open-only fetch by them silently returns nothing.
-- `unprefixed` → issues with no recognised status prefix (the externally-filed ones).
 - Anything else → a **label filter** on open issues (e.g. `bug`, `enhancement`).
 
 Status filters and label filters don't combine; if the user gives both, honour the status filter and say the label was ignored.
@@ -62,7 +63,7 @@ Print a table sorted by issue number (descending, newest first):
 - **State** = `open` / `closed`. Show it whenever the scope can contain both; a `[deferred]` issue that is closed is an inconsistency worth seeing.
 - **Age** = how long ago it was opened, humanized (e.g. `3d`, `2mo`).
 - Above the table, state the count and scope (e.g. "**7 open issues**", "**3 open issues labeled `bug`**", "**4 `[deferred]` issues**").
-- When the scope is broad enough to be worth it, add a one-line status tally under the count: `untriaged 5 · deferred 4 · done 12 · will-not-do 3 · unprefixed 2`.
+- When the scope is broad enough to be worth it, add a one-line status tally under the count: `untriaged 5 · deferred 4 · done 12 · will-not-do 3`.
 - Below the table, list the issue URLs so they're clickable.
 - If there are none, say so plainly (e.g. "No open issues.", "No `[deferred]` issues.").
 
