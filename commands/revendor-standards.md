@@ -68,7 +68,15 @@ Two artifacts in that set are **generated**, not prose: `docs/test-cases.md` and
 The standard requires the reference in **all three** places; a repo missing any of them is non-compliant (anti-pattern #34). Read `documentation-§6` from the fetched section file — it is authoritative for the list and the canonical wording, and it may have moved past what is written here. As of this writing:
 
 1. **TOC `## X-Standard:`** — must carry the standard's repo URL (`toc-file-§1`). Check presence, exact field spelling, and that the URL matches the standard's current home.
-2. **README standard badge** — the badge/line linking the standard in the README badge row (`documentation-§1`). Check presence and URL. Note that `documentation-§1` forbids percent-escaped spaces in badge URLs and angle-bracket placeholders in shipped README content — if the badge you would write or repair trips either rule, write the compliant form.
+2. **README standard badge** — the badge in the README badge row that **declares** the standard (`documentation-§1`). Check presence and URL. Two rules bind its exact form and both are stated as **MUST NOT**s because the wrong form and the right form look almost identical in a diff:
+   - **It is not a link, and MUST NOT be re-wrapped in one.** The canonical template is the bare image and nothing else:
+
+     ```
+     ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
+     ```
+
+     A badge found in the linked form — `[![Standard](…)](https://github.com/tusharsaxena/WowAddonStandards)` — is **drift to correct**: strip the surrounding `[…](…)` wrapper and leave the image markdown byte-identical. Never add the wrapper back, and never treat its absence as a missing link to repair. The standards-repo reference that actually binds the addon is items 1 and 3 above — the two places `documentation-§6` makes normative and a reader can act on. The badge is the third place, on a page written for **players**, and its job there is to declare: a player who follows a link to the standards repo lands somewhere that tells them nothing about the addon they installed, and the contributor who needs that repo already has it in the two files they open first.
+   - `_`, not `%20` — `documentation-§1` forbids percent-escaped spaces in badge URLs, and angle-bracket placeholders in shipped README content. If the badge you would write or repair trips either rule, write the compliant form.
 3. **`CLAUDE.md` → `## Standards compliance (read first)`** — the agent-facing directive. Check that the section exists under that heading and that its **substance** matches the canonical wording: the addon is built to the standard, the standard is the source of truth, and — the load-bearing part — a change that would deviate makes the agent **stop and flag** it rather than silently deviate *or* silently conform, leaving the user to classify it as an accepted deviation or an upstream change to the standard.
 
 The canonical block is **adapt-the-name, keep-the-substance**. A repo that renamed `<Name>` or reflowed the paragraphs is fine. A repo whose version has lost the stop-and-flag directive, dropped the two-way classification, or softened "MUST" into a suggestion has drifted in the way that matters, because that directive is the entire mechanism keeping the collection converged — record it as drift.
@@ -214,6 +222,8 @@ KickCD.toc
 
 README.md
   STALE:   standard badge URL uses %20 escapes (documentation-§1)
+  DRIFT:   standard badge wrapped in a link to WowAddonStandards — the badge
+           is not a link (documentation-§1); unwrap to the bare ![Standard](…)
 
 CLAUDE.md
   DRIFT:   "Standards compliance (read first)" lost the stop-and-flag directive (documentation-§6 #3)
@@ -256,7 +266,7 @@ FLAGGED (not changed here)
 
 Then apply:
 
-- **Apply automatically, in prose files only** — the mechanical items, where the correct output is fully determined by the fetched standard and no repo prose is lost: the `X-Standard:` URL (adding the field in its correct TOC position, or correcting it), the README badge URL, notation and filename rewrites, retired-label rewrites, **the 3f checkpoint-qualification rewrites** (the correct sentence is fixed by `automated-tests-§3`; a gate statement gains its checkpoint and loses nothing the repo wrote), and **adding** a missing `## Standards compliance (read first)` section verbatim from the canonical wording.
+- **Apply automatically, in prose files only** — the mechanical items, where the correct output is fully determined by the fetched standard and no repo prose is lost: the `X-Standard:` URL (adding the field in its correct TOC position, or correcting it), the README badge URL **and unwrapping a linked standard badge to the bare image** (the wrapper is deleted; the image markdown is untouched, so no repo prose is lost), notation and filename rewrites, retired-label rewrites, **the 3f checkpoint-qualification rewrites** (the correct sentence is fixed by `automated-tests-§3`; a gate statement gains its checkpoint and loses nothing the repo wrote), and **adding** a missing `## Standards compliance (read first)` section verbatim from the canonical wording.
 - **Ask first** — anything that overwrites the repo's own words. Replacing prose in an existing `Standards compliance` section that has drifted, rewriting a sentence whose intended meaning is ambiguous, and any retired-notation hit whose target you could not resolve with confidence. Show the before and after and let the user decide.
 - **Ask for every code and config hit, always** — every 3b hit outside a prose file, however mechanical it looks. Present the whole `CODE / CONFIG` block, confirm once, then apply **comment-only** edits (see 3b, *The edit boundary*). No confirmation, no edit: an unanswered prompt is a decline, not a default. Out-of-range and malformed references are shown with the reference as written and the file's real section range, and are **not** rewritten to a guessed target even after confirmation — the user names the target or the item stays flagged.
 - **Ask for everything** when more than one repo is in scope. In a multi-repo run nobody is watching each repo, so nothing applies silently there — confirm the whole plan up front, then run it.

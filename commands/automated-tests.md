@@ -31,8 +31,13 @@ Follow the playbook to the letter. Everything below is orchestration; the playbo
 The runner is **vendored**: `tests/_kit/run-automated-tests.sh`, from `LibKa0s`'s `testkit/`.
 
 - If it is **missing**, the addon has not adopted `automated-tests` yet. Say so, name what adoption
-  needs (re-vendor `tests/_kit/` from the LibKa0s release the README's provenance line names, add
-  create `docs/automated-tests/`, and get `.gitattributes` right), and stop. On that last item, name
+  needs (re-vendor `tests/_kit/` from the LibKa0s release the **root `CLAUDE.md`** provenance line
+  names, add create `docs/automated-tests/`, and get `.gitattributes` right), and stop. On the
+  provenance line: it lives in `CLAUDE.md`, **not** `README.md`, since LibKa0s v1.8.1 / test-kit
+  revision 9, and the consumer-side gate has **no fallback** — a repo whose line is still in the
+  README reads as having none at all, so the line must move into `CLAUDE.md` in the **same** commit
+  as the re-vendored bytes, and `docs/test-cases.md` regenerates with it (the first case's name
+  changed). On that last item, name
   the **whole** rule and not just the carve-out: if the repo has no `.gitattributes`, or has one with
   no `* text=auto eol=…` pin, the fix is to write the canonical body for the repo's kind — pin,
   `*.sh text eol=lf`, binary markings — and then renormalize (`line-endings`). Telling the user to
