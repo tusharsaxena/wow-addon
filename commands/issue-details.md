@@ -54,7 +54,7 @@ Take each issue's status from its **title prefix**, matched case-insensitively a
 
 **An issue with no recognised prefix is repaired on sight**, because every issue in this store always carries one: `gh issue edit <n> --title "[untriaged] <existing title>"`, keeping the original text exactly. This is the **only** write this command makes. State it in the output every time it happens — a read command that silently changes something is worse than one that doesn't repair at all. If the repair fails, show the issue as `untriaged` anyway and say the title could not be fixed.
 
-For each issue produce a **one-line description**: the single most useful sentence about what it is. Take it from the body — the `Evidence` block, the first line of `Rationale`, or the first substantive sentence — and compress to roughly 100 characters. **Never invent it**; if the body has nothing usable, write `—` rather than restating the title back in different words. A description that just paraphrases the title is noise pretending to be information.
+For each issue produce a **one-line description**: the single most useful sentence about what it is. Take it from the body — the `Evidence` block, the first line of `Rationale`, or the first substantive sentence — and compress to the Step 5 width budget (≤ 36 characters at the current roster — see *Row width* below, and recompute if the roster changes). **Never invent it**; if the body has nothing usable, write `—` rather than restating the title back in different words. A description that just paraphrases the title is noise pretending to be information.
 
 ## Step 5 — Print
 
@@ -62,19 +62,50 @@ Per repo, in roster order, one section each:
 
 ### <Repo> — N issues (<states shown>)
 
-| # | Status | State | Title | Description | Age | URL |
-|---|---|---|---|---|---|---|
+| # | Status | Title | Description | Age | URL |
+|---|---|---|---|---|---|
 
 - **Status** is the prefix (`untriaged`, `triaged`, `done`, `will-not-do`).
-- **State** is GitHub's own `open`/`closed`. Both columns are shown because they encode the same decision twice and a disagreement between them is a defect worth seeing.
 - **Age** is time since it was opened, humanized (`3d`, `2mo`).
+- **`State` is a conditional column, not a permanent one.** GitHub's `open`/`closed` is implied by the status for every well-formed issue, so a permanent column spends width on a value the reader can already infer. Add it **only** for a repo that actually contains a prefix/state disagreement, and only to that repo's table. Otherwise the disagreements are reported in the Inconsistencies list below and the column is pure cost.
 - **URL** is the issue's full `https://github.com/<owner>/<repo>/issues/<n>`, **last column, one per row**. Write it bare — no markdown link wrapper, no shortening, no `…` truncation — because the point of this column is that a terminal can detect it and make it clickable, and every one of those transformations breaks that.
 - Sort by status — `untriaged` first, then `triaged`, then `done`, then `will-not-do` — and within each, by number descending. Untriaged first because it is the only status that means *nobody has looked at this*.
 - A repo with nothing matching gets one line: `**<Repo>** — no issues matching <states>.` Don't print an empty table.
 
 **The URL goes in the row, not in a list underneath.** A list below the table makes the reader match a number to a link by eye, which is exactly the step the column removes. It also means the row and its link can never drift apart when the table is sorted or filtered.
 
-This makes the table wide, and that is the accepted trade. If something has to give, **compress the Description, never the URL** — a shortened description is still useful, a shortened URL is not a link.
+### Row width is a correctness constraint, not a style preference
+
+A full issue URL runs to **58 characters** for the longest repo name in the collection and cannot be shortened, so everything else is budgeted around it. Do the arithmetic rather than eyeballing it:
+
+```
+7 pipes + 12 padding spaces +  2 (number) + 9 ("untriaged") + 5 (age) + 58 (URL)  =  93 fixed
+```
+
+**93 characters are gone before a single character of Title or Description.** So:
+
+| Row budget | Left for Title + Description |
+|---|---|
+| 140 | 47 — **unusable**, ~23 each |
+| 160 | 67 |
+| **170** | **77 — the working target** |
+| 180 | 87 |
+
+**Target ~170 characters: Title ≤ 40, Description ≤ 36**, truncating with a trailing `…`.
+
+This is not tidiness. A terminal that renders markdown tables as box drawing **mangles rows past its width** — it clips them, and when it does it can lose the association between a row and its header, so a row from one repo appears under another repo's heading with no header line at all. A reader then trusts a table that is silently lying about which repo they are looking at. Measured on a real 72-issue run: rows reached **207 characters**, 61 of 92 exceeded 160, and that run produced exactly that failure.
+
+If something has to give, **compress the Description, never the URL** — a shortened description is still useful, a shortened URL is not a link. If even that is not enough, narrow the scope to fewer repos or use `/wow-addon:issue-summary`; do not widen the table.
+
+**Do not set a budget you have not checked.** The 93-character floor moves with the longest repo name in scope, so recompute it rather than copying the numbers above when the roster changes.
+
+**Escape pipes.** Any `|` inside a title or description must be written `\|`, or it splits the row into extra cells and corrupts every column after it.
+
+### Print the tables exactly once
+
+Build the listing **quietly** — write it to a file, or capture it — and then present it once. **Never emit the full listing as command output and then restate it in the reply.** Both are visible to the reader, so doing both prints the entire report twice, and a long doubled report is where the width damage above becomes impossible to spot.
+
+Same rule for the intermediate data: fetch into files, don't dump raw JSON or a draft table to the screen on the way to the real one.
 
 Below everything, if any issue's prefix disagreed with its GitHub state, list them under **Inconsistencies** with repo, number and both values. Don't fix them here beyond the missing-prefix repair, and don't count them twice — just surface them, and point at `/wow-addon:issue-triage`.
 
@@ -87,6 +118,9 @@ Close with one line: how many issues shown, across how many repos, and — when 
 - **Never report an unreadable repo as empty.**
 - **Never invent a description.** `—` is a fine answer; a plausible-sounding paraphrase is not.
 - **Never mangle the URL.** Bare, complete, one per row, last column. No markdown wrapper, no shortener, no ellipsis — a URL a terminal cannot click is a URL that failed at its only job.
+- **Never print the listing twice.** Build it quietly, present it once. Emitting it as command output and then restating it in the reply doubles the whole report.
+- **Never let a row exceed ~170 characters** (Title ≤ 40, Description ≤ 36 at the current roster). A clipped row can end up rendered under the wrong repo heading, which makes the table actively misleading rather than merely ugly. Truncate the Description; never the URL.
+- **Always escape `|` inside a cell** as `\|`, or the row gains phantom columns.
 - **Don't infer status from labels.** The title prefix is the data; a label named `triaged` is not.
 - **Never use `gh api graphql`.**
 - **Don't invent the roster.** Read it from `ADDONS.md` or say plainly that you inferred it.
