@@ -1,10 +1,27 @@
 ---
-description: Create a well-formed GitHub issue on the current addon's repo, via the gh CLI. Gathers a title, tag (bug/enhancement), and details from you — fuzzy input is fine — formulates a clean issue, shows it for approval, then creates it.
+description: Create a well-formed GitHub issue on the current addon's repo, via the gh CLI. Gathers a title, tag (bug/enhancement), and details from you — fuzzy input is fine — formulates a clean issue with the `[status]` title prefix the collection uses, shows it for approval, then creates it.
 argument-hint: [rough title / details to seed from]  (optional)
 allowed-tools: [Bash]
 ---
 
 Create a new GitHub issue on the repo at the cwd, using the `gh` CLI. Your inputs can be fuzzy — you formulate a clean, well-structured issue from them.
+
+## The `[status]` title prefix
+
+Issues on a Ka0s addon repo are the durable store of pending work — `docs/pending/LEDGER.md` is retired and `/wow-addon:issue-audit` reads and writes this store. Status is carried as a **title prefix**, exactly `[<Status>] <Title>`:
+
+| Prefix | Meaning | Issue state |
+|---|---|---|
+| `[untriaged]` | Seen and recorded; nobody has been asked about it yet | open |
+| `[deferred]` | Decided: not now. Still on the books | open |
+| `[done]` | Implemented | closed |
+| `[will-not-do]` | Decided it will never be done | closed |
+
+**A newly filed issue is `[untriaged]`.** That is the default and it is almost always right: filing an issue records that something exists, not that a decision was taken about it. The only exception is when the user is **explicitly** filing something they have already decided to postpone — then, and only then, file it as `[deferred]`. Never file `[done]` or `[will-not-do]` here; those are closed states and this command only creates open issues.
+
+Never invent a fifth prefix, and never put the status in a label as well — the prefix is the data.
+
+**GitHub API guardrail.** Use the `gh` CLI subcommands — `gh issue list`, `gh issue create`, `gh issue edit`, `gh issue close`, `gh issue comment`, `gh issue view`. Where structured data is needed, use `--json` on those subcommands. **Never use `gh api graphql`** for issue work, and never hand-roll GraphQL queries against `api.github.com/graphql` — reaching for GraphQL first is a real, observed failure that wastes a round trip on a deprecated path before falling back. If a REST call is genuinely unavoidable, use `gh api repos/{owner}/{repo}/issues` — never the GraphQL endpoint. Because status lives in the title prefix, listing by status is a title filter over `gh issue list --json number,title,state`, **not** a label query and **not** a GraphQL search.
 
 ## Step 0 — Preflight
 
@@ -27,7 +44,7 @@ Ask for anything missing. Do not proceed to draft until you have all three.
 
 Turn the fuzzy inputs into a clean issue:
 
-- **Title** — crisp and specific; imperative or noun phrase, no trailing period. Fix obvious typos. (e.g. "aura timer flickers on target swap" → `Aura timer flickers when swapping targets`.)
+- **Title** — crisp and specific; imperative or noun phrase, no trailing period. Fix obvious typos. (e.g. "aura timer flickers on target swap" → `Aura timer flickers when swapping targets`.) Then prepend the status prefix, so the final title is `[untriaged] Aura timer flickers when swapping targets` — or `[deferred] …` if the user explicitly said they are filing something already postponed. If their rough title already carries a valid prefix, keep it rather than doubling up.
 - **Body** — structure by tag:
   - **bug** → `### Description` · `### Steps to reproduce` · `### Expected` · `### Actual` · `### Environment` (fill in the addon version and `## Interface:` from the TOC if determinable; otherwise leave a clearly-marked blank for the user).
   - **enhancement** → `### Description` · `### Motivation` · `### Proposed behavior` · `### Acceptance criteria`.
@@ -36,7 +53,7 @@ Turn the fuzzy inputs into a clean issue:
 
 ## Step 3 — Confirm before creating
 
-Show the drafted **title**, **body**, and **label**, then ask:
+Show the drafted **title** (prefix included), **body**, and **label**, then ask:
 
 > "Create this issue? (y / n / edit)"
 
@@ -60,5 +77,7 @@ Omit `--label` if the label doesn't exist and the user declined to create it. Pr
 ## Hard rules
 
 - **Only create on explicit approval.** No issue is filed until the user answers `y` in Step 3.
+- **Always carry a status prefix**, and default it to `[untriaged]`. Never file `[done]` or `[will-not-do]` — those are closed states owned by `/wow-addon:issue-audit`.
 - **Never touch other issues.** This command only creates the one new issue — no editing, closing, or commenting on anything else.
+- **Never use `gh api graphql`** or a hand-rolled GraphQL query for issue work. `gh issue create` (and `gh label list`) is the whole surface this command needs; `gh api repos/{owner}/{repo}/issues` is the only acceptable fallback.
 - **Don't fabricate.** Reproduction steps, versions, and acceptance criteria come from the user or the TOC, never from imagination — mark unknowns `_TBD_`.

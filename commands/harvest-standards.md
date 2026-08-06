@@ -1,10 +1,10 @@
 ---
-description: Harvest learnings from the whole Ka0s collection — every addon repo plus LibKa0s — and promote what has earned it into the Ka0s WoW Addon Standard. Reads code, audit and review bundles, pending ledgers, Compat modules and per-addon quirk files; dedups against the standard's own open-evolutions list; writes a frozen harvests/<date>/ bundle, interviews you per proposal, and applies the accepted ones with the full ripple (section, index blurb, anti-pattern range, changelog, version bump, context pack, playbooks). Runs in the WowAddonStandards repo; read-only on every addon repo.
-argument-hint: [repo names | quirks | deviations | ledgers | patterns | all]
+description: Harvest learnings from the whole Ka0s collection — every addon repo plus LibKa0s — and promote what has earned it into the Ka0s WoW Addon Standard. Reads code, audit and review bundles, each repo's issue-audit issue store, Compat modules and per-addon quirk files; dedups against the standard's own open-evolutions list; writes a frozen harvests/<date>/ bundle, interviews you per proposal, and applies the accepted ones with the full ripple (section, index blurb, anti-pattern range, changelog, version bump, context pack, playbooks). Runs in the WowAddonStandards repo; read-only on every addon repo.
+argument-hint: [repo names | quirks | deviations | decisions | patterns | all]
 allowed-tools: [Read, Glob, Grep, Bash, Edit, Write, AskUserQuestion]
 ---
 
-Harvest what the Ka0s collection has **learned** since the standard last moved, and promote the findings that have earned it into the **Ka0s WoW Addon Standard**. Run this from inside the `WowAddonStandards` repo. `$ARGUMENTS` may narrow the sweep to named repos or to one category (`quirks`, `deviations`, `ledgers`, `patterns`); empty means the full sweep.
+Harvest what the Ka0s collection has **learned** since the standard last moved, and promote the findings that have earned it into the **Ka0s WoW Addon Standard**. Run this from inside the `WowAddonStandards` repo. `$ARGUMENTS` may narrow the sweep to named repos or to one category (`quirks`, `deviations`, `decisions`, `patterns`); empty means the full sweep. (`ledgers` is accepted as a legacy alias for `decisions`.)
 
 ## Direction of travel
 
@@ -13,7 +13,7 @@ This is the **upstream** half of a two-command cycle, and the mirror image of `/
 - **`/wow-addon:revendor-standards`** runs in an addon repo and carries the standard **down** into it.
 - **This command** runs in the standards repo and carries the collection's learnings **up** into the standard.
 
-The reason the pair exists is that knowledge in this collection is discovered **per repo** and paid for **per repo**. One addon fights the client for an afternoon, writes down what it found, and the other eight rediscover it later at full price — or worse, never do, and ship the bug the first one already fixed. The standard is the only place a finding stops being paid for twice. Nothing else in the toolkit reads across repos: `standards-audit` measures one addon, `review` reviews one addon, `pending-audit` triages one addon. **Cross-repo synthesis is this command's entire reason to exist**, so a run that only re-reads one repo has done nothing the existing commands did not already do.
+The reason the pair exists is that knowledge in this collection is discovered **per repo** and paid for **per repo**. One addon fights the client for an afternoon, writes down what it found, and the other eight rediscover it later at full price — or worse, never do, and ship the bug the first one already fixed. The standard is the only place a finding stops being paid for twice. Nothing else in the toolkit reads across repos: `standards-audit` measures one addon, `review` reviews one addon, `issue-audit` triages one addon. **Cross-repo synthesis is this command's entire reason to exist**, so a run that only re-reads one repo has done nothing the existing commands did not already do.
 
 ## Absolute rule — read-only on every addon repo
 
@@ -70,9 +70,24 @@ Every `docs/audits/<date>/02_DEVIATIONS.md` and `docs/reviews/<date>/01_FINDINGS
 
 An audit that has to **punt to the user** because two sections disagree has found a defect in the standard that no per-addon process will ever fix — the auditor cannot resolve it, and the addon author resolves it locally and privately, differently each time. Grep the bundles for exactly this shape: a deviation citing two sections in tension, or fix directions that say the choice is the user's. These are the highest-value findings in the corpus and the easiest to miss, because each one is filed as a single addon's edge case.
 
-### 6. Ledger `wont-do` rows — accepted deviations the standard never heard about
+### 6. `[will-not-do]` issues — accepted deviations the standard never heard about
 
-`documentation-§6` requires an addon to **record** an accepted deviation, and `pending-audit` has been doing exactly that in `docs/pending/LEDGER.md` — but recording it in the addon tells the standard nothing. Read every ledger. A `wont-do` is a considered, argued refusal with a rationale attached; the **same** refusal in three repos is not three addons being stubborn, it is a rule the collection has collectively declined to follow, and the standard should either change or state why it holds. Harvest `deferred` rows too, more weakly: a deferral repeated everywhere is a rule too expensive to satisfy, which is its own finding.
+`documentation-§6` requires an addon to **record** an accepted deviation, and `issue-audit` has been doing exactly that — but recording it in the addon tells the standard nothing. That record used to live in `docs/pending/LEDGER.md`; it now lives in **GitHub issues on each addon's own repo**, with status carried as a title prefix (`[done]`, `[will-not-do]`, `[deferred]`, `[untriaged]`). The ledger is retired. **This harvest category must not die with it** — it is the only channel through which a collectively-refused rule reaches the standard.
+
+For every repo in the sweep, read both halves of the store:
+
+```
+gh issue list --repo <owner>/<repo> --state closed --limit 200 --json number,title,body,url   # keep titles starting "[will-not-do]"
+gh issue list --repo <owner>/<repo> --state open   --limit 200 --json number,title,body,url   # keep titles starting "[deferred]"
+```
+
+Filter on the **title prefix** in the result you get back. Do not use a label query and do not use a search API. The rationale you want is in the issue body under `### Rationale`, and the `filename-§N` rule it refuses is usually in the evidence block above it.
+
+A `[will-not-do]` is a considered, argued refusal with a rationale attached; the **same** refusal in three repos is not three addons being stubborn, it is a rule the collection has collectively declined to follow, and the standard should either change or state why it holds. Harvest `[deferred]` issues too, more weakly: a deferral repeated everywhere is a rule too expensive to satisfy, which is its own finding.
+
+Cite the issue URL as the evidence for each proposal, the way a ledger row used to be cited. If a repo still has a `docs/pending/LEDGER.md`, it has not migrated yet — read it as well for this run, note it in the bundle as un-migrated, and don't let its rows go unharvested.
+
+**GitHub API guardrail.** Use the `gh` CLI subcommands — `gh issue list`, `gh issue view` — with `--json` for structured data. **Never use `gh api graphql`** for issue work, and never hand-roll GraphQL queries against `api.github.com/graphql`; reaching for GraphQL first is a real, observed failure that wastes a round trip on a deprecated path before falling back. If a REST call is genuinely unavoidable, use `gh api repos/{owner}/{repo}/issues` — never the GraphQL endpoint. This command is **read-only on every addon repo**, so `gh issue list` and `gh issue view` are the only issue calls it may make at all.
 
 ### 7. Rules nobody satisfies, and rules nobody needs
 

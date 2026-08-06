@@ -40,7 +40,7 @@ With more than one repo, order is not cosmetic. Get it wrong and a repo lands on
 Establish, with evidence rather than assumption:
 
 - **Vendored shared libraries.** If repo B carries `libs/<Lib>/` (or `tests/_kit/`) whose source is repo A in the same collection, then **A precedes B**. Confirm the relationship — `diff -r --strip-trailing-cr A/<Lib> B/libs/<Lib>` — rather than inferring it from the name.
-- **Cross-repo references in the changed files themselves.** `grep` the diff for sibling paths (`../<Repo>/…`). A ledger row or doc line in B that cites a file in A is a dependency: A must be committed and pushed first, or B's reference points at nothing on origin.
+- **Cross-repo references in the changed files themselves.** `grep` the diff for sibling paths (`../<Repo>/…`). A doc line in B that cites a file in A is a dependency: A must be committed and pushed first, or B's reference points at nothing on origin.
 - **Release order.** If the changeset includes a version tag in A that B's docs or provenance line name, A goes first. For `LibKa0s` that provenance line is in B's **root `CLAUDE.md`** — `Bundles [LibKa0s](…) vX.Y.Z (MIT).` — not its `README.md`, since LibKa0s v1.8.1 / test-kit revision 9; grep `CLAUDE.md` for it, and treat a copy still sitting in `README.md` as a defect to report rather than a second source to read.
 
 Repos with **no** dependency on each other are independent and should be finalized **in parallel**. Print the chain you derived — e.g. `LibKa0s → (AbsorbTracker | BankLedger | ConsumableMaster | KickCD)` — and the evidence for each edge, before executing.
