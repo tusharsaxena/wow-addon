@@ -8,6 +8,23 @@ Scaffold a new WoW addon named **$ARGUMENTS** in the current working directory, 
 
 **CRITICAL — the context pack is never stored in the addon.** You fetch `NEW_ADDON_CONTEXT.md` to a scratch path and build from it. Creating `docs/agent-context.md` — under that name or any other — is a compliance failure (`documentation-§3`, anti-pattern #49). The addon's `docs/` holds the canonical trio `ARCHITECTURE.md`, `testing.md` and `smoke-tests.md`, the five **verification-and-record** docs — the generated `test-cases.md`, `performance.md`, `perf-runs/README.md`, `automated-tests/README.md` and the generated `automated-tests/RESULTS.md` — and the **six unconditional Tier 1 topic-detail docs** `scope.md`, `module-map.md`, `schema.md`, `settings-panel.md`, `data-flow.md`, `common-tasks.md`, plus whatever Tier 2 triggers have fired and any Tier 3 docs the addon needs (`documentation-§3`); the root `CLAUDE.md` stub is the repo's only agent brief.
 
+## `.gitattributes` — the first file, before anything else
+
+**Write the root `.gitattributes` before you write any other file in the new repo** (`line-endings`,
+and step 0 of the fetched `NEW_ADDON.md`). Take the **client-bound** body verbatim from the fetched
+`line-endings-§5` — or the context pack's `### .gitattributes` starter snippet, which is the same text
+— rather than composing one: the `* text=auto eol=crlf` pin, the `*.sh text eol=lf` carve-out, and the
+`binary` markings. A new addon is always the client-bound kind.
+
+It goes first because it is the one file whose cost grows with everything already committed.
+Retrofitted later it needs `git add --renormalize .` plus a whole-tree re-checkout, and that diff
+touches every line of every straggler — the sort of diff that gets approved rather than read. Written
+first, every commit after it is correct by construction. **Do not stop at the `*.sh` line**: a
+`.gitattributes` holding the carve-out with no pin above it is explicitly not compliance
+(`line-endings-§1`), and it is how one repo in this collection reached 111 of 185 tracked text files
+disagreeing with the collection's intent while looking handled in review. Add `- .gitattributes` to
+`.pkgmeta`'s `ignore:` block — it is dev-only (`packaging`).
+
 ## Automated test records — scaffold them with the addon
 
 A new addon is born having adopted `automated-tests`. Before the first commit:
@@ -27,9 +44,14 @@ A new addon is born having adopted `automated-tests`. Before the first commit:
    has **`core.fileMode=false`**, so git ignores the working tree's mode even when it does change. The
    mode that survives a clone is the one git recorded, so `git ls-files -s` reporting `100755` — not
    `100644` — is the only check worth making (`automated-tests-§2`).
-2. Add **`*.sh   text eol=lf`** to `.gitattributes`. Everything else in a Ka0s repo is CRLF, and a
-   shebang followed by CRLF makes the kernel look for an interpreter literally named `bash\r`. Without
-   this line the vendored runner is broken on every checkout.
+2. Confirm the `.gitattributes` you wrote as the repo's **first** file (above) carries
+   **`*.sh text eol=lf`**. Do not "add a line to `.gitattributes`" as if the file appeared from
+   nowhere — the whole file is a first-commit artifact, and the carve-out is one clause of it.
+   `line-endings-§3` requires that line **unconditionally, in both repo kinds**, so do not justify it
+   with a collection-wide "everything else here is CRLF" — that is false of the repos which ship
+   nothing to the client. What is true and sufficient: a shebang followed by CRLF makes the kernel
+   look for an interpreter literally named `bash\r`, and the vendored runner is then broken on every
+   checkout. Take the wording from the fetched section, not from this summary.
 3. Create `docs/automated-tests/README.md` (what it is, how to run it, which suites gate) — and write
    its "what gates, and what only records" section, plus `docs/testing.md`'s gate table, so each states
    **both checkpoints**: `lint` and `tests` gate the **commit**, `perf` and `complexity` never fail a

@@ -158,7 +158,7 @@ Ask; don't just do it. If the user declines, or the set is small, or you're alre
 Only the accepted items. Group the work by file so each file is touched once.
 
 - Use `Edit` for surgical changes; `Write` only when a file is being created or fully replaced.
-- **Preserve line endings.** Detect each file's existing endings (LF or CRLF) and write the same.
+- **Write the DECLARED line ending, not the observed one.** Ask git what the repo declares for the file — `git check-attr eol -- <path>` — and write that: CRLF in a client-bound repo, LF in one that ships nothing to the WoW client (`line-endings-§2`). A file whose endings disagree with the declaration is a **straggler**, so preserving what you find propagates the defect rather than respecting a local convention. Where nothing is declared, preserve what is there.
 - When an accepted item's resolution is "implement per the audit bundle", follow the remediation the bundle's `04_TECHNICAL_DESIGN.md` already specified rather than inventing a new one.
 - If an item turns out to be un-implementable once you're in the code (the premise was wrong, it's already done, it conflicts with another accepted item), **stop on that item and tell the user** — don't improvise a different change.
 

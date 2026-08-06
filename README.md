@@ -36,7 +36,7 @@ A focused toolkit for working on WoW addons: scaffolding new addons that are bor
 
 ### Hooks
 
-- **CRLF normalization on Write/Edit/MultiEdit** — when a file is written/edited inside a git repo whose `.gitattributes` declares `eol=crlf` for that file, the plugin auto-normalizes line endings to CRLF. Silent on non-applicable files. Lives at `hooks/hooks.json` + `scripts/normalize-crlf.sh`.
+- **Line-ending normalization on Write/Edit/MultiEdit** — when a file is written/edited inside a git repo, the plugin asks git what that file's `.gitattributes` declares and normalizes to it: **CRLF** in a client-bound Ka0s repo (the addons and `LibKa0s`), **LF** in one that ships nothing to the WoW client (the standards repo and this one). Every Ka0s repo declares one or the other (`line-endings`). Silent on files with no declared `eol`, and it never blocks a write. Lives at `hooks/hooks.json` + `scripts/normalize-eol.sh`.
 
 ## Install
 
@@ -54,7 +54,7 @@ Step by step:
 2. **`/plugin install wow-addon@wow-addon`** — installs the plugin (`wow-addon`) from the marketplace (`wow-addon`). When prompted for scope, choose **user** to enable it in every project on this machine, or **project** to enable it only in the current project.
 3. **`/reload-plugins`** — activates the plugin in the current session without a restart.
 
-After install, the commands, the `review` and `standards-audit` subagents, and the CRLF hook are available in every Claude Code session.
+After install, the commands, the `review` and `standards-audit` subagents, and the line-ending hook are available in every Claude Code session.
 
 ## Updating
 

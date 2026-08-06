@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# wow-addon plugin: normalize a just-written file to CRLF if its repo's .gitattributes declares CRLF for it.
+# wow-addon plugin: normalize a just-written file to whatever line ending its repo's
+# .gitattributes declares for it — CRLF in a client-bound Ka0s repo, LF in one that ships
+# nothing to the WoW client (Ka0s WoW Addon Standard, line-endings-§2).
 # Triggered by a PostToolUse hook on Write|Edit|MultiEdit.
 # Silent on success and on non-applicable files. Never errors out — exit 0 unconditionally so it can't block writes.
 
@@ -39,16 +41,30 @@ abs_file="$(cd "$file_dir" && pwd)/$(basename -- "$file_path")"
 rel_path="${abs_file#"$repo_root"/}"
 
 # Ask git what eol attribute applies to this file per .gitattributes.
+# `crlf` and `lf` are the two the Ka0s standard declares (line-endings-§2); anything else —
+# unspecified, unset, a path marked binary — is not ours to touch and exits silently.
 eol_attr="$(git -C "$repo_root" check-attr eol -- "$rel_path" 2>/dev/null | awk -F': ' '{print $NF}')"
-[[ "$eol_attr" != "crlf" ]] && exit 0
 
-# File already CRLF? Bail. (Check: does any line end with \r\n?)
-if LC_ALL=C grep -q $'\r$' -- "$file_path" 2>/dev/null; then
-    exit 0
-fi
-
-# Normalize LF → CRLF. Use perl for reliability across BSD/GNU sed differences.
-# Only convert lone \n; leave existing \r\n alone.
-perl -i -pe 's/(?<!\r)\n/\r\n/g' -- "$file_path" 2>/dev/null || true
+case "$eol_attr" in
+    crlf)
+        # Already fully CRLF? Bail. The fast path has to ask "is any line ending bare?",
+        # not "is any line ending CRLF?" — the latter passes a mixed file that is still
+        # half wrong, which is exactly what an Edit into a CRLF file produces.
+        if LC_ALL=C perl -0777 -ne 'exit(/(?<!\r)\n/ ? 1 : 0)' -- "$file_path" 2>/dev/null; then
+            exit 0
+        fi
+        # Normalize LF → CRLF. perl, for reliability across BSD/GNU sed differences.
+        # Only convert lone \n; leave existing \r\n alone.
+        perl -i -pe 's/(?<!\r)\n/\r\n/g' -- "$file_path" 2>/dev/null || true
+        ;;
+    lf)
+        # Mirror of the above, and deliberately NOT the same test: a file with no CR is
+        # done here and unfinished there, so the two fast paths cannot be shared.
+        if ! LC_ALL=C grep -q $'\r' -- "$file_path" 2>/dev/null; then
+            exit 0
+        fi
+        perl -i -pe 's/\r\n/\n/g; s/\r/\n/g' -- "$file_path" 2>/dev/null || true
+        ;;
+esac
 
 exit 0

@@ -32,7 +32,12 @@ The runner is **vendored**: `tests/_kit/run-automated-tests.sh`, from `LibKa0s`'
 
 - If it is **missing**, the addon has not adopted `automated-tests` yet. Say so, name what adoption
   needs (re-vendor `tests/_kit/` from the LibKa0s release the README's provenance line names, add
-  `*.sh text eol=lf` to `.gitattributes`, create `docs/automated-tests/`), and stop.
+  create `docs/automated-tests/`, and get `.gitattributes` right), and stop. On that last item, name
+  the **whole** rule and not just the carve-out: if the repo has no `.gitattributes`, or has one with
+  no `* text=auto eol=…` pin, the fix is to write the canonical body for the repo's kind — pin,
+  `*.sh text eol=lf`, binary markings — and then renormalize (`line-endings`). Telling the user to
+  "add `*.sh text eol=lf`" to a file that does not exist or states no rule produces exactly the
+  carve-out-without-a-pin state the standard names as a defect in its own right.
 - **Do not** hand-roll a substitute, and **do not** run the four tools individually and assemble a
   bundle yourself. A bundle whose provenance is "an agent ran some commands" is not the artifact the
   standard defines, and it will not compare against one that is.

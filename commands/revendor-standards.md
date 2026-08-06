@@ -167,6 +167,41 @@ Record each hit with `file:line` like any other sweep item. A doc that already n
 
 **One statement of this claim is out of this sweep's reach, and the report must say so.** The lead-in paragraph of `docs/automated-tests/RESULTS.md` is **generated** — the vendored runner writes it on every run (`tests/_kit/run-automated-tests.sh`, from `LibKa0s`'s `testkit/`). Editing it here would be reverted by the next run, and the record is generated besides (Step 3's note, and the hard rule below). Fixing it means re-vendoring a corrected runner from `LibKa0s` and re-running. So the report **MUST** state plainly that the `RESULTS.md` lead-in is runner-generated, that this sweep did not touch it, and that it is fixed upstream — a report that lists three fixed locations and stays silent about the fourth reads as having finished the job.
 
+### 3g. `.gitattributes` — the line-ending policy file
+
+This command is the one that re-syncs a repo to an **evolved upstream standard**, and `line-endings`
+is new upstream, so the file it mandates is exactly this sweep's business.
+
+Read the fetched `line-endings` section and hold its two canonical bodies. Then, per repo:
+
+- **Does `.gitattributes` exist at the repo root?** Absent is the finding, not a neutral default
+  (`line-endings-§1`).
+- **Does its pin match the repo's kind?** `* text=auto eol=crlf` where the repo ships Lua to the
+  client — it has a `.toc`, or a client-bound `libs/` payload; `* text=auto eol=lf` where it has
+  neither (`line-endings-§2`).
+- **Is `*.sh text eol=lf` present?** Mandatory in both kinds (`line-endings-§3`).
+- **Are binaries marked `binary`?** (`line-endings-§4`.)
+- **Does the working tree agree with the declared pin?** One number, with the command that produced
+  it:
+
+  ```sh
+  git ls-files -z | xargs -0 -I{} sh -c '
+    a=$(git check-attr eol -- "{}" | sed "s/.*: //")
+    case "$a" in crlf) file "{}" | grep -q CRLF || echo "{}";;
+                 lf)   file "{}" | grep -q CRLF && echo "{}";; esac' 2>/dev/null | wc -l
+  ```
+
+A file holding **only** the `*.sh` carve-out with no pin above it is a hit, not a pass — it is the
+near-miss `line-endings-§1` names, and the state that reads in review as already handled.
+
+**The edit boundary, stated because this one is neither prose nor a code comment.** `.gitattributes`
+is config, so it follows the CODE / CONFIG rule: **ask first, always**, showing the before and after,
+including when the file is absent and would be created whole from the canonical body. One exception in
+the other direction — **never renormalize here**. `git add --renormalize .` and the working-tree
+re-checkout rewrite the entire tree, which is not a documentation refresh and must not ride along
+inside one; report the straggler count and the two commands (`line-endings-§6`) and let the user run
+them as their own change, since `line-endings-§6` requires that diff to be committed alone.
+
 ## Step 4 — Show the inventory, then apply
 
 Print the inventory before writing anything, grouped by repo and file, one line per item:
@@ -190,6 +225,12 @@ docs/ARCHITECTURE.md
 
 docs/testing.md
   CHANGED: Gates? table and "Commits are gated on…" state no release checkpoint (automated-tests-§3, line 24)
+
+.gitattributes
+  MISSING: no pin — file carries only "*.sh text eol=lf" (line-endings-§1/§2)
+  STRAYS:  9 tracked files disagree with the declared pin, from
+    git ls-files -z | xargs -0 -I{} sh -c 'a=$(git check-attr eol -- "{}" | sed "s/.*: //"); …' | wc -l
+    (reported only — renormalization is the user's own commit, line-endings-§6)
 
 CODE / CONFIG — comment-only, needs your confirmation before anything is written
   core/Constants.lua:11        RETIRED:  cites §3.4 → architecture-§4
@@ -222,7 +263,7 @@ Then apply:
 
 Use `Edit` for surgical changes. Only `Write` a whole file when adding one that does not exist, which for this command means nothing under `docs/`.
 
-**Preserve line endings.** Detect each file's existing endings (LF or CRLF) and write the same. The plugin's CRLF hook covers `.gitattributes`-declared CRLF repos, but writing the right ending first keeps the diff to the lines that actually changed.
+**Write the DECLARED line ending, not the observed one.** Ask git what the repo declares for the file — `git check-attr eol -- <path>` — and write that: CRLF in a client-bound repo, LF in one that ships nothing to the client (`line-endings-§2`). Do **not** simply mirror what the file currently has: a file whose endings disagree with the declaration is a **straggler**, and faithfully preserving it re-blesses the defect this sweep just reported in 3g. The plugin's line-ending hook normalizes to whatever the repo declares, in either direction, but writing the right ending first keeps the diff to the lines that actually changed. Where nothing is declared, preserve what is there.
 
 ## Step 5 — Report
 
@@ -232,6 +273,7 @@ Per repo:
 - Items applied, items deferred by the user, and items **flagged for another command** (with the command named).
 - Anything you could not reconcile — an unresolvable section reference, a doc whose intent was ambiguous — stated plainly rather than resolved by guess.
 - **The 3b sweep's command and its count**, verbatim, so the number is reproducible rather than asserted (`documentation-§6`'s reporting shape) — one rolled-up line for the retired-notation half, plus the exclusions and, where any exist, how many hits were left standing inside frozen `docs/audits/`, `docs/reviews/` and `docs/automated-tests/` bundles **on purpose**. A count with no stated scope is not a count.
+- **The 3g line-ending state**: whether `.gitattributes` exists, whether its pin matches the repo's kind, whether the `*.sh` carve-out and the binary markings are present, and the **worktree straggler count with the command that produced it** — as one rolled-up line, never a file list. Say explicitly that renormalization was **not** performed here and name the two commands that do it, so the count does not read as fixed.
 - **Every out-of-range and malformed reference, individually**, whether it was corrected or left flagged — these are `documentation-§6`'s MUST-fix half and the one part of this sweep that never rolls up.
 - **Every code or config hit**, split into applied-after-confirmation and declined, and the fact that each applied one was comment-only.
 - **Whenever 3f changed anything**: the sentence that the `docs/automated-tests/RESULTS.md` lead-in carries the same gate claim, is **runner-generated**, was therefore **not** swept, and is fixed by re-vendoring a corrected `tests/_kit/run-automated-tests.sh` from `LibKa0s` and re-running. Say it even when the repo's `RESULTS.md` is currently absent.

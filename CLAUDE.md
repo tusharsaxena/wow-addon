@@ -2,9 +2,15 @@
 
 ## Purpose & stack
 
-A **Claude Code plugin** (not a WoW addon itself) that ships helpers for World of Warcraft addon development: standard-compliant scaffolding, compliance auditing, standards-reference revendoring and cross-repo learning harvesting (the two halves of the standards cycle), interface/version bumping, doc sync, test-battery running, automated-test recording, changeset finalization, pending-work triage, GitHub issue listing/creation, git diff/commit, a CRLF hook, and a WoW-specific review subagent. Everything here is **Markdown command/agent specs + one Bash hook script + JSON manifests** — there is no compiled code and no test suite.
+A **Claude Code plugin** (not a WoW addon itself) that ships helpers for World of Warcraft addon development: standard-compliant scaffolding, compliance auditing, standards-reference revendoring and cross-repo learning harvesting (the two halves of the standards cycle), interface/version bumping, doc sync, test-battery running, automated-test recording, changeset finalization, pending-work triage, GitHub issue listing/creation, git diff/commit, a line-ending hook, and a WoW-specific review subagent. Everything here is **Markdown command/agent specs + one Bash hook script + JSON manifests** — there is no compiled code and no test suite.
 
-Current version: **1.19.0** (in `.claude-plugin/plugin.json`).
+Current version: **1.20.0** (in `.claude-plugin/plugin.json`).
+
+**This repo ships nothing to the WoW client, so it pins LF** (Ka0s WoW Addon Standard,
+`line-endings-§2`). Its root `.gitattributes` carries the non-client canonical body — `* text=auto
+eol=lf`, `*.sh text eol=lf`, binaries marked `binary`. Write LF here. The `*.sh` carve-out is not
+decorative in this repo: `scripts/normalize-eol.sh` is the hook Claude Code executes, and a shebang
+followed by CRLF makes the kernel look for an interpreter literally named `bash\r`.
 
 ## Module/package map
 
@@ -12,7 +18,7 @@ Current version: **1.19.0** (in `.claude-plugin/plugin.json`).
 - `.claude-plugin/marketplace.json` — marketplace entry; carries a **mirror of the description** (no version field of its own).
 - `commands/*.md` — 16 slash-command specs (`/wow-addon:<name>`), each also invocable as a Skill of the same name. Two of them (`review.md`, `standards-audit.md`) are thin **wrappers that dispatch to the subagent of the same name**; the other fourteen act directly.
 - `agents/*.md` — 2 subagent specs: `review` (WoW-specific principal-level review → `docs/reviews/<date>/`; also fetches the standard to keep its own remediation compliant, but does **not** audit) and `standards-audit` (read-only compliance audit → `docs/audits/<date>/`).
-- `hooks/hooks.json` + `scripts/normalize-crlf.sh` — the CRLF-normalization hook.
+- `hooks/hooks.json` + `scripts/normalize-eol.sh` — the line-ending-normalization hook. It normalizes a just-written file to whatever `.gitattributes` declares for it — **CRLF** or **LF** — and exits silently when nothing is declared (`line-endings-§2`). Renamed from `normalize-crlf.sh` when it gained the LF arm; the old name described half of it.
 - `README.md` — user-facing docs. `LICENSE` — MIT.
 
 ## Entry points & lifecycle
@@ -29,7 +35,7 @@ None. No env vars, no config files, no persistent state. Some specs need externa
 ## Build / test / run
 
 - **No build, no tests.** Validation is: `python3 -c "import json; ..."` on the two manifests, and a manual `/reload-plugins` to confirm the plugin loads (`Reloaded: … plugins · … skills · … agents · … hooks`).
-- The CRLF hook script is Bash; there's no harness for it beyond running the flow that triggers `Write|Edit|MultiEdit` inside a repo whose `.gitattributes` declares `eol=crlf`.
+- The line-ending hook script is Bash; there's no harness for it beyond running the flow that triggers `Write|Edit|MultiEdit` inside a repo that declares an `eol`. **Validate both arms** — the `crlf` arm needs a client-bound repo (any addon, or `LibKa0s`), and the `lf` arm is exercised inside **this** repo, which pins LF. A third case matters as much as either: a path with no declared `eol` must come back byte-identical.
 
 ## Conventions & hot zones (footguns)
 

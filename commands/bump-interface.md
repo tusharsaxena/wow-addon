@@ -26,7 +26,7 @@ For each Retail TOC:
 - Replace the line starting with `## Interface:` (case-insensitive on the key) with `## Interface: <target>`.
 - If no `## Interface:` line exists, leave the file alone and report it as skipped.
 
-Use `Edit` for a surgical single-line change; preserve the file's existing line endings.
+Use `Edit` for a surgical single-line change, and write the ending the repo **declares** (`git check-attr eol -- <path>`) rather than the one the file happens to carry — a `.toc` sitting LF inside a CRLF-pinned repo is a straggler, and an interface bump should not re-bless it (`line-endings-§2`).
 
 ## Report
 

@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/normalize-crlf.sh"
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/normalize-eol.sh"
           }
         ]
       }

@@ -171,7 +171,7 @@ Then, and only after the user has confirmed the `COMMENT CITATIONS` block item b
 
 Use `Edit` for surgical updates. Only `Write` (full rewrite) if the file is completely out of date or the diff would be larger than the rewrite.
 
-**Preserve line endings.** Detect each file's existing line endings (LF or CRLF) and write the same. The plugin's CRLF hook handles `.gitattributes`-declared CRLF repos automatically, but writing the right ending the first time keeps diffs clean.
+**Write the DECLARED line ending, not the observed one.** Ask git what the repo declares for the file — `git check-attr eol -- <path>` — and write that: CRLF in a client-bound repo, LF in one that ships nothing to the WoW client (`line-endings-§2`). Do **not** simply mirror what the file happens to carry: a file whose endings disagree with the declaration is a **straggler**, and preserving it faithfully propagates the defect. The plugin's line-ending hook normalizes to whatever the repo declares, in either direction, but writing the right ending the first time keeps diffs clean. Where nothing is declared, preserve what is there.
 
 ## Step 5 — Report
 
