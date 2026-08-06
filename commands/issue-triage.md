@@ -41,7 +41,25 @@ gh issue list --state open --limit 200 --json number,title,body,createdAt,url
 
 Take the issues whose title starts with `[untriaged]`. Also pick up **stray issues** — open issues with no recognised prefix, filed from the web UI or by someone not using these commands. Repair each on sight with `gh issue edit <n> --title "[untriaged] <existing title>"`, keeping the original title text exactly, and **report every repair**; then triage it like any other. An issue that reaches you without a prefix is still real work, and the one thing that must never happen is it going unseen.
 
-If the queue is empty, say so plainly and stop. Nothing to decide is a good outcome.
+If the queue is empty, say so plainly and stop. Nothing to decide is a good outcome — but still run the resume check below first, because an unreconciled journal from a previous run is exactly the case where GitHub looks finished and is not.
+
+### Resume check — before the first question, always
+
+List `~/.claude/wow-addon/issue-triage/`. Any journal **missing its `complete` line** is a run that recorded decisions and never confirmed they landed — a crashed session, a killed process, a machine that went away mid-run.
+
+For each such journal, read its `decision` lines and match them against its `outcome` lines. Decisions with no successful outcome are **unconfirmed**: the user made them, and nobody knows whether GitHub received them.
+
+**Check the real state before offering anything.** For each unconfirmed decision, read the live issue (`gh issue view <n> -R <owner>/<repo> --json title,state,comments`). Three cases:
+
+- **Already applied** — the title carries the decided prefix and the decision comment is present. The write landed and only the outcome line was lost. Append the missing `outcome` line and move on; **do not re-apply and do not re-ask**.
+- **Not applied** — offer to replay it, showing the decision, its rationale and the issue. Replay is the same idempotent write as Step 3b.
+- **Applied differently** — the issue now carries a different status than the journal records. Somebody or something changed it in between. **Do not overwrite it.** Report both values and leave it; a stale journal must never be allowed to revert a newer decision.
+
+Then write the `complete` line to that old journal so it stops being offered.
+
+**Never replay silently.** A decision from a previous session, possibly days old, being pushed to a public repo without the user seeing it is the same consent failure as filing an issue nobody asked for. Show what would be written and get a yes. If they decline, leave the journal unreconciled and say it will be offered again.
+
+If no journals are incomplete, say nothing about it — a clean resume check is not news.
 
 **On an `all`-scope run, do one repo at a time and say which repo you're in before its first question.** Twenty questions with no sense of place is how people lose track of what they just agreed to.
 
@@ -81,13 +99,30 @@ This is the one place this command is meaningfully safer than the old fused vers
 
 ### 3a. Journal the answer first — synchronously, before anything else
 
-Append one line to the run journal, a JSONL file in the session scratchpad named for this run (e.g. `triage-<YYYYMMDD-HHMMSS>.jsonl`):
+The journal lives **outside the session**, under:
 
-```json
-{"repo":"PanelMaster","issue":4,"title":"<existing title text, prefix stripped>","decision":"triaged","approach":"<the resolution chosen, if any>","rationale":"<the user's words>","asked_at":"<timestamp>"}
+```
+~/.claude/wow-addon/issue-triage/<scope>-<YYYYMMDD-HHMMSS>.jsonl
 ```
 
-This write is **synchronous and happens before the next question**, because the journal — not GitHub — is what makes an answer durable. If the session dies, the network drops, or a subagent fails, every decision the user actually made is still on disk and can be replayed. Losing someone's considered judgment to a failed API call is the worst outcome this command has.
+`<scope>` is the repo name, or `all` for a collection run. **The timestamp is to the second, and that is what makes the file unique** — two runs against the same repo on the same day must never share a journal, or one run's reconciliation checks itself against another run's decisions.
+
+It is deliberately **not** in the session scratchpad. A scratchpad journal survives a failed API call but not a crashed session, a new session, or a `/tmp` sweep — and "your decision is safe on disk" is worth nothing if the only process that can read it is the one that just died.
+
+Create the file with a run header, then append one line per event. Four line types, distinguished by `type`:
+
+```json
+{"type":"run","scope":"all","started":"2026-08-07T00:31:12Z","queue":[{"repo":"PanelMaster","issue":4}]}
+{"type":"decision","repo":"PanelMaster","issue":4,"title":"<title text, prefix stripped>","decision":"triaged","approach":"<resolution chosen, if any>","rationale":"<the user's words>","asked_at":"2026-08-07T00:33:40Z"}
+{"type":"outcome","repo":"PanelMaster","issue":4,"ok":true,"state":"OPEN","url":"...","detail":"edit+comment succeeded"}
+{"type":"complete","reconciled":"2026-08-07T00:46:02Z","decisions":11,"written":11,"unwritten":0}
+```
+
+The **decision** line is written **synchronously, before the next question is asked and before any subagent is spawned**. That ordering is the whole mechanism: a decision that exists only in a subagent's prompt is one failed call away from being lost, and losing someone's considered judgment is the worst outcome this command has.
+
+**A journal with no `complete` line is an unreconciled run.** That is the only signal Step 0's resume check uses, so never write one until Step 3c has actually reconciled.
+
+Journals are kept after completion — they are the local record of what was decided and when. Prune by hand if the directory grows; never automatically, and never as part of a run.
 
 ### 3b. Spawn a background subagent to do the writing
 
@@ -110,9 +145,11 @@ Constraints every subagent carries:
 
 The run is not finished when the last question is answered. It is finished when **every** subagent has returned. Before printing Step 4:
 
-1. Wait for all of them.
-2. Compare the journal against the outcomes, line by line. Every journalled decision must have a matching successful write.
-3. Any decision with no successful write is **reported as unwritten**, with the issue number and what failed — never silently dropped, and never presented as though it landed. Say plainly that the decision is recorded in the journal and can be replayed, and give the journal path.
+1. Wait for all of them, appending each returned result as an `outcome` line.
+2. Compare `decision` lines against `outcome` lines. Every decision must have a matching successful write.
+3. **Verify against GitHub, not against the subagents' own reports.** Re-read each touched issue (`gh issue view <n> --json title,state,comments`) and confirm the prefix, the open/closed state and the presence of the decision comment. A subagent reporting success is evidence, not proof — the point of reconciling is to check the store, and checking it against the same process that wrote it checks nothing.
+4. Any decision with no confirmed write is **reported as unwritten**, with the issue number and what failed — never silently dropped, never presented as though it landed. Give the journal path and say it can be replayed.
+5. **Write the `complete` line last**, carrying the counts. Only write it if step 3 actually verified; a `complete` line on an unverified run turns the resume check into a lie, and the resume check is the entire reason the journal outlives the session.
 
 A decision the user made and GitHub never received is the one failure this command must never hide.
 
@@ -176,7 +213,10 @@ Keep the two halves separate even when they match perfectly. Collapsing them int
 - **Never batch the interview.** One item, one question, evidence shown.
 - **Journal before dispatching, always.** The answer goes to disk synchronously before any subagent is spawned and before the next question is asked. A decision that exists only in a subagent's prompt is a decision one failed call away from being lost.
 - **A write subagent never decides.** It applies one recorded decision verbatim — no re-wording, no status choice, no questions, and no touching any issue but its own.
-- **Never report before reconciling.** Wait for every subagent, diff the journal against the outcomes, and report any decision that did not land as unwritten. Presenting a decision as recorded when GitHub never received it is the failure this whole mechanism exists to prevent.
+- **Never report before reconciling.** Wait for every subagent, verify each touched issue against GitHub itself, and report any decision that did not land as unwritten. Presenting a decision as recorded when GitHub never received it is the failure this whole mechanism exists to prevent.
+- **Never write the `complete` line without verifying.** It is the only marker distinguishing a finished run from an abandoned one; writing it on an unverified run makes the resume check silently useless.
+- **Never replay a previous run's decision silently.** A journalled decision from an earlier session is still the user's, but pushing it to a public repo without showing them is the same consent failure as filing an issue nobody asked for. Show it, get a yes.
+- **Never let a stale journal overwrite a newer decision.** If an issue's current status differs from what the journal recorded, report both and leave it alone.
 - **Never mark `[done]` without verifying it in the repo** and quoting what you checked.
 - **Never rewrite a title's text** — only its prefix.
 - **Never bulk-close.** An issue whose evidence you can't find is not thereby stale; leave it.
