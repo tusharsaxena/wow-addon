@@ -1,5 +1,5 @@
 ---
-description: Triage every `[untriaged]` GitHub issue on the addon's repo — one at a time, most severe first, with its evidence in front of you. Each becomes `[deferred]` (not now), `[will-not-do]` (never), or `[done]` (already true). Decision-only: it records your call and rewrites the issue, and never changes code. Discovery is `/wow-addon:issue-audit`.
+description: Triage every `[untriaged]` GitHub issue on the addon's repo — one at a time, most severe first, with its evidence in front of you. Each becomes `[triaged]` (not now), `[will-not-do]` (never), or `[done]` (already true). Decision-only: it records your call and rewrites the issue, and never changes code. Discovery is `/wow-addon:issue-audit`.
 argument-hint: [here|all|<repo>]
 allowed-tools: [Read, Glob, Grep, Bash, AskUserQuestion]
 ---
@@ -14,10 +14,10 @@ This is the second half of the pair. `/wow-addon:issue-audit` sweeps the repo an
 |---|---|---|---|
 | `done` | `[done]` | closed | Implemented. Terminal |
 | `wont-do` | `[will-not-do]` | closed | Will never be done. Terminal |
-| `deferred` | `[deferred]` | open | Decided: not now. Still on the books |
+| `triaged` | `[triaged]` | open | Decided: not now. Still on the books |
 | `untriaged` | `[untriaged]` | open | Never put to the user. **The input to this command** |
 
-The distinction that carries the most weight: **`deferred` keeps an item alive and quiet; `will-not-do` kills it.** If someone has to keep re-declining the same thing, this command is broken. Equally, a `will-not-do` on something they actually wanted loses real work. When you can't tell which they meant, **ask again** rather than guess.
+The distinction that carries the most weight: **`triaged` keeps an item alive and quiet; `will-not-do` kills it.** If someone has to keep re-declining the same thing, this command is broken. Equally, a `will-not-do` on something they actually wanted loses real work. When you can't tell which they meant, **ask again** rather than guess.
 
 **GitHub API guardrail.** Use the `gh` CLI subcommands — `gh issue list`, `gh issue edit`, `gh issue close`, `gh issue comment`, `gh issue view` — with `--json` where structured data is needed. **Never use `gh api graphql`** and never hand-roll GraphQL against `api.github.com/graphql`; if REST is genuinely unavoidable use `gh api repos/{owner}/{repo}/issues`. Listing by status is a **title-prefix filter**, not a label query.
 
@@ -58,12 +58,12 @@ One item at a time, using `AskUserQuestion`. **Never batch.** Never summarize a 
 For each item, show its **verbatim evidence** and its **location** first, then offer:
 
 - **2–3 concrete resolutions specific to that item.** Not "fix it" / "don't fix it" — say what fixing it would mean *here*. For a stub: implement it / delete it and its callers / leave it and document the limitation. For an unexecuted audit deviation: apply the remediation the bundle already designed / apply a different fix you describe / accept the deviation.
-- **"Defer"** — always present. A "not now": the issue stays open as `[deferred]` and comes back as a collapsed count, not a question.
+- **"Keep it open — real work, not now"** — always present. The issue stays open as `[triaged]` and comes back as a collapsed count, not a question. (All three options below are triage outcomes; this is the one that leaves the work on the books.)
 - **"Will not do"** — always present, always last. A permanent close. Say plainly in the option text that it is permanent, and say what stays behind (the `TODO` still sits in the code, the deviation stays in the frozen bundle) so the choice is made with eyes open.
 
 The user can always answer free-text instead of picking. **If they do, take their answer over your options** — the options are a convenience, not a cage.
 
-**Where a resolution means "do the work":** this command does not do the work. Record it as `[deferred]` with the chosen approach written into the issue body, so whoever picks it up starts from a decision rather than a blank page. Say that plainly when they choose it — "I'll record the approach; the change itself is a separate session" — so nobody finishes triage believing code was written.
+**Where a resolution means "do the work":** this command does not do the work. Record it as `[triaged]` with the chosen approach written into the issue body, so whoever picks it up starts from a decision rather than a blank page. Say that plainly when they choose it — "I'll record the approach; the change itself is a separate session" — so nobody finishes triage believing code was written.
 
 **The `[done]` case is narrow and needs evidence.** Only mark an item `[done]` when the work is *already true in the repo* — the marker is stale, the plan row was executed, the limitation no longer applies. Verify it in the code before recording it, quote what you checked, and say so. Never mark something `[done]` because the user agreed it *should* be done.
 
@@ -81,20 +81,20 @@ One `gh` call sequence per decided item. **Space them out** — a few seconds be
 
 | Decision | Calls |
 |---|---|
-| `deferred` | `gh issue edit <n> --title "[deferred] <title>"` + `gh issue comment <n>` with the decision block. Stays open. |
+| `triaged` | `gh issue edit <n> --title "[triaged] <title>"` + `gh issue comment <n>` with the decision block. Stays open. |
 | `will-not-do` | `gh issue edit <n> --title "[will-not-do] <title>"` + comment + `gh issue close <n> --reason "not planned"` |
 | `done` | `gh issue edit <n> --title "[done] <title>"` + comment + `gh issue close <n> --reason completed` |
 
 **Keep the existing title text; change only the prefix.** The title is how the item is recognised across runs and in `/wow-addon:issue-details`; rewriting it orphans every reference to it.
 
-**Prefix and state must never disagree.** `[done]` and `[will-not-do]` are closed; `[deferred]` and `[untriaged]` are open. If you find one that disagrees, fix the state and say so in the report — that combination is a bug, and it is exactly what `/wow-addon:issue-summary` reports as an inconsistency.
+**Prefix and state must never disagree.** `[done]` and `[will-not-do]` are closed; `[triaged]` and `[untriaged]` are open. If you find one that disagrees, fix the state and say so in the report — that combination is a bug, and it is exactly what `/wow-addon:issue-summary` reports as an inconsistency.
 
 The decision block appended as a comment:
 
 ```
 ### Triage decision
 
-- **Decision:** deferred
+- **Decision:** triaged
 - **Decided:** 2026-08-06
 - **Approach:** <the resolution the user chose, if any>
 
@@ -114,14 +114,14 @@ Never bundle this into the main decision. Ask separately, accept a plain no.
 
 ## Step 4 — Report
 
-- **Deferred** — issue number, one-line reason, URL
+- **Triaged** — issue number, one-line reason, URL
 - **Will not do** — issue number, reason, URL. Show these once, here, so the user sees what they just closed permanently.
 - **Done** — issue number, and the evidence you verified it against
 - **Left untriaged** — count, with the reason (stopped early, ran out of scope). Say plainly that re-running resumes here.
 - **Stray issues repaired** — every issue that gained a prefix, old title and new
 - **Fixed inconsistencies** — any prefix/state disagreement corrected, with both values
 - **Failed writes** — any `gh` call that failed and which decision it was carrying, so nothing is silently lost
-- A reminder that **no code changed**, and what to run next if any deferred item is ready to be worked
+- A reminder that **no code changed**, and what to run next if any triaged item is ready to be worked
 
 ## Hard rules
 

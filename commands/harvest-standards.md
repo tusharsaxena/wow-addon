@@ -72,18 +72,18 @@ An audit that has to **punt to the user** because two sections disagree has foun
 
 ### 6. `[will-not-do]` issues — accepted deviations the standard never heard about
 
-`documentation-§6` requires an addon to **record** an accepted deviation, and `issue-audit` has been doing exactly that — but recording it in the addon tells the standard nothing. That record used to live in `docs/pending/LEDGER.md`; it now lives in **GitHub issues on each addon's own repo**, with status carried as a title prefix (`[done]`, `[will-not-do]`, `[deferred]`, `[untriaged]`). The ledger is retired. **This harvest category must not die with it** — it is the only channel through which a collectively-refused rule reaches the standard.
+`documentation-§6` requires an addon to **record** an accepted deviation, and `issue-audit` has been doing exactly that — but recording it in the addon tells the standard nothing. That record used to live in `docs/pending/LEDGER.md`; it now lives in **GitHub issues on each addon's own repo**, with status carried as a title prefix (`[done]`, `[will-not-do]`, `[triaged]`, `[untriaged]`). The ledger is retired. **This harvest category must not die with it** — it is the only channel through which a collectively-refused rule reaches the standard.
 
 For every repo in the sweep, read both halves of the store:
 
 ```
 gh issue list --repo <owner>/<repo> --state closed --limit 200 --json number,title,body,url   # keep titles starting "[will-not-do]"
-gh issue list --repo <owner>/<repo> --state open   --limit 200 --json number,title,body,url   # keep titles starting "[deferred]"
+gh issue list --repo <owner>/<repo> --state open   --limit 200 --json number,title,body,url   # keep titles starting "[triaged]"
 ```
 
 Filter on the **title prefix** in the result you get back. Do not use a label query and do not use a search API. The rationale you want is in the issue body under `### Rationale`, and the `filename-§N` rule it refuses is usually in the evidence block above it.
 
-A `[will-not-do]` is a considered, argued refusal with a rationale attached; the **same** refusal in three repos is not three addons being stubborn, it is a rule the collection has collectively declined to follow, and the standard should either change or state why it holds. Harvest `[deferred]` issues too, more weakly: a deferral repeated everywhere is a rule too expensive to satisfy, which is its own finding.
+A `[will-not-do]` is a considered, argued refusal with a rationale attached; the **same** refusal in three repos is not three addons being stubborn, it is a rule the collection has collectively declined to follow, and the standard should either change or state why it holds. Harvest `[triaged]` issues too, more weakly: the same item triaged-but-not-done in every repo is a rule too expensive to satisfy, which is its own finding.
 
 Cite the issue URL as the evidence for each proposal, the way a ledger row used to be cited. If a repo still has a `docs/pending/LEDGER.md`, it has not migrated yet — read it as well for this run, note it in the bundle as un-migrated, and don't let its rows go unharvested.
 

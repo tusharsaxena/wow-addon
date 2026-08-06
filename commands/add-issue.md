@@ -13,11 +13,11 @@ Issues on a Ka0s addon repo are the durable store of pending work — `docs/pend
 | Prefix | Meaning | Issue state |
 |---|---|---|
 | `[untriaged]` | Seen and recorded; nobody has been asked about it yet | open |
-| `[deferred]` | Decided: not now. Still on the books | open |
+| `[triaged]` | Decided: not now. Still on the books | open |
 | `[done]` | Implemented | closed |
 | `[will-not-do]` | Decided it will never be done | closed |
 
-**A newly filed issue is `[untriaged]`.** That is the default and it is almost always right: filing an issue records that something exists, not that a decision was taken about it. The only exception is when the user is **explicitly** filing something they have already decided to postpone — then, and only then, file it as `[deferred]`. Never file `[done]` or `[will-not-do]` here; those are closed states and this command only creates open issues.
+**A newly filed issue is `[untriaged]`.** That is the default and it is almost always right: filing an issue records that something exists, not that a decision was taken about it. The only exception is when the user is **explicitly** filing something they have already decided to postpone — then, and only then, file it as `[triaged]`. Never file `[done]` or `[will-not-do]` here; those are closed states and this command only creates open issues.
 
 Never invent a fifth prefix, and never put the status in a label as well — the prefix is the data.
 
@@ -44,7 +44,7 @@ Ask for anything missing. Do not proceed to draft until you have all three.
 
 Turn the fuzzy inputs into a clean issue:
 
-- **Title** — crisp and specific; imperative or noun phrase, no trailing period. Fix obvious typos. (e.g. "aura timer flickers on target swap" → `Aura timer flickers when swapping targets`.) Then prepend the status prefix, so the final title is `[untriaged] Aura timer flickers when swapping targets` — or `[deferred] …` if the user explicitly said they are filing something already postponed. If their rough title already carries a valid prefix, keep it rather than doubling up.
+- **Title** — crisp and specific; imperative or noun phrase, no trailing period. Fix obvious typos. (e.g. "aura timer flickers on target swap" → `Aura timer flickers when swapping targets`.) Then prepend the status prefix, so the final title is `[untriaged] Aura timer flickers when swapping targets` — or `[triaged] …` if the user explicitly said they are filing something already postponed. If their rough title already carries a valid prefix, keep it rather than doubling up.
 - **Body** — structure by tag:
   - **bug** → `### Description` · `### Steps to reproduce` · `### Expected` · `### Actual` · `### Environment` (fill in the addon version and `## Interface:` from the TOC if determinable; otherwise leave a clearly-marked blank for the user).
   - **enhancement** → `### Description` · `### Motivation` · `### Proposed behavior` · `### Acceptance criteria`.

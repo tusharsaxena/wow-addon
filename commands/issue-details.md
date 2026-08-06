@@ -1,6 +1,6 @@
 ---
-description: List the addon's GitHub issues with their status and a one-line description of each. Defaults to what is still live — `[untriaged]` and `[deferred]`. Pass states to widen it (`done`, `will-not-do`, `all`), and a scope to change repo. The detail view to `/wow-addon:issue-summary`'s counts.
-argument-hint: [here|all|<repo>] [untriaged|deferred|done|will-not-do|open|closed|all]
+description: List the addon's GitHub issues with their status and a one-line description of each. Defaults to what is still live — `[untriaged]` and `[triaged]`. Pass states to widen it (`done`, `will-not-do`, `all`), and a scope to change repo. The detail view to `/wow-addon:issue-summary`'s counts.
+argument-hint: [here|all|<repo>] [untriaged|triaged|done|will-not-do|open|closed|all]
 allowed-tools: [Bash, Read]
 ---
 
@@ -28,11 +28,11 @@ If the cwd is not a repo `gh` can resolve and no scope was given, **ask** which 
 
 The remaining token(s) select which statuses to show. Accept them comma- or space-separated.
 
-- **absent** → **`untriaged` + `deferred`**. This is the default and it is deliberate: those two are the live store — everything still awaiting a decision or awaiting the work. The terminal states are history, and printing 150 closed issues by default would bury the 20 that need you.
-- **`open`** → same as the default (`untriaged` + `deferred`)
+- **absent** → **`untriaged` + `triaged`**. This is the default and it is deliberate: those two are the live store — everything still awaiting a decision or awaiting the work. The terminal states are history, and printing 150 closed issues by default would bury the 20 that need you.
+- **`open`** → same as the default (`untriaged` + `triaged`)
 - **`closed`** → `done` + `will-not-do`
 - **`all`** → all four
-- **any of `untriaged`, `deferred`, `done`, `will-not-do`** → exactly those, in any combination
+- **any of `untriaged`, `triaged`, `done`, `will-not-do`** → exactly those, in any combination
 
 An unrecognised token is an error, not a filter — say so and list the valid values rather than silently returning everything.
 
@@ -65,10 +65,10 @@ Per repo, in roster order, one section each:
 | # | Status | State | Title | Description | Age |
 |---|---|---|---|---|---|
 
-- **Status** is the prefix (`untriaged`, `deferred`, `done`, `will-not-do`).
+- **Status** is the prefix (`untriaged`, `triaged`, `done`, `will-not-do`).
 - **State** is GitHub's own `open`/`closed`. Both columns are shown because they encode the same decision twice and a disagreement between them is a defect worth seeing.
 - **Age** is time since it was opened, humanized (`3d`, `2mo`).
-- Sort by status — `untriaged` first, then `deferred`, then `done`, then `will-not-do` — and within each, by number descending. Untriaged first because it is the only status that means *nobody has looked at this*.
+- Sort by status — `untriaged` first, then `triaged`, then `done`, then `will-not-do` — and within each, by number descending. Untriaged first because it is the only status that means *nobody has looked at this*.
 - Put the URLs below the table so they are clickable.
 - A repo with nothing matching gets one line: `**<Repo>** — no issues matching <states>.` Don't print an empty table.
 
@@ -82,6 +82,6 @@ Close with one line: how many issues shown, across how many repos, and — when 
 - **Announce every repair.** Silent mutation from a listing command is how trust in a tool dies.
 - **Never report an unreadable repo as empty.**
 - **Never invent a description.** `—` is a fine answer; a plausible-sounding paraphrase is not.
-- **Don't infer status from labels.** The title prefix is the data; a label named `deferred` is not.
+- **Don't infer status from labels.** The title prefix is the data; a label named `triaged` is not.
 - **Never use `gh api graphql`.**
 - **Don't invent the roster.** Read it from `ADDONS.md` or say plainly that you inferred it.

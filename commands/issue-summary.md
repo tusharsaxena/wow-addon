@@ -1,5 +1,5 @@
 ---
-description: GitHub issue summary — a status × repo grid (done / will-not-do / deferred / untriaged) followed by the open issues per repo. Defaults to the repo at the cwd; pass `all` for the whole collection (every Ka0s addon plus WowAddonStandards, LibKa0s and wow-addon) or a repo name. Read-only apart from repairing a missing title prefix.
+description: GitHub issue summary — a status × repo grid (done / will-not-do / triaged / untriaged) followed by the open issues per repo. Defaults to the repo at the cwd; pass `all` for the whole collection (every Ka0s addon plus WowAddonStandards, LibKa0s and wow-addon) or a repo name. Read-only apart from repairing a missing title prefix.
 argument-hint: [here|all|<repo>]
 allowed-tools: [Bash, Read]
 ---
@@ -49,7 +49,7 @@ Every issue falls in exactly one column, taken from its **title prefix**, matche
 |---|---|---|
 | `done` | `[done]` | closed |
 | `will-not-do` | `[will-not-do]` | closed |
-| `deferred` | `[deferred]` | open |
+| `triaged` | `[triaged]` | open |
 | `untriaged` | `[untriaged]` | open |
 
 **Every issue always carries one of these four.** There is no unprefixed column, because there is no unprefixed state — an issue that arrives without a prefix (filed from the GitHub web UI, or by someone not using these commands) is **repaired on sight**:
@@ -59,13 +59,13 @@ Every issue falls in exactly one column, taken from its **title prefix**, matche
 
 Keep the original title text exactly — you are prefixing it, not rewriting somebody's words. **This is the only write this command makes, and every repair must appear in the report**, with the old and new title. A command people run to look at things must never change one quietly; announcing it is what keeps that true. If a repair fails, count the issue under `untriaged` anyway and say the title could not be fixed.
 
-**Report any prefix/state disagreement** — a `[deferred]` issue that is closed, a `[done]` issue that is open — as a short **Inconsistencies** list under the grid, with repo, number and both values. The prefix and the open/closed state encode the same decision twice, so a disagreement means one of them is wrong and a human has to say which. Don't fix them, don't count them twice; surface them and point at `/wow-addon:issue-triage`.
+**Report any prefix/state disagreement** — a `[triaged]` issue that is closed, a `[done]` issue that is open — as a short **Inconsistencies** list under the grid, with repo, number and both values. The prefix and the open/closed state encode the same decision twice, so a disagreement means one of them is wrong and a human has to say which. Don't fix them, don't count them twice; surface them and point at `/wow-addon:issue-triage`.
 
 ## Step 4 — The grid
 
 Rows are repos, columns are the four statuses, plus a total. On an `all` run: addons first in roster order, then the three upstreams, then a totals row. On a single-repo run it is one row and the totals line below carries the useful part.
 
-| Repo | done | will-not-do | deferred | untriaged | Total |
+| Repo | done | will-not-do | triaged | untriaged | Total |
 |---|---:|---:|---:|---:|---:|
 
 - Right-align the numbers. Write `0` as `—` so the populated cells carry the eye.
@@ -81,7 +81,7 @@ Then, for each repo **in roster order**, list only its **OPEN** issues:
 | # | Status | Title | Age |
 |---|---|---|---|
 
-- **Status** is `untriaged` or `deferred` (the only two open states).
+- **Status** is `untriaged` or `triaged` (the only two open states).
 - **Title** is the title with the prefix stripped — the prefix is already its own column.
 - **Age** is how long ago it was opened, humanized (`3d`, `2mo`).
 - Sort `untriaged` first — those are the ones needing a decision — then by number descending.
@@ -100,5 +100,5 @@ End with the single most useful sentence the data supports — which repo carrie
 - **Announce every repair**, with old and new title.
 - **Never use `gh api graphql`.** Use the `gh issue` subcommands with `--json`. `gh api repos/{owner}/{repo}/issues/<n>` is the sanctioned REST fallback for `state_reason`, which `gh issue view` does not expose on every `gh` version.
 - **Never report an unreadable repo as zero.** Unreadable and empty are different answers, and collapsing them hides exactly the repo someone needs to look at.
-- **Don't infer status from labels.** The title prefix is the data; a label named `deferred` is not.
+- **Don't infer status from labels.** The title prefix is the data; a label named `triaged` is not.
 - **Don't invent the roster.** Read it from `ADDONS.md`, or say plainly that you inferred it.

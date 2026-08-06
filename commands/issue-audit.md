@@ -16,7 +16,7 @@ There is no local ledger. `docs/pending/LEDGER.md` is **retired** — the durabl
 |---|---|---|---|
 | `done` | `[done]` | closed | Implemented. Terminal |
 | `wont-do` | `[will-not-do]` | closed | Will never be done. Terminal |
-| `deferred` | `[deferred]` | open | Decided: not now. Still on the books |
+| `triaged` | `[triaged]` | open | Decided: not now. Still on the books |
 | `untriaged` | `[untriaged]` | open | Found, never put to the user. **What this command writes** |
 
 **Every issue always carries a prefix.** There is no fifth value and no unprefixed state. An issue that arrives without one — filed from the GitHub web UI, or by someone who doesn't use these commands — is repaired on sight: see *Stray issues* below.
@@ -114,7 +114,7 @@ Memory reflects what was true when written. Before surfacing one, verify the fil
 For each discovered item, look for an issue whose body records the same **evidence hash**:
 
 - **match, `[done]` or `[will-not-do]`** (closed) → **drop it entirely.** Terminal. Don't list it, don't count it, don't file anything.
-- **match, `[deferred]`** (open) → already on the books. Don't file a duplicate; count it under *Already tracked*.
+- **match, `[triaged]`** (open) → already on the books. Don't file a duplicate; count it under *Already tracked*.
 - **match, `[untriaged]`** (open) → already filed and awaiting triage. Don't file a duplicate; count it under *Already tracked*.
 - **hash matches nothing** → **new.** This is what the command files.
 
@@ -166,13 +166,13 @@ EOF
 - **Item ID and evidence hash are mandatory.** They are the whole matching key for the next run's Step 2. An issue missing them cannot be reconciled and will be re-filed as a duplicate forever.
 - **Title** is a crisp statement of the work, derived from the evidence. Don't paste a raw `TODO` as a title, and don't invent scope the evidence doesn't support.
 - **Write idempotently.** `gh issue create` can create the issue and *then* time out, so a naive retry files a duplicate. Before creating, search the store for the evidence hash; if an issue carries it, edit rather than create.
-- **Never file with any prefix but `[untriaged]`.** This command has no way to know whether something should be done — it hasn't asked. A sweep that files `[deferred]` is asserting a decision nobody made.
+- **Never file with any prefix but `[untriaged]`.** This command has no way to know whether something should be done — it hasn't asked. A sweep that files `[triaged]` is asserting a decision nobody made.
 - Labels (`bug`, `enhancement`) are optional and orthogonal. **Status is never a label.**
 
 ## Step 4 — Report
 
 - **Filed** — every new issue: item ID, severity, title, number and URL
-- **Already tracked** — count, split `[untriaged]` / `[deferred]`, with numbers
+- **Already tracked** — count, split `[untriaged]` / `[triaged]`, with numbers
 - **Dropped as terminal** — count only; these are settled and are not listed
 - **Stray issues repaired** — every issue that gained a prefix, with its old and new title. Never silent.
 - **Skipped sweeps** — any source that couldn't run and why
@@ -181,7 +181,7 @@ EOF
 
 ## Hard rules
 
-- **Discovery only. Never triage.** Don't interview, don't ask the user to decide an item's fate, don't file anything as `[deferred]`, `[done]` or `[will-not-do]` on the strength of your own reading. The whole value of the split is that a sweep is cheap and safe to run.
+- **Discovery only. Never triage.** Don't interview, don't ask the user to decide an item's fate, don't file anything as `[triaged]`, `[done]` or `[will-not-do]` on the strength of your own reading. The whole value of the split is that a sweep is cheap and safe to run.
 - **Never change code.** No `Edit`, no `Write`, no fixing the `TODO` you just found. This command reads the repo and writes GitHub. If a marker is trivially fixable, say so in the report and leave it.
 - **Don't commit, don't bump the version, don't touch `libs/`.**
 - **Use the `gh` CLI subcommands.** Never `gh api graphql`.
