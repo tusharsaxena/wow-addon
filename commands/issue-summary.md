@@ -1,5 +1,5 @@
 ---
-description: GitHub issue summary — a status × repo grid (done / will-not-do / triaged / untriaged) followed by the open issues per repo. Defaults to the repo at the cwd; pass `all` for the whole collection (every Ka0s addon plus WowAddonStandards, LibKa0s and wow-addon) or a repo name. Read-only apart from repairing a missing title prefix.
+description: GitHub issue counts — a status × repo grid (done / will-not-do / triaged / untriaged) plus a short read of what the numbers imply. **Defaults to the whole collection** (every Ka0s addon plus WowAddonStandards, LibKa0s and wow-addon); pass `here` for the repo at the cwd, or a repo name. Counts only — for the issues themselves use `/wow-addon:issue-details`. Read-only apart from repairing a missing title prefix.
 argument-hint: [here|all|<repo>]
 allowed-tools: [Bash, Read]
 ---
@@ -8,7 +8,7 @@ Report the state of pending work by reading GitHub issues, as counts. This is th
 
 - `/wow-addon:issue-audit` — sweeps a repo and **files** what it finds as `[untriaged]`
 - `/wow-addon:issue-triage` — **decides** the untriaged ones, one at a time
-- `/wow-addon:issue-summary` — **how much, and where** (this command)
+- `/wow-addon:issue-summary` — **how much, and where** (this command). Counts only; it never lists issues.
 - `/wow-addon:issue-details` — **what**, item by item with descriptions
 
 ## Step 0 — Preflight
@@ -21,13 +21,15 @@ Report the state of pending work by reading GitHub issues, as counts. This is th
 
 The `$ARGUMENTS` token:
 
-- **absent, or `here`** → the repo at the cwd. **This is the default.**
-- **`all`** → the whole collection. Read the addon roster from `WowAddonStandards/standards/ADDONS.md` (folder + repository per row) — it is the living list — then add the three upstreams: **`WowAddonStandards`**, **`LibKa0s`**, **`wow-addon`**.
+- **absent, or `all`** → the whole collection. **This is the default.** Read the addon roster from `WowAddonStandards/standards/ADDONS.md` (folder + repository per row) — it is the living list — then add the three upstreams: **`WowAddonStandards`**, **`LibKa0s`**, **`wow-addon`**.
+- **`here`** → the repo at the cwd.
 - **a repo name** → that repo alone, matched case-insensitively against the roster. If it matches nothing, say so, list the valid names, and stop. Don't guess at a near-miss — reporting the wrong repo silently is worse than asking.
+
+**Why the collection is the default here, when every other issue command defaults to `here`:** this is the only one whose whole value is the cross-repo comparison. A one-row grid is strictly worse than `/wow-addon:issue-details here`. It is also routinely run from an orchestration directory that is not itself a GitHub repo, where a `here` default cannot resolve at all and can only produce a question.
 
 If `ADDONS.md` isn't reachable on an `all` run, fall back to the sibling directories next to the cwd that contain a `.toc`, and **say in the report that the roster was inferred from disk rather than read from the standard**. An inferred roster can silently omit a repo, and a missing repo in a collection-wide report reads as "no open issues" rather than "not checked".
 
-If the cwd is not a repo `gh` can resolve and no scope was given, **ask** which scope to use rather than guessing.
+If `here` was passed explicitly and the cwd is not a repo `gh` can resolve, say so and stop — the user named a scope that does not exist. This can no longer happen by default, since the default is `all`.
 
 ## Step 2 — Fetch
 
@@ -72,31 +74,27 @@ Rows are repos, columns are the four statuses, plus a total. On an `all` run: ad
 - An unreadable repo gets a single `unreadable` spanning its row rather than four zeros.
 - Under the grid, state the totals in one line: how many issues, how many **open**, and how many of those are `untriaged` — that last number is the backlog nobody has decided on, and it is the one worth reading first.
 
-## Step 5 — Open issues per repo
+## Step 5 — Read the grid
 
-Then, for each repo **in roster order**, list only its **OPEN** issues:
+**This command prints counts and what they mean. It does not list issues.** Per-issue tables — titles, descriptions, ages, URLs — are `/wow-addon:issue-details`, and duplicating them here would mean two commands doing the same job with the shorter one always out of date.
 
-### <Repo> — N open
+So after the grid, write a few sentences of analysis. Not a restatement of the numbers the reader can already see — the things the numbers *imply* that a column of totals does not show on its own:
 
-| # | Status | Title | Age |
-|---|---|---|---|
+- **Concentration.** Which repo carries a disproportionate share of the open work, and how disproportionate. One repo holding a third of the collection's open issues is a fact about that repo, not about the collection.
+- **The `untriaged` count.** This is the backlog nobody has decided on and it is the first number worth reading. Say where it sits. Zero across the board is worth stating plainly — it means every open issue has a recorded decision behind it.
+- **Shape of the closed work.** A repo whose `will-not-do` outnumbers its `done` is deciding more than it is building; the reverse is the opposite. Neither is wrong, and both are worth noticing.
+- **Empty repos.** A repo with no issues at all is either genuinely clear or never swept. The grid cannot tell those apart, so say which one you can and cannot distinguish.
+- **Movement**, only where you can source it — a figure from a previous run in this session, for instance. Never infer a trend from a single snapshot.
 
-- **Status** is `untriaged` or `triaged` (the only two open states).
-- **Title** is the title with the prefix stripped — the prefix is already its own column.
-- **Age** is how long ago it was opened, humanized (`3d`, `2mo`).
-- Sort `untriaged` first — those are the ones needing a decision — then by number descending.
-- A repo with no open issues gets one line: `**<Repo>** — no open issues.` Don't print an empty table.
-- Put the issue URLs under each table so they're clickable.
+**Ground every observation in the grid.** If a claim cannot be checked against a number in the table above it, it does not belong here. No recommendations the counts do not support, no guesses about why a repo looks the way it does, and no advice about what to work on next — that is a judgment the reader makes with context this command does not have.
 
-For descriptions of each issue rather than just titles, that's `/wow-addon:issue-details`.
-
-## Step 6 — Close
-
-End with the single most useful sentence the data supports — which repo carries the most untriaged work, or that everything is triaged. Say it plainly; don't editorialize, and don't invent a recommendation the numbers don't support.
+Keep it to a short paragraph or a few bullets. The grid is the deliverable; the analysis earns its place only by saying something the grid does not.
 
 ## Hard rules
 
 - **Read-only, with exactly one exception:** repairing a missing title prefix. Never create, close, reopen or comment, and never edit a title's text or a body.
+- **Never list issues.** No per-repo tables, no titles, no URLs. Counts and analysis only — `/wow-addon:issue-details` owns the per-issue view, and two commands printing the same listing means the shorter one silently goes stale.
+- **Never assert what the grid cannot support.** Every sentence of analysis traces to a number in the table. No trends from one snapshot, no advice on what to work on next.
 - **Announce every repair**, with old and new title.
 - **Never use `gh api graphql`.** Use the `gh issue` subcommands with `--json`. `gh api repos/{owner}/{repo}/issues/<n>` is the sanctioned REST fallback for `state_reason`, which `gh issue view` does not expose on every `gh` version.
 - **Never report an unreadable repo as zero.** Unreadable and empty are different answers, and collapsing them hides exactly the repo someone needs to look at.
