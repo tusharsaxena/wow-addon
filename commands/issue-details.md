@@ -62,15 +62,19 @@ Per repo, in roster order, one section each:
 
 ### <Repo> — N issues (<states shown>)
 
-| # | Status | State | Title | Description | Age |
-|---|---|---|---|---|---|
+| # | Status | State | Title | Description | Age | URL |
+|---|---|---|---|---|---|---|
 
 - **Status** is the prefix (`untriaged`, `triaged`, `done`, `will-not-do`).
 - **State** is GitHub's own `open`/`closed`. Both columns are shown because they encode the same decision twice and a disagreement between them is a defect worth seeing.
 - **Age** is time since it was opened, humanized (`3d`, `2mo`).
+- **URL** is the issue's full `https://github.com/<owner>/<repo>/issues/<n>`, **last column, one per row**. Write it bare — no markdown link wrapper, no shortening, no `…` truncation — because the point of this column is that a terminal can detect it and make it clickable, and every one of those transformations breaks that.
 - Sort by status — `untriaged` first, then `triaged`, then `done`, then `will-not-do` — and within each, by number descending. Untriaged first because it is the only status that means *nobody has looked at this*.
-- Put the URLs below the table so they are clickable.
 - A repo with nothing matching gets one line: `**<Repo>** — no issues matching <states>.` Don't print an empty table.
+
+**The URL goes in the row, not in a list underneath.** A list below the table makes the reader match a number to a link by eye, which is exactly the step the column removes. It also means the row and its link can never drift apart when the table is sorted or filtered.
+
+This makes the table wide, and that is the accepted trade. If something has to give, **compress the Description, never the URL** — a shortened description is still useful, a shortened URL is not a link.
 
 Below everything, if any issue's prefix disagreed with its GitHub state, list them under **Inconsistencies** with repo, number and both values. Don't fix them here beyond the missing-prefix repair, and don't count them twice — just surface them, and point at `/wow-addon:issue-triage`.
 
@@ -82,6 +86,7 @@ Close with one line: how many issues shown, across how many repos, and — when 
 - **Announce every repair.** Silent mutation from a listing command is how trust in a tool dies.
 - **Never report an unreadable repo as empty.**
 - **Never invent a description.** `—` is a fine answer; a plausible-sounding paraphrase is not.
+- **Never mangle the URL.** Bare, complete, one per row, last column. No markdown wrapper, no shortener, no ellipsis — a URL a terminal cannot click is a URL that failed at its only job.
 - **Don't infer status from labels.** The title prefix is the data; a label named `triaged` is not.
 - **Never use `gh api graphql`.**
 - **Don't invent the roster.** Read it from `ADDONS.md` or say plainly that you inferred it.
