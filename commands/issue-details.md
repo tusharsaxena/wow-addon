@@ -101,11 +101,17 @@ If something has to give, **compress the Description, never the URL** — a shor
 
 **Escape pipes.** Any `|` inside a title or description must be written `\|`, or it splits the row into extra cells and corrupts every column after it.
 
-### Print the tables exactly once
+### The rendered report belongs in the reply, not in tool output
 
-Build the listing **quietly** — write it to a file, or capture it — and then present it once. **Never emit the full listing as command output and then restate it in the reply.** Both are visible to the reader, so doing both prints the entire report twice, and a long doubled report is where the width damage above becomes impossible to spot.
+**Markdown only renders in the assistant's reply.** Inside a command-output block it is displayed raw — literal `|` characters under whatever script produced them — so a table emitted there is not a report, it is script output the reader has to parse by eye.
 
-Same rule for the intermediate data: fetch into files, don't dump raw JSON or a draft table to the screen on the way to the real one.
+So:
+
+- **Build quietly.** The fetching and formatting run as commands whose visible output is a short confirmation — counts, failures, the widest row — and nothing else. Never dump raw JSON, a draft table, or the finished listing to the screen on the way.
+- **Present the finished tables in the reply**, where they render.
+- **Never do both.** Emitting the full listing as command output *and* restating it in the reply prints the whole report twice, and a long doubled report is where width damage becomes impossible to spot.
+
+The failure mode in each direction is worth naming, because both have happened: printing it twice buries the reader in duplication; printing it *only* as command output hands them an unrendered wall of pipes. The report goes in the reply, once.
 
 Below everything, if any issue's prefix disagreed with its GitHub state, list them under **Inconsistencies** with repo, number and both values. Don't fix them here beyond the missing-prefix repair, and don't count them twice — just surface them, and point at `/wow-addon:issue-triage`.
 
@@ -118,7 +124,7 @@ Close with one line: how many issues shown, across how many repos, and — when 
 - **Never report an unreadable repo as empty.**
 - **Never invent a description.** `—` is a fine answer; a plausible-sounding paraphrase is not.
 - **Never mangle the URL.** Bare, complete, one per row, last column. No markdown wrapper, no shortener, no ellipsis — a URL a terminal cannot click is a URL that failed at its only job.
-- **Never print the listing twice.** Build it quietly, present it once. Emitting it as command output and then restating it in the reply doubles the whole report.
+- **Never let tool output be the report.** Markdown does not render there. Build quietly, present the tables in the reply, and never do both.
 - **Never let a row exceed ~170 characters** (Title ≤ 40, Description ≤ 36 at the current roster). A clipped row can end up rendered under the wrong repo heading, which makes the table actively misleading rather than merely ugly. Truncate the Description; never the URL.
 - **Always escape `|` inside a cell** as `\|`, or the row gains phantom columns.
 - **Don't infer status from labels.** The title prefix is the data; a label named `triaged` is not.
