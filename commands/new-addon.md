@@ -6,7 +6,7 @@ allowed-tools: [Read, Glob, Grep, Bash, Write, WebFetch]
 
 Scaffold a new WoW addon named **$ARGUMENTS** in the current working directory, **born compliant** with the Ka0s WoW Addon Standard. You do not carry the scaffolding rules yourself — the canonical rules and the new-addon procedure live in the `WowAddonStandards` repo and evolve there. Fetch the current playbook and context pack, then **follow them to the letter**.
 
-**CRITICAL — the context pack is never stored in the addon.** You fetch `NEW_ADDON_CONTEXT.md` to a scratch path and build from it. Creating `docs/agent-context.md` — under that name or any other — is a compliance failure (`documentation-§3`, anti-pattern #49). The addon's `docs/` holds the canonical trio `ARCHITECTURE.md`, `testing.md` and `smoke-tests.md`, plus the five **required** topic-detail docs — the generated `test-cases.md`, `performance.md`, `perf-runs/README.md`, `automated-tests/README.md` and the generated `automated-tests/RESULTS.md` — and any further topic-detail docs the addon needs; the root `CLAUDE.md` stub is the repo's only agent brief.
+**CRITICAL — the context pack is never stored in the addon.** You fetch `NEW_ADDON_CONTEXT.md` to a scratch path and build from it. Creating `docs/agent-context.md` — under that name or any other — is a compliance failure (`documentation-§3`, anti-pattern #49). The addon's `docs/` holds the canonical trio `ARCHITECTURE.md`, `testing.md` and `smoke-tests.md`, the five **verification-and-record** docs — the generated `test-cases.md`, `performance.md`, `perf-runs/README.md`, `automated-tests/README.md` and the generated `automated-tests/RESULTS.md` — and the **six unconditional Tier 1 topic-detail docs** `scope.md`, `module-map.md`, `schema.md`, `settings-panel.md`, `data-flow.md`, `common-tasks.md`, plus whatever Tier 2 triggers have fired and any Tier 3 docs the addon needs (`documentation-§3`); the root `CLAUDE.md` stub is the repo's only agent brief.
 
 ## Automated test records — scaffold them with the addon
 
@@ -42,7 +42,28 @@ A new addon is born having adopted `automated-tests`. Before the first commit:
 4. Run `tests/_kit/run-automated-tests.sh` once, which writes the first bundle and creates
    `RESULTS.md`.
 
-`docs/complexity.md` is **retired** (standard v2.19.0) — do not scaffold one.
+`docs/complexity.md` is **retired** (standard v2.19.0) — do not scaffold one. Neither is
+`docs/file-index.md` or `docs/conventions.md` (retired v2.23.0).
+
+## Scaffold the full `docs/` tier model (documentation-§3)
+
+**All six Tier 1 docs are unconditional and ship at v0.1.0**, under exactly these names:
+`scope.md`, `module-map.md`, `schema.md`, `settings-panel.md`, `data-flow.md`, `common-tasks.md`.
+Write each one **short** rather than deferring it — the tier model's value is that the same question
+has the same filename in every repo, and a slot left "for when there's more to say" is a slot the
+next agent fills with a name of its own. That is precisely how the collection ended up with five
+filenames for the core pipeline and three for the SavedVariables shape.
+
+Then evaluate each **Tier 2** trigger against the code you just generated — count `NS.COMMANDS`,
+count distinct messages, read `core/Compat.lua` — and either ship the doc or record a *Not
+applicable* row carrying the trigger. A fresh addon normally ships none of Tier 2 and records six
+rows; that is the compliant state, not an omission.
+
+Finally write `docs/ARCHITECTURE.md`'s **`## Documentation map`** — the tenth mandated section —
+listing every `.md` under `docs/` in exactly one of its three tables. Write it now, while you still
+know why each file exists; it is the register `/wow-addon:standards-audit` reads. Keep
+`ARCHITECTURE.md` a **hub**: under ~400 lines, with any section past ~60 lines spilled into its
+canonical topic doc behind a summary and one link.
 
 ## Standards source
 
@@ -71,7 +92,7 @@ Fetch these **faithfully** (see the fetch rule below), in order:
 Once fetched, **execute `NEW_ADDON.md`'s steps exactly as written**, scaffolding into a new `<AddonName>/` folder at cwd (bail with an error if it already exists). Do not restate or reinterpret them here — the fetched playbook is authoritative and may have evolved past this file. As of this writing it directs you to:
 
 1. **Scaffold the skeleton** — the Ace3 stack (AceAddon registration, AceDB saved variables), the modular folder layout, MIT `LICENSE`, and an AceConsole slash command.
-2. **Work from the context pack — never write it into the repo.** `standards/NEW_ADDON_CONTEXT.md` is *scaffolding*: read it from your scratch copy, build from it, and leave it there. Do **NOT** create `docs/agent-context.md` or any other stored copy of it (`documentation-§3`, anti-pattern #49) — every question it answers is answered the moment the addon exists, and a stored copy loads as *working context*, so a stale one gets **followed**. The addon's `docs/` carries the canonical trio — `ARCHITECTURE.md`, `testing.md`, `smoke-tests.md` — plus the five required topic-detail docs (`test-cases.md`, `performance.md`, `perf-runs/README.md`, `automated-tests/README.md`, `automated-tests/RESULTS.md`); the only agent brief in the repo is the short root `CLAUDE.md` **stub** (see `documentation`), with the durable per-addon context in `docs/ARCHITECTURE.md`, `docs/testing.md` and the root `DEPENDENCIES.md`. **Root ships exactly three docs plus `LICENSE`, and never a fourth: the full `README.md`, the `CLAUDE.md` stub, and `DEPENDENCIES.md`** — `DEPENDENCIES.md` is a **root** file, not a `docs/` member.
+2. **Work from the context pack — never write it into the repo.** `standards/NEW_ADDON_CONTEXT.md` is *scaffolding*: read it from your scratch copy, build from it, and leave it there. Do **NOT** create `docs/agent-context.md` or any other stored copy of it (`documentation-§3`, anti-pattern #49) — every question it answers is answered the moment the addon exists, and a stored copy loads as *working context*, so a stale one gets **followed**. The addon's `docs/` carries the canonical trio — `ARCHITECTURE.md`, `testing.md`, `smoke-tests.md` — the five verification-and-record docs (`test-cases.md`, `performance.md`, `perf-runs/README.md`, `automated-tests/README.md`, `automated-tests/RESULTS.md`) and the six Tier 1 topic-detail docs (`scope.md`, `module-map.md`, `schema.md`, `settings-panel.md`, `data-flow.md`, `common-tasks.md`); the only agent brief in the repo is the short root `CLAUDE.md` **stub** (see `documentation`), with the durable per-addon context in `docs/ARCHITECTURE.md`, `docs/testing.md` and the root `DEPENDENCIES.md`. **Root ships exactly three docs plus `LICENSE`, and never a fourth: the full `README.md`, the `CLAUDE.md` stub, and `DEPENDENCIES.md`** — `DEPENDENCIES.md` is a **root** file, not a `docs/` member.
 3. **Lay out files** — use the single modular layout (`core/ modules/ defaults/ settings/ locales/`) for every addon regardless of size (a small addon just has thin folders). Copy the vendored Ace3 `libs/` set you actually `LibStub()` from an existing Ka0s addon so versions stay consistent. Then vendor the **two Ka0s-owned payloads** from the `LibKa0s` repo itself — never from a sibling addon's copy, which may already have drifted:
    - its inner `LibKa0s/` folder → the new addon's `libs/LibKa0s/`, copied **whole**, and TOC-listed as the single aggregate `.xml` line the library ships. Copy every module, including ones the first release won't wire — a partial copy is the forbidden case, and it fails two ways: a module missing its dependency never registers at all (silently absent), while a module whose shell arrived without its attach file constructs fine and dies at **call** time, a panel build later.
    - its root-level `testkit/` folder → the new addon's `tests/_kit/`. It is a **sibling** of the ship folder, not inside it, and it goes under `tests/` — **never** `libs/`, which is the ship payload.
@@ -93,7 +114,7 @@ If this list and the fetched `NEW_ADDON.md` ever disagree, **the fetched playboo
 
 ## After scaffolding, print
 
-- The created file tree (just the paths), including the **root** doc set — `README.md`, the `CLAUDE.md` stub and `DEPENDENCIES.md`, plus `LICENSE`, and nothing else at root — `docs/` (the trio — ARCHITECTURE.md, testing.md, smoke-tests.md — and the five required topic-detail docs: test-cases.md, performance.md, perf-runs/README.md, automated-tests/README.md, automated-tests/RESULTS.md; **no** complexity.md, **no** agent-context.md), the vendored `libs/LibKa0s/`, and `tests/_kit/`.
+- The created file tree (just the paths), including the **root** doc set — `README.md`, the `CLAUDE.md` stub and `DEPENDENCIES.md`, plus `LICENSE`, and nothing else at root — `docs/` (the trio — ARCHITECTURE.md, testing.md, smoke-tests.md — the five verification-and-record docs: test-cases.md, performance.md, perf-runs/README.md, automated-tests/README.md, automated-tests/RESULTS.md — and the six Tier 1 topic-detail docs: scope.md, module-map.md, schema.md, settings-panel.md, data-flow.md, common-tasks.md; **no** complexity.md, **no** agent-context.md, **no** file-index.md, **no** conventions.md), the vendored `libs/LibKa0s/`, and `tests/_kit/`.
 - **Whether the first automated-test bundle was actually produced**, by which invocation, and which suites ran versus skipped with their reasons — or, if the runner could not run, that the bundle is still owed and the addon must not be tagged until it exists.
 - **Which `LibKa0s` modules the scaffold wired** (one setup file each) versus which were vendored but not yet wired — adoption is per module and on the addon's own schedule, so "vendored, not wired" is a normal state, not an omission. Say where each payload was copied **from** (the `LibKa0s` repo, not a sibling addon) so the provenance is on the record.
 - The exact `## Interface:` value used and where it came from.
