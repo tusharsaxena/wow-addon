@@ -8,6 +8,11 @@ Run and **record** the addon at the cwd's automated tests.
 This is the recorded, four-suite run. For the fast green gate — lint and tests only, writing nothing
 — use `/wow-addon:run-tests`, or the runner's own `--suite lint --suite tests --no-bundle`.
 
+Everything here runs **outside** the game client. An **in-game** capture — the report and the JSON
+dump a player copied out of the client after a `/<slash> perf` run — is `/wow-addon:perf-analysis`'s,
+and lands under `docs/perf-analysis/<YYYYMMDD-HHMMSS>/`. The offline perf scenarios recorded below
+answer a different question and are never a stand-in for one.
+
 ## Step 0 — Fetch the playbook
 
 The process spec is **living** and lives in the standards repo. Fetch it rather than working from
