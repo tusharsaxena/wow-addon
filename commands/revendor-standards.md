@@ -194,10 +194,20 @@ Read the fetched `line-endings` section and hold its two canonical bodies. Then,
 
   ```sh
   git ls-files -z | xargs -0 -I{} sh -c '
-    a=$(git check-attr eol -- "{}" | sed "s/.*: //")
-    case "$a" in crlf) file "{}" | grep -q CRLF || echo "{}";;
-                 lf)   file "{}" | grep -q CRLF && echo "{}";; esac' 2>/dev/null | wc -l
+    set -- $(git check-attr text eol -- "{}" | sed "s/.*: //")
+    [ "$1" = unset ] && exit                      # binary: git converts nothing here
+    cr=$(tr -dc "\r" < "{}" | wc -c); lf=$(tr -dc "\n" < "{}" | wc -c)
+    case "$2" in crlf) [ "$lf" -gt 0 ] && [ "$cr" -ne "$lf" ] && echo "{}";;
+                 lf)   [ "$cr" -gt 0 ] && echo "{}";; esac' 2>/dev/null | wc -l
   ```
+
+  Paste it as written. It asks git for `text` as well as `eol` and counts bytes rather than asking
+  `file(1)`, and both halves are corrections to an earlier form of this check that over-reported by
+  roughly a factor of three (`line-endings-§7`): `binary` expands to `-text` and says nothing about
+  `eol`, so a marked PNG still answers `crlf` from the pin; and `file(1)` sniffs types, reporting
+  `JSON text data` for a fully-CRLF JSON file and `with CRLF line terminators` when only one line ends
+  CRLF — counting binaries and JSON forever while passing the half-converted file. Do **not**
+  "simplify" it back toward `file(1)`.
 
 A file holding **only** the `*.sh` carve-out with no pin above it is a hit, not a pass — it is the
 near-miss `line-endings-§1` names, and the state that reads in review as already handled.
@@ -239,7 +249,7 @@ docs/testing.md
 .gitattributes
   MISSING: no pin — file carries only "*.sh text eol=lf" (line-endings-§1/§2)
   STRAYS:  9 tracked files disagree with the declared pin, from
-    git ls-files -z | xargs -0 -I{} sh -c 'a=$(git check-attr eol -- "{}" | sed "s/.*: //"); …' | wc -l
+    git ls-files -z | xargs -0 -I{} sh -c 'set -- $(git check-attr text eol -- "{}" | sed "s/.*: //"); …' | wc -l
     (reported only — renormalization is the user's own commit, line-endings-§6)
 
 CODE / CONFIG — comment-only, needs your confirmation before anything is written

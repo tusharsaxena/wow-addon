@@ -39,7 +39,7 @@ A focused toolkit for working on WoW addons: scaffolding new addons that are bor
 
 ### Hooks
 
-- **Line-ending normalization on Write/Edit/MultiEdit** — when a file is written/edited inside a git repo, the plugin asks git what that file's `.gitattributes` declares and normalizes to it: **CRLF** in a client-bound Ka0s repo (the addons and `LibKa0s`), **LF** in one that ships nothing to the WoW client (the standards repo and this one). Every Ka0s repo declares one or the other (`line-endings`). Silent on files with no declared `eol`, and it never blocks a write. Lives at `hooks/hooks.json` + `scripts/normalize-eol.sh`.
+- **Line-ending normalization on Write/Edit/MultiEdit** — when a file is written/edited inside a git repo, the plugin asks git what that file's `.gitattributes` declares and normalizes to it: **CRLF** in a client-bound Ka0s repo (the addons and `LibKa0s`), **LF** in one that ships nothing to the WoW client (the standards repo and this one). Every Ka0s repo declares one or the other (`line-endings`). It asks for `text` as well as `eol`, so a file marked `binary` is left alone even though the pin still answers `eol: crlf` for it (`line-endings-§7`); silent likewise on files with no declared `eol`, and it never blocks a write. Lives at `hooks/hooks.json` + `scripts/normalize-eol.sh`.
 
 ## Install
 

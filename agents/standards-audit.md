@@ -90,10 +90,24 @@ The playbook's evidence step calls for checks whose whole value is that they are
 
   ```sh
   git ls-files -z | xargs -0 -I{} sh -c '
-    a=$(git check-attr eol -- "{}" | sed "s/.*: //")
-    case "$a" in crlf) file "{}" | grep -q CRLF || echo "{}";;
-                 lf)   file "{}" | grep -q CRLF && echo "{}";; esac' 2>/dev/null | wc -l
+    set -- $(git check-attr text eol -- "{}" | sed "s/.*: //")
+    [ "$1" = unset ] && exit                      # binary: git converts nothing here
+    cr=$(tr -dc "\r" < "{}" | wc -c); lf=$(tr -dc "\n" < "{}" | wc -c)
+    case "$2" in crlf) [ "$lf" -gt 0 ] && [ "$cr" -ne "$lf" ] && echo "{}";;
+                 lf)   [ "$cr" -gt 0 ] && echo "{}";; esac' 2>/dev/null | wc -l
   ```
+
+  **Run it as written, and do not "simplify" it back toward `file(1)`.** It asks git for `text` as
+  well as `eol` and it counts bytes; both halves are corrections to a version of this check that
+  over-reported by roughly a factor of three (`line-endings-§7`). `binary` expands to `-text` and says
+  nothing about `eol`, so `git check-attr eol` on a marked PNG answers `crlf`, inherited from the pin,
+  for a file git will never convert. And `file(1)` is a type sniffer, not a byte test: it says `JSON
+  text data` for a fully-CRLF JSON file, `no line terminators` for a file that has none, and `with
+  CRLF line terminators` when only **one** line ends CRLF — so it counts binaries and JSON as strays
+  forever while passing the half-converted file that an edit into a CRLF file actually produces. A
+  file with no `\n` at all is not a straggler and is skipped. The one accuracy given up is the lone
+  `\r`: a bare CR inside a line reads wrong in **both** directions, and a repo that acquires old-Mac
+  endings needs a real `\r\n`-pair scanner rather than this one-liner.
 
   Report (e) as **one** rolled-up finding — *"N tracked files disagree with the declared pin"* — with
   the command printed so the number can be reproduced, and **never** a file-by-file list: the fix is a

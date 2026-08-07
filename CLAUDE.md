@@ -18,7 +18,7 @@ followed by CRLF makes the kernel look for an interpreter literally named `bash\
 - `.claude-plugin/marketplace.json` — marketplace entry; carries a **mirror of the description** (no version field of its own).
 - `commands/*.md` — 19 slash-command specs (`/wow-addon:<name>`), each also invocable as a Skill of the same name. Two of them (`review.md`, `standards-audit.md`) are thin **wrappers that dispatch to the subagent of the same name**; the other seventeen act directly.
 - `agents/*.md` — 2 subagent specs: `review` (WoW-specific principal-level review → `docs/reviews/<date>/`; also fetches the standard to keep its own remediation compliant, but does **not** audit) and `standards-audit` (read-only compliance audit → `docs/audits/<date>/`).
-- `hooks/hooks.json` + `scripts/normalize-eol.sh` — the line-ending-normalization hook. It normalizes a just-written file to whatever `.gitattributes` declares for it — **CRLF** or **LF** — and exits silently when nothing is declared (`line-endings-§2`). Renamed from `normalize-crlf.sh` when it gained the LF arm; the old name described half of it.
+- `hooks/hooks.json` + `scripts/normalize-eol.sh` — the line-ending-normalization hook. It normalizes a just-written file to whatever `.gitattributes` declares for it — **CRLF** or **LF** — and exits silently when nothing is declared (`line-endings-§2`). It reads `text` **and** `eol`, never `eol` alone: `binary` expands to `-text` and says nothing about `eol`, so a marked PNG in a CRLF-pinned repo answers `eol: crlf` for a file git will never convert, and rewriting its bytes on that answer corrupts the asset (`line-endings-§7`). Renamed from `normalize-crlf.sh` when it gained the LF arm; the old name described half of it.
 - `README.md` — user-facing docs. `LICENSE` — MIT.
 
 ## Entry points & lifecycle
@@ -35,7 +35,7 @@ No env vars and no config files. **One piece of persistent state**, added with t
 ## Build / test / run
 
 - **No build, no tests.** Validation is: `python3 -c "import json; ..."` on the two manifests, and a manual `/reload-plugins` to confirm the plugin loads (`Reloaded: … plugins · … skills · … agents · … hooks`).
-- The line-ending hook script is Bash; there's no harness for it beyond running the flow that triggers `Write|Edit|MultiEdit` inside a repo that declares an `eol`. **Validate both arms** — the `crlf` arm needs a client-bound repo (any addon, or `LibKa0s`), and the `lf` arm is exercised inside **this** repo, which pins LF. A third case matters as much as either: a path with no declared `eol` must come back byte-identical.
+- The line-ending hook script is Bash; there's no harness for it beyond running the flow that triggers `Write|Edit|MultiEdit` inside a repo that declares an `eol`. **Validate both arms** — the `crlf` arm needs a client-bound repo (any addon, or `LibKa0s`), and the `lf` arm is exercised inside **this** repo, which pins LF. Two more cases matter as much as either, and both must come back byte-identical: a path with no declared `eol`, and a file marked `binary` **inside a CRLF-pinned repo** — the pin answers `eol: crlf` for it, so only the `text` half of the query saves it. Test that one on a **copy** of an addon repo, never a live one, and check with `cmp`.
 
 ## Conventions & hot zones (footguns)
 

@@ -40,10 +40,20 @@ repo_root="$(git -C "$file_dir" rev-parse --show-toplevel 2>/dev/null || true)"
 abs_file="$(cd "$file_dir" && pwd)/$(basename -- "$file_path")"
 rel_path="${abs_file#"$repo_root"/}"
 
-# Ask git what eol attribute applies to this file per .gitattributes.
+# Ask git for `text` AND `eol` — never `eol` alone (line-endings-§7). `binary` expands to `-text`
+# and says nothing about `eol`, so a file marked `binary` in a CRLF-pinned repo still answers
+# `eol: crlf`, inherited from the `* text=auto eol=crlf` pin, for a file git itself will never
+# convert. Rewriting its bytes on that answer corrupts the asset — reading `text` first is what
+# makes the binary markings mean something here, and it is the same correction §7 made to the
+# audit's working-tree check.
+# `text: unset` is the binary case and exits before any byte test runs. Of the `eol` values,
 # `crlf` and `lf` are the two the Ka0s standard declares (line-endings-§2); anything else —
-# unspecified, unset, a path marked binary — is not ours to touch and exits silently.
-eol_attr="$(git -C "$repo_root" check-attr eol -- "$rel_path" 2>/dev/null | awk -F': ' '{print $NF}')"
+# unspecified, unset — is not ours to touch and exits silently too.
+attrs="$(git -C "$repo_root" check-attr text eol -- "$rel_path" 2>/dev/null || true)"
+text_attr="$(printf '%s\n' "$attrs" | sed -n '1s/.*: //p')"
+eol_attr="$(printf '%s\n' "$attrs" | sed -n '2s/.*: //p')"
+
+[[ "$text_attr" == "unset" ]] && exit 0
 
 case "$eol_attr" in
     crlf)
