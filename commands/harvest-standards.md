@@ -70,20 +70,20 @@ Every `docs/audits/<date>/02_DEVIATIONS.md` and `docs/reviews/<date>/01_FINDINGS
 
 An audit that has to **punt to the user** because two sections disagree has found a defect in the standard that no per-addon process will ever fix — the auditor cannot resolve it, and the addon author resolves it locally and privately, differently each time. Grep the bundles for exactly this shape: a deviation citing two sections in tension, or fix directions that say the choice is the user's. These are the highest-value findings in the corpus and the easiest to miss, because each one is filed as a single addon's edge case.
 
-### 6. `[will-not-do]` issues — accepted deviations the standard never heard about
+### 6. `state:will-not-do` issues — accepted deviations the standard never heard about
 
-`documentation-§6` requires an addon to **record** an accepted deviation, and `issue-audit` has been doing exactly that — but recording it in the addon tells the standard nothing. That record used to live in `docs/pending/LEDGER.md`; it now lives in **GitHub issues on each addon's own repo**, with status carried as a title prefix (`[done]`, `[will-not-do]`, `[triaged]`, `[untriaged]`). The ledger is retired. **This harvest category must not die with it** — it is the only channel through which a collectively-refused rule reaches the standard.
+`documentation-§6` requires an addon to **record** an accepted deviation, and `issue-audit` has been doing exactly that — but recording it in the addon tells the standard nothing. That record used to live in `docs/pending/LEDGER.md`; it now lives in **GitHub issues on each addon's own repo**, with status carried as a **label** — `state:done`, `state:will-not-do`, `state:triaged`, `state:untriaged` — alongside a `severity:` label. The ledger is retired, and so is the `[status]` title prefix that briefly replaced it. **This harvest category must not die with it** — it is the only channel through which a collectively-refused rule reaches the standard.
 
 For every repo in the sweep, read both halves of the store:
 
 ```
-gh issue list --repo <owner>/<repo> --state closed --limit 200 --json number,title,body,url   # keep titles starting "[will-not-do]"
-gh issue list --repo <owner>/<repo> --state open   --limit 200 --json number,title,body,url   # keep titles starting "[triaged]"
+gh issue list --repo <owner>/<repo> --state closed --limit 200 --label "state:will-not-do" --json number,title,body,labels,url
+gh issue list --repo <owner>/<repo> --state open   --limit 200 --label "state:triaged"     --json number,title,body,labels,url
 ```
 
-Filter on the **title prefix** in the result you get back. Do not use a label query and do not use a search API. The rationale you want is in the issue body under `### Rationale`, and the `filename-§N` rule it refuses is usually in the evidence block above it.
+Status is a **label**, so `--label` is the filter — not a title prefix and not a search API. A repo that returns nothing because it carries no `state:` labels at all has never been swept; say so rather than harvesting it as a repo with no refusals. The rationale you want is in the issue body under `### Rationale`, and the `filename-§N` rule it refuses is usually in the evidence block above it. The issue's `severity:` label is worth carrying into the finding: the same rule declined at `severity:low` in three repos is a rule nobody thinks is worth its cost, and declined at `severity:high` it is a rule the collection thinks is actively wrong — different findings with different fixes.
 
-A `[will-not-do]` is a considered, argued refusal with a rationale attached; the **same** refusal in three repos is not three addons being stubborn, it is a rule the collection has collectively declined to follow, and the standard should either change or state why it holds. Harvest `[triaged]` issues too, more weakly: the same item triaged-but-not-done in every repo is a rule too expensive to satisfy, which is its own finding.
+A `state:will-not-do` is a considered, argued refusal with a rationale attached; the **same** refusal in three repos is not three addons being stubborn, it is a rule the collection has collectively declined to follow, and the standard should either change or state why it holds. Harvest `state:triaged` issues too, more weakly: the same item triaged-but-not-done in every repo is a rule too expensive to satisfy, which is its own finding.
 
 Cite the issue URL as the evidence for each proposal, the way a ledger row used to be cited. If a repo still has a `docs/pending/LEDGER.md`, it has not migrated yet — read it as well for this run, note it in the bundle as un-migrated, and don't let its rows go unharvested.
 
