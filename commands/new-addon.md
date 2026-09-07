@@ -84,7 +84,7 @@ applicable* row carrying the trigger. A fresh addon normally ships none of Tier 
 rows; that is the compliant state, not an omission.
 
 Finally write `docs/ARCHITECTURE.md`'s **`## Documentation map`** — the tenth mandated section —
-listing every `.md` under `docs/` in exactly one of its three tables. Write it now, while you still
+listing every `.md` under `docs/` in exactly one of its four tables — Required, Conditional, **Verification and record** (the six record docs, which sit outside the tier model) and Addon-specific. Write it now, while you still
 know why each file exists; it is the register `/wow-addon:standards-audit` reads. Keep
 `ARCHITECTURE.md` a **hub**: under ~400 lines, with any section past ~60 lines spilled into its
 canonical topic doc behind a summary and one link.
