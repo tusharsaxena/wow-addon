@@ -119,7 +119,7 @@ Once fetched, **execute `AUDIT.md`'s steps exactly as written** against the addo
 - Catalogue deviations in `02_DEVIATIONS.md`, each with a **stable per-addon-prefixed ID** (2–3 letters from the addon name), the section violated (as `filename-§N`), the **impact grade** (see *Grading a deviation* below), a one-line description, and a fix direction. Reuse a prior audit's prefix and IDs for deviations that recur.
 - Back every finding with `file:line` evidence in `03_EVIDENCE.md` — no unsourced claims. Two rules make that evidence worth citing, and both are checks you run rather than intentions you hold:
   - **Re-read every `file:line` the bundle cites before you write it, and quote the cited text beside the citation.** One pass over the citations you have already collected, across all five artifacts — and reconcile any figure quoted in more than one of them, since `02_DEVIATIONS.md` and `05_EXECUTION_PLAN.md` are read as one document. A citation that does not resolve to the claimed content is **corrected or dropped, never shipped**. This is not hypothetical: past bundles cited `settings/Panel.lua:507`/`:711` for locals used at `:502-503`/`:734`, `.luacheckrc:74` for a comment at `:66`, `.luacheckrc:60` for `:43`, and a function header instead of the line the finding was about — and one bundle counted 17 sites in `02_DEVIATIONS.md` and 18 in its own execution plan.
-  - **Every count is produced by a recorded command, and the command's *scope* is stated.** Paste the exact invocation, its real output, **and what it covered and excluded** — which paths were swept, which were not (`docs/`, `tests/`, `libs/`, frozen bundles). A count whose scope is unstated is not a count: one audit reported 31 retired-notation hits against roughly 50 purely because the sweep never covered the live `docs/` pages, and another counted a row inside a frozen bundle that should not have counted while missing a real hit. Never re-type a number from an earlier bundle or from memory — re-run the command.
+  - **Every count is produced by a recorded command, and the command's *scope* is stated.** Paste the exact invocation, its real output, **and what it covered and excluded** — which paths were swept, which were not (`docs/`, `tests/`, `libs/`, frozen bundles). A count whose scope is unstated is not a count: one audit reported 31 retired-notation hits against roughly 50 purely because the sweep never covered the live `docs/` pages, and another counted a row inside a frozen bundle that should not have counted while missing a real hit. Never re-type a number from an earlier bundle or from memory — re-run the command. The census rule below says what "the whole tracked set" means here, and it is not optional wording.
 - Design remediation in `04_TECHNICAL_DESIGN.md` and order it into `05_EXECUTION_PLAN.md`, both keyed to the deviation IDs.
 
 If this list and the fetched `AUDIT.md` ever disagree, **the fetched playbook wins**; if the playbook and the standard's section files disagree on *what* to check, the standard wins.
@@ -149,6 +149,54 @@ The debug console, the options toolkit, the slash dispatcher, the performance ha
 - The deviation to raise is the opposite one: an addon carrying its own console window, widget makers/flow engine, dispatcher/parser or test framework, or a locally patched `libs/LibKa0s/`, is **#47**.
 - **Stub coverage.** For each setup file, grep the call sites for every member the addon reaches on the library instance and confirm the library-absent branch answers **all** of them — a stub missing one is a crash moved to a rarer code path. Two things **not** to misread as inconsistency: the **Options** stub is deliberately **load-completing rather than member-answering** (page files call members inside schema-row literals at file load, so it publishes real-enough load-time members and no-ops the rest) — that is the one documented exception, with its measured justification, and flagging it is a false positive; and a stub that omits a member *with the reason written down* is a decision, not a gap.
 - **Partial vendoring (#48).** `libs/LibKa0s/` must be the source repo's **whole ship folder**, not a hand-picked subset, and the TOC must list the single aggregate `libs\LibKa0s\LibKa0s.xml` once — never individual module `.lua` files. A folder missing files the ship folder has, or a TOC naming modules individually, is a deviation even when the addon works today: the majors it does not use today are not the ones that will break.
+
+### Every census counts the whole tracked set
+
+Every number this bundle states about the repository — files over the LOC cap, retired-notation hits,
+hard-coded texture paths, straggler line endings, missing bundle artifacts, register rows — is a census,
+and **every census starts from `git ls-files`**. Not `grep -r`, not `find`, not a shell glob: `ls-files`
+never descends into an untracked scratch directory, never misses a tracked file a glob skipped, and is
+reproducible by the next auditor from a clean checkout of the same SHA. That is the whole reason the
+number can be checked rather than re-guessed.
+
+**The default denominator, and it is `layout-§1`'s** — so a count and the cap it is measured against
+cover the same files:
+
+```sh
+# From the repo root. The tracked, authored Lua of this repository.
+git ls-files '*.lua' | grep -vE '^(libs/|tests/_kit/)'
+```
+
+`tests/` is **in**: `layout-§1` states that the cap binds every authored `.lua` the repo tracks, and a
+census that silently drops `tests/` measures a different repository than the one the rule governs.
+`libs/` and `tests/_kit/` are out because they are vendored — this repo must not patch them
+(library-stack-§5, testing-§1), they are audited where they are authored, and they sit in nine
+near-identical copies across the collection, so counting them turns one upstream fact into nine
+findings. Generated
+non-shipping data is exempt from the **cap** by rule and is not thereby exempt from every census: it is
+still tracked, so a sweep about the checkout counts it and a sweep about the cap does not.
+
+Two scopes are legitimately *not* the default, and an audit that uses one says so:
+
+- **The TOC-derived load list**, for any claim about what the client loads or runs — slash registrations,
+  `_G` writes, event handlers, taint surface. A file the TOC never loads cannot cause a runtime finding.
+- **The whole tracked set with no exclusions**, for the line-ending pin, `.gitattributes` agreement and
+  packaging, where a vendored file is exactly as much of a straggler as an authored one. The working-tree
+  check below is deliberately in this scope, which is why it opens with a bare `git ls-files -z`.
+
+**What this costs when it is left unwritten.** In the 2026-09-07 cycle four censuses came out wrong in
+both directions and at both stages, none of them by arithmetic. Eleven files were reported over the cap
+where the default scope finds eighteen, and two of the five repositories named have none. A hard-coded
+`Interface\` census read 93 in PrettyChat against a scoped 1, the extra 92 sitting inside a
+machine-generated dump no TOC loads. An `Interface\Tooltips` figure of 138 across the nine is 3 once
+`libs/` comes out — the other 135 are one Ace3 payload counted nine times.
+
+**And the rule with the teeth: a re-count that disagrees with an earlier one is not automatically the
+correction.** The worst outcome of that cycle was a right figure of 75 being "corrected" upward to
+numbers measured over a generated tree and nine vendored copies, and believed because the second pass was
+later and the number was bigger. When your count contradicts one on record, file **both scopes** first —
+both commands, both outputs, what each covered — and only then say which question was being asked. A
+second pass with no stated scope is not a check on the first; it is a second guess.
 
 ### Mechanical checks — run them, don't reason about them
 

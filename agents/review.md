@@ -123,6 +123,106 @@ The consolidated record of the four out-of-game suites (`automated-tests`). It i
 - If `lizard` is absent, say so: the committed report is then the only complexity evidence you have, you cite it **as dated**, and every complexity claim beyond it is *unverified*.
 - Where a proposed change plainly moves a watch-list entry, note the expected direction in `02_PROPOSED_CHANGES.md` as something the next release's regeneration should confirm — a note for the release, never a task to run the tool now.
 
+## Every census counts the whole tracked set
+
+A census is any number this review states *about the repository* — files over the LOC cap, hard-coded
+texture paths, retired-notation hits, bundles missing an artifact, straggler line endings, registered
+slash tokens. Four of this collection's censuses came out wrong in the last cycle, in **both** directions
+and at both the audit and the triage stage, and not one of them was wrong because somebody miscounted.
+Each was measured over a set nobody wrote down, so the next pass measured a different set, got a
+different number, and had no way to tell which of the two was the answer.
+
+**So: every census starts from `git ls-files`, and every count is reported with the command and the
+scope beside it.**
+
+### The default scope
+
+Unless the question demands otherwise, this is the denominator — the same one `layout-§1` was amended to
+state, so a count and the cap it is measured against cover the same files:
+
+```sh
+# From the repo root. The tracked, authored Lua of this repository.
+git ls-files '*.lua' | grep -vE '^(libs/|tests/_kit/)'
+```
+
+`git ls-files` rather than `grep -r`, `find` or a shell glob, for three reasons that have each cost a
+count already: it never descends into an untracked scratch or build directory, it never misses a tracked
+file because a glob skipped a dotted path, and it is reproducible by the next reader from a clean
+checkout of the same SHA. `libs/` and `tests/_kit/` come out because they are **vendored** — code this
+repository must not patch (library-stack-§5, testing-§1), audited where it is authored, and sitting in
+nine near-identical copies across the collection, so counting them multiplies one upstream fact by nine
+and reports it as nine facts.
+
+`tests/` stays **in**. That is the answer `layout-§1` now gives explicitly, and a census that drops it is
+quietly reporting on a smaller repository than the one being reviewed.
+
+### The two scopes that are not the default, and when each is right
+
+- **The TOC-derived load list** — *what the client actually loads*. Use it, and only it, for any claim
+  about runtime behaviour: registered slash tokens, raw `_G` writes, event registrations, taint surface.
+  The cross-addon pass below is built entirely on this scope and carries the command for deriving it.
+- **The whole tracked set with no exclusions** — *what a checkout contains*. Use it for line-ending pins,
+  `.gitattributes` agreement and packaging questions, where a vendored file is exactly as much of a
+  straggler as an authored one.
+
+Generated non-shipping data is exempt from `layout-§1`'s cap **by rule**, and it is not thereby exempt
+from every census: it is still tracked and still in the checkout, so a sweep that is about the checkout
+counts it and a sweep that is about the cap does not. Say which of the three scopes you used. Never leave
+it to be inferred from the number, because it cannot be.
+
+### What an unwritten scope actually does to a number
+
+Every figure here was re-measured on 2026-09-07 with the command printed beside it. They are worked
+examples, not a table to keep current — the point is the size of the gap, which is never small.
+
+- **The LOC cap.** A bundle claimed eleven files over `layout-§1`'s 1500-line cap across five repos. The
+  default scope, run across the ten repositories, finds **eighteen** — fourteen in MultiMeters, two in
+  LibKa0s, one each in ConsumableMaster and PrettyChat — and two of the five repositories the bundle
+  named have none at all. The split was `tests/`: MultiMeters filed against seven *source* files and
+  against none of its seven test files over the cap, in one bundle, while ConsumableMaster filed against
+  a test file alone. Both were reading a section that had not said.
+
+  ```sh
+  git ls-files '*.lua' | grep -vE '^(libs/|tests/_kit/)' \
+    | tr '\n' '\0' | xargs -0 wc -l | awk '$2!="total" && $1>1500'
+  ```
+
+- **Hard-coded `Interface\` paths.** Scoped to tracked `*.lua` excluding `libs/`, `tests/` and
+  PrettyChat's generated `GlobalStrings/`, the nine addons carry **75 lines holding 76 paths** —
+  BankLedger 17, LootHistory 19, ConsumableMaster 11, MultiMeters 8, KickCD 7, PanelMaster 7,
+  AbsorbTracker 3, WhatGroup 2, PrettyChat 1. Keep `GlobalStrings/` in and PrettyChat's 1 becomes
+  **93**, every one of the extra 92 inside a machine-written dump that no TOC loads. Twenty-one of the
+  76 are `Interface\Buttons\WHITE8x8`, the texture `standalone-windows` itself mandates for the shared
+  window edge, and twelve
+  are the addon's own `Interface\AddOns\…` art — so the number that matters is not 75 either, until the
+  sweep says which of the 76 it is even proposing to change.
+
+- **The same census with `libs/` left in.** A chrome pair reported as hundreds of `Interface\Tooltips`
+  hits is **138** across the nine when `libs/` is swept and **3** when it is not. The 135 difference is
+  one Ace3 payload counted nine times.
+
+- **Bundles missing an `ANALYSIS.md`.** Measured today over the nine plus LibKa0s: **36 of 94**, against
+  a bundle figure of 35 of 93. That one is not a scope error — the tree gained a bundle since — and it is
+  here because it shows the other half of the rule. A census is true *as of a SHA*. Re-run it; never
+  re-type it out of an earlier document.
+
+  ```sh
+  git ls-files 'docs/automated-tests/*' | awk -F/ 'NF>3{print $3}' | sort -u | wc -l
+  git ls-files 'docs/automated-tests/*/ANALYSIS.md' | wc -l
+  ```
+
+### A re-count that disagrees with an earlier one
+
+The sharpest failure last cycle was not a miscount at all. It was a **correction that made a right number
+wrong**: a ledger figure of 75 was "corrected" to a PrettyChat 93 measured over a generated tree the
+standard exempts, and to a `libs/`-inclusive chrome pair, and the corrected figures were believed because
+a second pass had produced them and they were bigger.
+
+So when your count disagrees with one already on record, the finding is not "the old number was wrong".
+The finding is **that two scopes exist**. Print both commands, run both, state what each covers and
+excludes, and only then say which question the claim was asking. A second pass with no stated scope is
+not a check on the first; it is a second guess wearing the authority of a correction.
+
 ## The cross-addon pass — the collisions only a same-session load exposes
 
 Everything above this line reviews one addon against itself. The collection's stated deployment is **all
@@ -138,9 +238,13 @@ measurement block, exactly like vendor sync — a check you could not run is nev
 
 ### State the denominator, or the census is worthless
 
+This is *Every census counts the whole tracked set*, above, applied to the one question this pass asks.
 Every command below is scoped to each addon's **TOC-derived load list** — the files the client actually
-loads — and not to `grep -r` over the repo. That distinction is not pedantry; it is the difference
-between a clean result and a fabricated one, and both directions have real examples here:
+loads — because every collision here is a runtime collision, and a file the client never loads cannot
+collide with anything. It is a deliberate departure from the default scope, not a looser version of it,
+and it is derived from `git ls-files`' sibling fact: the TOC is tracked, so the list is reproducible.
+That distinction is not pedantry; it is the difference between a clean result and a fabricated one, and
+both directions have real examples here:
 
 - A `RegisterChatCommand` census that walks `libs/` reports the token `mychat`, which no addon registers.
   It is a comment inside vendored `AceConfigCmd-3.0.lua`, present in four of the nine repos.
@@ -413,7 +517,7 @@ Write five artifacts to `docs/reviews/<YYYY-MM-DD>/` under the addon root (creat
 - Each finding gets a stable ID (`F-001`, `F-002`, ...) plus: file:line, one-sentence problem, one-sentence impact, its `Reachability:` line, and a category tag (e.g. `[taint]`, `[design]`, `[ux]`, `[perf]`, `[naming]`, `[locale]`, `[deprecated-api]`, `[tests]`, `[complexity]`, `[lint]`, `[upstream]`, `[cross-addon]`).
 - **A finding backed by a measurement cites it.** Give the number and where it came from — a lint line, a failing case name, a bucket figure from a `docs/perf-analysis/` bundle's `dump.json` or today's `tests/perf.lua`, a `lizard` CCN from the fresh run. A finding that *could* have been measured and wasn't (because the tool was absent) says so and is marked **unverified** rather than stated flatly.
 
-  **Every count is produced by a recorded command, and the command's *scope* is stated.** Paste the exact invocation, its real output, **and what it covered and excluded**. A count whose scope is unstated is not a count — most miscounts in past bundles came from a sweep that silently skipped `docs/` or `tests/`, and the number then reads as a total of everything.
+  **Every count is produced by a recorded command, and the command's *scope* is stated.** Paste the exact invocation, its real output, **and what it covered and excluded**, per *Every census counts the whole tracked set* above — which of the three scopes you used, and why that one answers the question the finding asks. A count whose scope is unstated is not a count: most miscounts in past bundles came from a sweep that silently skipped `docs/` or `tests/`, or silently included `libs/`, and the number then reads as a total of everything. Where your figure disagrees with one an earlier bundle recorded, both scopes go in the finding before either number is called wrong.
 
   **Before this bundle is written, re-read every `file:line` it cites and quote the cited text beside the citation.** Run it as one pass over the citations you have already collected, across all five artifacts, and reconcile any number quoted twice — `01_FINDINGS.md`, `02_PROPOSED_CHANGES.md` and `04_EXECUTION_PLAN.md` must agree, because they are read as one document. A citation that does not resolve to the claimed content is **corrected or dropped, never shipped**. Past reviews cited `modules/Collector.lua:494` in a 221-line file, cited the `test(` declaration line instead of the guard the finding was about, and built a consistency argument on a three-item comparator list of which one item was wrong. A line number is cheap to check and expensive to trust wrongly: every one that is off spends the next reader's whole pass re-deriving it.
 - **Upstream findings are called out as such.** A defect whose file lives under `libs/` or `tests/_kit/` is tagged `[upstream]`, names the owning library repo, and its fix direction says plainly *fix upstream, bump the file's minor, re-vendor the whole folder* — never an edit in place. Group them together so the reader can see at a glance which findings do not land in this repo.
