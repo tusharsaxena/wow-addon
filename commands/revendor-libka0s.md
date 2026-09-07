@@ -1,5 +1,5 @@
 ---
-description: Re-vendor LibKa0s into an addon from the library's newest tag, then decide what to do with what arrived. Copies both payloads whole (libs/LibKa0s/ and tests/_kit/), rolls the CLAUDE.md provenance line in the same commit, and reports the delta — per-file LibStub minors, both diffs, the kit-revision pairing rule, and which majors this addon actually consumes. Then works out which new surfaces are candidates for adoption, recommends per candidate with file:line evidence out of the library's own docs/api/, interviews you one at a time most-valuable-first, and implements what you accept — characterization test first, luacheck and the headless harness green, one commit per candidate. Declines are filed as GitHub issues. Writes a frozen bundle to docs/revendor/<date>/. Read-only on libs/ and tests/_kit/ apart from the copy itself; never pushes.
+description: Re-vendor LibKa0s into an addon from the library's newest tag, then decide what to do with what arrived. Copies both payloads whole (libs/LibKa0s/ and tests/_kit/), rolls the CLAUDE.md provenance line in the same commit, and reports the delta — per-file LibStub minors, both diffs, the kit-revision pairing rule, which majors this addon actually consumes, and contract changes under surfaces whose signature did not move, which are adoption blockers rather than candidates. Then works out which new surfaces are candidates for adoption, recommends per candidate with file:line evidence out of the library's own docs/api/, interviews you one at a time most-valuable-first, and implements what you accept — characterization test first, luacheck and the headless harness green, one commit per candidate. Declines are filed as GitHub issues. Writes a frozen bundle to docs/revendor/<date>/. Read-only on libs/ and tests/_kit/ apart from the copy itself; never pushes.
 argument-hint: [path | repo names | all] [--tag vX.Y.Z]
 allowed-tools: [Read, Glob, Grep, Bash, Edit, Write, AskUserQuestion]
 ---
@@ -69,7 +69,7 @@ If `git archive` fails, or the working tree is dirty in a way that suggests the 
 
 ## Step 3 — Establish the delta → `01_DELTA.md`
 
-Five reads. **Each one is recorded with the command that produced it — a claim without its command is not a finding.**
+Six reads. **Each one is recorded with the command that produced it — a claim without its command is not a finding.**
 
 ### 3a. Claimed version
 
@@ -137,7 +137,38 @@ grep -n 'Kit.VERSION' <scratch>/testkit/framework.lua <Addon>/tests/_kit/framewo
 
 **A consumer taking LibKa0s v1.9.0 or newer MUST take kit revision 11 in the same commit.** Before revision 11, `vendor_sync.lua` listed one directory level and normalised line endings on everything — it reads `media` as a file, and would mangle the comparison of any binary containing the byte pair `0D 0A`. Since both payloads are copied whole in Step 4 this is satisfied by construction, but state it in the bundle: it is the reason the two payloads move together rather than independently.
 
-Write all of this to `docs/revendor/<YYYY-MM-DD>/01_DELTA.md` **before copying anything.** If the delta is empty — same tag, both diffs clean, kit revision matching — say so, write the bundle, and stop. There is nothing to adopt from a release the addon already has.
+### 3g. Contract delta — what moved without changing shape
+
+Every read above compares a **number** or a **byte**, and there is one class of change neither can see: a surface that keeps its name, keeps its arguments, and changes what it does with them — *when* it is called, or what it now requires back from something the host supplied. That change arrives on the copy in Step 4, and then passes `luacheck`, passes the headless harness, and passes `tests/test_vendor_sync.lua`, which compares bytes and finds the bytes perfectly correct. It is wrong only on screen.
+
+The worked example is the one this read was written for. `OptionsCompose.lua` minor 2 wrapped each of its three media rows as `values = function() return O.LSMValues(t) end`, so the host's member was reached at **dropdown-render** time and a member returning a *table* worked. Minor 3 drops that wrapper — `values = O.LSMValues(t)` — so the member is read **once, at row-declaration time**, and whatever it hands back is assigned straight into `values`. No signature moved on either side, and neither shape errors. `MultiMeters/settings/Schema.lua:670` supplies `C.LSMValues = function(mediaType) return lsmValues(mediaType)() end`, which returns a table: correct against minor 2, and under minor 3 it freezes that addon's font and texture dropdowns at whatever media happened to be registered when the schema file loaded. The library states the tightened half in the seam itself, at `OptionsCompose.lua:182`, and in its API document at `version-14.13.3.3-docs.md:50` and `:713` — including the one-line host fix, which is to pass the deferred reader rather than a caller of it.
+
+**Which majors to read.** The ones 3c says moved a minor, intersected with the ones 3e says this addon actually looks up. A contract that changed under a module nobody consumes is not this addon's problem, and reading it anyway is how a delta report becomes long enough that nobody finishes it.
+
+**Read both documents, not the new one.** `docs/api/<Major>/version-<minors>-docs.md` is written once per shipped version and never edited afterwards, so the old contract is still on disk exactly as the addon was built against it. Walk forward from the version the addon is on by each header's `Superseded by` row, which names the next document *and* glosses what moved in it, rather than guessing filenames. For `Options` and `Perf` the version key is a composite of every file's minor in load order — `14.13.2.3` is Options 14, Widgets 13, Compose 2, Scroll 3 — so the filename tells you that *something* moved and never which member:
+
+```sh
+git -C ../LibKa0s show <tag>:docs/api/<Major>/version-<new>-docs.md | head -20   # the header table
+diff <(git -C ../LibKa0s show <old-tag>:docs/api/<Major>/version-<old>-docs.md) \
+     <(git -C ../LibKa0s show <tag>:docs/api/<Major>/version-<new>-docs.md)
+```
+
+**Then read that diff for what is *not* new.** A `Since` marker is an addition; it belongs to Step 5, where the user decides. A changed sentence under a surface that already existed, or a MUST that appeared in this range, is a contract change and belongs here — the library documents its half of a seam by stating what the host owes it, and a new MUST is a MUST somebody's existing code was written before. In the worked example the document says so outright, in a section that did not exist a version earlier — "The one contract that tightened, for a host that supplies its own `LSMValues`" — and the `LSMValues` row itself gains a sentence while its surface, its `Since` marker and its arguments all stay put. That is the signature of this class: the tables look unchanged and the prose around them does not.
+
+**Then bind it to what this addon actually hands over.** The `__Attach*` entry points are where a host passes members the library calls back, so they are where a moved call site can reach it:
+
+```sh
+grep -rn '__Attach[A-Za-z]*' <Addon> --include='*.lua' \
+  --exclude-dir=libs --exclude-dir=Libs --exclude-dir=_kit
+```
+
+For each site, list the members the addon supplies and check every one against the new document's stated contract — the return shape, and when the library calls it. **A host-supplied member whose call site moved is the shape to look for**, and it is the whole class in a sentence.
+
+**A contract change is an adoption blocker, not a candidate.** The distinction decides who is asked. A candidate is something this addon may decline and remain correct; a blocker is something it is *already* wrong about the moment the bytes land, so Step 6 never offers it and Step 5 never lists it. Record it in `01_DELTA.md` under its own **Blockers** heading with both documents' `file:line`, name it in `05_SUMMARY.md`, and fix the host in **Step 4's commit**, beside the payload and the provenance line — for the same reason those two already travel together, which is that there is no green-and-broken state worth leaving in the repo overnight.
+
+If the fix needs a decision rather than an edit — the host's shape is deliberate, or the right replacement is not obvious from the document — **stop before the copy** and report the blocker with both versions quoted. Staying one release behind is recoverable and visible. Landing a payload that silently breaks a page, under a commit message saying every suite was green, is the outcome this read was written to prevent.
+
+Write all of this to `docs/revendor/<YYYY-MM-DD>/01_DELTA.md` **before copying anything.** 3g is why that ordering is a rule rather than a habit: a blocker found after the copy is a blocker found in a repo that is already carrying it. If the delta is empty — same tag, both diffs clean, kit revision matching, nothing in 3g — say so, write the bundle, and stop. There is nothing to adopt from a release the addon already has.
 
 ## Step 4 — The copy
 
@@ -191,7 +222,7 @@ git -C ../LibKa0s log --oneline <old-tag>..<new-tag>
 - the `CHANGELOG.md` version blocks in that range — each release block names every file's new minor and says what changed;
 - the `Since` markers in `LibKa0s/docs/api/<Major>/version-<minors>-docs.md` for **every major whose minor moved**. That directory is the source of truth for every public contract, versioned by folder precisely because different consumers run different versions at the same time. Read the document for the **new** version and the one the addon was on, and diff the surfaces.
 
-Every item lands in exactly one of three classes, and only two of them are candidates:
+Every item lands in exactly one of three classes, and only two of them are candidates. **A contract change 3g already classed as a blocker is in none of them**: it was resolved in Step 4's commit or the run stopped before the copy, and re-offering it here would ask the user to approve something that is not optional.
 
 **A. Reached you on the re-vendor alone.** No host change required. Recorded as *delivered*, not offered. The worked example is v1.10.2's `PerfPanel` close-button fix: `addonName` joins the descriptor as optional and falls back to `name`, and every host in the collection already passes its folder name as `name` — so the fix reaches an unmodified consumer on the copy. Getting this class wrong in the offering direction wastes the user's decision on work already done.
 
@@ -267,6 +298,7 @@ Both carry the same facts:
 
 - the tag moved from → to, and the per-file minor table;
 - what reached the addon **for free** (class A) — this is the part that is invisible otherwise;
+- any **contract blocker** 3g found, both documents' lines, and how it was resolved — or that the run stopped before the copy because it was not;
 - what was **adopted**, with each commit;
 - what was **declined**, why, and its issue number;
 - what was **skipped or unreached**, and why;
