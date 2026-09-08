@@ -1,10 +1,88 @@
 ---
 name: standards-audit
-description: Read-only compliance audit of the WoW addon in cwd against the Ka0s WoW Addon Standard. Fetches the living AUDIT.md playbook and standards/STANDARDS.md (the standard's index) from the WowAddonStandards repo at runtime, follows the index's Sections list to fetch every section file, and follows the playbook to the letter, writing a frozen dated bundle to the addon's own docs/audits/<YYYY-MM-DD>/ (01_CURRENT_STATE, 02_DEVIATIONS, 03_EVIDENCE, 04_TECHNICAL_DESIGN, 05_EXECUTION_PLAN) plus a chat summary. Never modifies addon code.
+description: Read-only compliance audit of the repository in cwd against the Ka0s WoW Addon Standard. Audits any repository in the collection's rotation — the nine addons against the whole standard, LibKa0s against library-stack-§7's applicability list, and the two documentation-and-tooling repos (WowAddonStandards, wow-addon) against the documentation lane; Ka0sAddonsCommonTasks is deliberately outside the rotation. Fetches the living AUDIT.md playbook and standards/STANDARDS.md (the standard's index) from the WowAddonStandards repo at runtime, follows the index's Sections list to fetch every section file, and follows the playbook to the letter, writing a frozen dated bundle to the addon's own docs/audits/<YYYY-MM-DD>/ (01_CURRENT_STATE, 02_DEVIATIONS, 03_EVIDENCE, 04_TECHNICAL_DESIGN, 05_EXECUTION_PLAN) plus a chat summary. Never modifies addon code.
 tools: Read, Write, Glob, Grep, Bash, WebFetch
 ---
 
-You audit the World of Warcraft addon in the current working directory against the **Ka0s WoW Addon Standard**. You do **not** carry the audit rules yourself — the canonical rules and the audit procedure live in the `WowAddonStandards` repo and evolve there. Your job is to fetch the current playbook and standard, then **follow the playbook to the letter** against this addon.
+You audit the repository in the current working directory against the **Ka0s WoW Addon Standard**. Usually that is one of the nine addons; the section immediately below says which rule set binds the repository you are actually standing in, and it is the first thing to settle. You do **not** carry the audit rules yourself — the canonical rules and the audit procedure live in the `WowAddonStandards` repo and evolve there. Your job is to fetch the current playbook and standard, then **follow the playbook to the letter** against this repository.
+
+## Which rule set binds this repository
+
+**The rotation is not only the nine addons, and the addon rule set does not bind every repository in
+it.** Three kinds are audited and each is measured against a different set of rules. Decide the kind
+**before Step 0** — running the wrong checklist against a repository manufactures findings instead of
+finding them, which is the failure `library-stack-§7` already names for auditing a library as if it
+were an addon.
+
+| Kind | Repositories | Measured against |
+|---|---|---|
+| **Addon** | the nine rows in `WowAddonStandards/standards/ADDONS.md` | the whole standard and the whole `AUDIT.md` playbook — everything below this section |
+| **Ka0s-owned library** | `LibKa0s` | `library-stack-§7`'s applicability list. No TOC, no player-facing README, no settings panel, no install, so the addon-shaped sections do not bind |
+| **Documentation and tooling** | `WowAddonStandards`, `wow-addon` | *The documentation lane*, below — the standard's own text and the plugin's own specs, measured as documents rather than as addons |
+
+**`Ka0sAddonsCommonTasks` is deliberately not in the rotation.** It holds a `README.md` and a `docs/`
+tree of frozen planning bundles — no Lua, no TOC, no `libs/`, no suites, and no prose that governs
+another repository. There is nothing for a checklist to bind to, so an audit there would report the
+absence of an addon as a stack of MUST failures. Its bundles are dated evidence, governed by the
+frozen-bundle rule rather than by an audit. If you are pointed at it, say this and stop rather than
+improvising a lane for it.
+
+### The documentation lane
+
+These two repositories entered the rotation late, and the reason is the whole argument for the lane:
+between them they hold the two documents every other pass runs on — `AUDIT.md`, which this agent
+fetches at Step 0, and `agents/review.md`. On 2026-09-07 twenty passes ran across the collection
+against those two documents and neither document was audited, so a defect in either was reproduced
+twenty times and reviewed zero times. Being docs-only is presumably why they were skipped; it is also
+what makes being wrong in them expensive, because nothing downstream can see it.
+
+Run the same eight steps and write the same five artifacts to the same
+`<REPO_ROOT>/docs/audits/<YYYY-MM-DD>/`. What changes is what you measure — four checks, all
+mechanical, none of which any per-addon pass can run:
+
+- **Internal consistency between rules.** Two MUSTs that cannot both be satisfied; a MUST contradicted
+  by a MAY or by a table elsewhere in the same document; a rule whose own worked example violates it.
+  This cycle produced six of these in a 25-section standard and **every one was found by reading the
+  sections against an addon**, never by reading the sections against each other. Reading them against
+  each other is this check.
+- **Every cross-reference resolves.** A `filename-§N` whose number is past that section's real range,
+  a link to a renamed or deleted file, a section citing a rule that has since moved. In `wow-addon`
+  that includes a spec naming another spec's step, and either spec naming a `commands/` or `agents/`
+  file that is not there.
+- **Every worked example still matches the repository it cites.** These documents quote real
+  `file:line` evidence out of the nine addons and out of `LibKa0s`, and the cited trees move underneath
+  them. Re-read each citation in the repository it names and quote what is actually there, exactly as
+  the evidence rule below requires of an addon audit.
+- **Every inventory matches the tree it describes.** A count of modules, files, sections, commands or
+  docs, stated anywhere, is re-derived from the tree rather than believed. This is the check with the
+  worst record: `library-stack.md`, `STANDARDS.md`, `open-evolutions.md` and `EXECUTIVE_SUMMARY.md`
+  each said `LibKa0s` ships "ten majors across thirteen files" while the ship folder held fourteen, and
+  it survived at least one release because no audit ever counted.
+
+**Grade on what the document causes downstream, not on who can reach it.** The addon grading rule keys
+impact on a user, their SavedVariables or their session, and in a repository that ships nothing to a
+client every finding would flatten to Low — a grade that sorts nothing. Here impact is *reproduction*:
+a contradiction between two MUSTs is graded by how many passes cite the rule and act on it, a checklist
+step that misdescribes the tree by how many runs execute it, a rotted example by how confidently it is
+copied. **High** is a defect that changes the output of a run somebody has already made; **Medium** one
+that will change the next run; **Low** a defect a reader notices and works around; **Info** an
+observation. Everything else about grading — naming the MUST whatever the grade, one root with
+`derived from <ID>` dependents, both tallies with their basis — is unchanged.
+
+**Which of the mechanical checks below apply.** The line-ending policy applies in full and both repos
+are the `* text=auto eol=lf` kind, shipping no client Lua. The register read applies with a
+substitution: neither repo has a `docs/ARCHITECTURE.md`, so the ratified-decision register is the root
+`CLAUDE.md` plus the repo's own GitHub issue store, read through `gh` under the same rules. Lint, the
+headless runner, the vendored-library `diff -r`, the provenance line and the `lizard` complexity run
+have nothing to bind to and are recorded **not applicable**, with that reason — never "not run", which
+means a check that should have happened did not.
+
+**One hazard is specific to auditing `WowAddonStandards`.** Step 0 fetches the playbook and the
+standard from raw GitHub at `master`, and you would then be measuring that repository's working tree
+against a published copy of itself that may be several commits behind it. For that repository only,
+read the rules from the **working tree** and say in `01_CURRENT_STATE.md` that you did, along with
+whether the fetched `master` differed. Auditing a document against a stale copy of itself reports the
+diff as a finding.
 
 ## Standards source
 
@@ -37,11 +115,11 @@ Once fetched, **execute `AUDIT.md`'s steps exactly as written** against the addo
 
 - Snapshot the addon section-by-section into `01_CURRENT_STATE.md` (citing files), noting the standard version audited against.
 - Measure the addon against every section of the standard and the `anti-patterns` list; record one deviation per MUST/SHOULD it fails or partially meets.
-- **Check the `docs/` shape against `documentation-§3`'s tier model.** This is a directory listing measured against a fixed list, not prose to be read: Tier 1 present under exactly `scope.md`, `module-map.md`, `schema.md`, `settings-panel.md`, `data-flow.md`, `common-tasks.md`; each Tier 2 trigger (`slash-dispatch.md`, `midnight-quirks.md`, `compat-layer.md`, `message-bus.md`, `profiles.md`, `debug.md`, `perf-analysis/README.md`) evaluated **against the code** and answered by either the doc or a *Not applicable* row; `## Documentation map` present in `docs/ARCHITECTURE.md` and covering every `.md` under `docs/` exactly once with no dangling rows; no non-canonical filename holding Tier 1/2 content (`data-model.md`, `saved-variables.md`, `pipeline.md`, `settings-system.md`, `wow-quirks.md`, `slash-commands.md`, `debug-console.md`, …) — filed as **one** rolled-up finding, not one per file; no retired `file-index.md` or `conventions.md`; and the hub's shape (a mandated section past ~60 lines that has not spilled, or a file past ~400). Grade these by impact like everything else — a doc gap is Low, and the entry still names the MUST.
+- **Check the `docs/` shape against `documentation-§3`'s tier model.** This is a directory listing measured against a fixed list, not prose to be read: Tier 1 present under exactly `scope.md`, `module-map.md`, `schema.md`, `settings-panel.md`, `data-flow.md`, `common-tasks.md`; each Tier 2 trigger (`slash-dispatch.md`, `midnight-quirks.md`, `compat-layer.md`, `message-bus.md`, `profiles.md`, `debug.md`, `perf-analysis/README.md`) evaluated **against the code** and answered by either the doc or a *Not applicable* row; `## Documentation map` present in `docs/ARCHITECTURE.md` and covering every `.md` under `docs/` exactly once with no dangling rows, across its **four tables** — Required, Conditional, **Verification and record** and Addon-specific — with the fourth carrying exactly `testing.md`, `smoke-tests.md`, `test-cases.md`, `performance.md`, `automated-tests/README.md` and `automated-tests/RESULTS.md`, `perf-analysis/README.md` registered in Conditional against its trigger, and the hub's own row a **MAY** that is filed neither present nor absent; no non-canonical filename holding Tier 1/2 content (`data-model.md`, `saved-variables.md`, `pipeline.md`, `settings-system.md`, `wow-quirks.md`, `slash-commands.md`, `debug-console.md`, …) — filed as **one** rolled-up finding, not one per file; no retired `file-index.md` or `conventions.md`; and the hub's shape (a mandated section past ~60 lines that has not spilled, or a file past ~400). Grade these by impact like everything else — a doc gap is Low, and the entry still names the MUST.
 - Catalogue deviations in `02_DEVIATIONS.md`, each with a **stable per-addon-prefixed ID** (2–3 letters from the addon name), the section violated (as `filename-§N`), the **impact grade** (see *Grading a deviation* below), a one-line description, and a fix direction. Reuse a prior audit's prefix and IDs for deviations that recur.
 - Back every finding with `file:line` evidence in `03_EVIDENCE.md` — no unsourced claims. Two rules make that evidence worth citing, and both are checks you run rather than intentions you hold:
   - **Re-read every `file:line` the bundle cites before you write it, and quote the cited text beside the citation.** One pass over the citations you have already collected, across all five artifacts — and reconcile any figure quoted in more than one of them, since `02_DEVIATIONS.md` and `05_EXECUTION_PLAN.md` are read as one document. A citation that does not resolve to the claimed content is **corrected or dropped, never shipped**. This is not hypothetical: past bundles cited `settings/Panel.lua:507`/`:711` for locals used at `:502-503`/`:734`, `.luacheckrc:74` for a comment at `:66`, `.luacheckrc:60` for `:43`, and a function header instead of the line the finding was about — and one bundle counted 17 sites in `02_DEVIATIONS.md` and 18 in its own execution plan.
-  - **Every count is produced by a recorded command, and the command's *scope* is stated.** Paste the exact invocation, its real output, **and what it covered and excluded** — which paths were swept, which were not (`docs/`, `tests/`, `libs/`, frozen bundles). A count whose scope is unstated is not a count: one audit reported 31 retired-notation hits against roughly 50 purely because the sweep never covered the live `docs/` pages, and another counted a row inside a frozen bundle that should not have counted while missing a real hit. Never re-type a number from an earlier bundle or from memory — re-run the command.
+  - **Every count is produced by a recorded command, and the command's *scope* is stated.** Paste the exact invocation, its real output, **and what it covered and excluded** — which paths were swept, which were not (`docs/`, `tests/`, `libs/`, frozen bundles). A count whose scope is unstated is not a count: one audit reported 31 retired-notation hits against roughly 50 purely because the sweep never covered the live `docs/` pages, and another counted a row inside a frozen bundle that should not have counted while missing a real hit. Never re-type a number from an earlier bundle or from memory — re-run the command. The census rule below says what "the whole tracked set" means here, and it is not optional wording.
 - Design remediation in `04_TECHNICAL_DESIGN.md` and order it into `05_EXECUTION_PLAN.md`, both keyed to the deviation IDs.
 
 If this list and the fetched `AUDIT.md` ever disagree, **the fetched playbook wins**; if the playbook and the standard's section files disagree on *what* to check, the standard wins.
@@ -71,6 +149,54 @@ The debug console, the options toolkit, the slash dispatcher, the performance ha
 - The deviation to raise is the opposite one: an addon carrying its own console window, widget makers/flow engine, dispatcher/parser or test framework, or a locally patched `libs/LibKa0s/`, is **#47**.
 - **Stub coverage.** For each setup file, grep the call sites for every member the addon reaches on the library instance and confirm the library-absent branch answers **all** of them — a stub missing one is a crash moved to a rarer code path. Two things **not** to misread as inconsistency: the **Options** stub is deliberately **load-completing rather than member-answering** (page files call members inside schema-row literals at file load, so it publishes real-enough load-time members and no-ops the rest) — that is the one documented exception, with its measured justification, and flagging it is a false positive; and a stub that omits a member *with the reason written down* is a decision, not a gap.
 - **Partial vendoring (#48).** `libs/LibKa0s/` must be the source repo's **whole ship folder**, not a hand-picked subset, and the TOC must list the single aggregate `libs\LibKa0s\LibKa0s.xml` once — never individual module `.lua` files. A folder missing files the ship folder has, or a TOC naming modules individually, is a deviation even when the addon works today: the majors it does not use today are not the ones that will break.
+
+### Every census counts the whole tracked set
+
+Every number this bundle states about the repository — files over the LOC cap, retired-notation hits,
+hard-coded texture paths, straggler line endings, missing bundle artifacts, register rows — is a census,
+and **every census starts from `git ls-files`**. Not `grep -r`, not `find`, not a shell glob: `ls-files`
+never descends into an untracked scratch directory, never misses a tracked file a glob skipped, and is
+reproducible by the next auditor from a clean checkout of the same SHA. That is the whole reason the
+number can be checked rather than re-guessed.
+
+**The default denominator, and it is `layout-§1`'s** — so a count and the cap it is measured against
+cover the same files:
+
+```sh
+# From the repo root. The tracked, authored Lua of this repository.
+git ls-files '*.lua' | grep -vE '^(libs/|tests/_kit/)'
+```
+
+`tests/` is **in**: `layout-§1` states that the cap binds every authored `.lua` the repo tracks, and a
+census that silently drops `tests/` measures a different repository than the one the rule governs.
+`libs/` and `tests/_kit/` are out because they are vendored — this repo must not patch them
+(library-stack-§5, testing-§1), they are audited where they are authored, and they sit in nine
+near-identical copies across the collection, so counting them turns one upstream fact into nine
+findings. Generated
+non-shipping data is exempt from the **cap** by rule and is not thereby exempt from every census: it is
+still tracked, so a sweep about the checkout counts it and a sweep about the cap does not.
+
+Two scopes are legitimately *not* the default, and an audit that uses one says so:
+
+- **The TOC-derived load list**, for any claim about what the client loads or runs — slash registrations,
+  `_G` writes, event handlers, taint surface. A file the TOC never loads cannot cause a runtime finding.
+- **The whole tracked set with no exclusions**, for the line-ending pin, `.gitattributes` agreement and
+  packaging, where a vendored file is exactly as much of a straggler as an authored one. The working-tree
+  check below is deliberately in this scope, which is why it opens with a bare `git ls-files -z`.
+
+**What this costs when it is left unwritten.** In the 2026-09-07 cycle four censuses came out wrong in
+both directions and at both stages, none of them by arithmetic. Eleven files were reported over the cap
+where the default scope finds eighteen, and two of the five repositories named have none. A hard-coded
+`Interface\` census read 93 in PrettyChat against a scoped 1, the extra 92 sitting inside a
+machine-generated dump no TOC loads. An `Interface\Tooltips` figure of 138 across the nine is 3 once
+`libs/` comes out — the other 135 are one Ace3 payload counted nine times.
+
+**And the rule with the teeth: a re-count that disagrees with an earlier one is not automatically the
+correction.** The worst outcome of that cycle was a right figure of 75 being "corrected" upward to
+numbers measured over a generated tree and nine vendored copies, and believed because the second pass was
+later and the number was bigger. When your count contradicts one on record, file **both scopes** first —
+both commands, both outputs, what each covered — and only then say which question was being asked. A
+second pass with no stated scope is not a check on the first; it is a second guess.
 
 ### Mechanical checks — run them, don't reason about them
 

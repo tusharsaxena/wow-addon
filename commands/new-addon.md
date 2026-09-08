@@ -84,10 +84,59 @@ applicable* row carrying the trigger. A fresh addon normally ships none of Tier 
 rows; that is the compliant state, not an omission.
 
 Finally write `docs/ARCHITECTURE.md`'s **`## Documentation map`** — the tenth mandated section —
-listing every `.md` under `docs/` in exactly one of its three tables. Write it now, while you still
+listing every `.md` under `docs/` in exactly one of its four tables — Required, Conditional, **Verification and record** (the six record docs, which sit outside the tier model) and Addon-specific. Write it now, while you still
 know why each file exists; it is the register `/wow-addon:standards-audit` reads. Keep
 `ARCHITECTURE.md` a **hub**: under ~400 lines, with any section past ~60 lines spilled into its
 canonical topic doc behind a summary and one link.
+
+## `docs/smoke-tests.md` — the non-English-client step ships with the scaffold
+
+**A new addon is born with a locale step, not with a smoke doc that is silent about locale.** Write one
+numbered step into `docs/smoke-tests.md` covering a deDE/frFR client, and give it a row in the doc's
+index table so it is findable by someone planning client time rather than only by someone reading all
+of it.
+
+It is scaffolded rather than left to the first person who trips over it because the headless harness
+structurally cannot see this class of bug. The base mock's globals are enUS, so a path that keys off a
+localized string is green in the suite whether it is right or wrong — the test and the bug agree.
+Six of nine addons in this collection have no locale step, and the two whose code is most
+locale-sensitive are among them. `LootHistory/core/Compat.lua:188-195` hard-codes four English
+wordings — `WARBAND_LINES`, `BIND_TO_WARBAND_PREFIX`, `UE_LITERAL = "until equipped"` — as the fallback
+for when the client leaves the `ITEM_ACCOUNTBOUND*` globals nil, reaches them at `:230-231`, and the
+same file calls the tooltip "the ONLY witness" for items whose bind type lies; its cases assert against
+those literals (`tests/test_compat.lua:65-66` passes `"Auction House"` and `"Auction won: %s"`).
+PrettyChat's entire function is overwriting localized `_G` chat format strings, and it has no locale
+step in 797 lines. Neither gap is visible from inside either repo's green suite, and neither was found
+by a review that ran per-addon.
+
+**Write the body from the addon's own seams, not from a template.** The step is unconditional; what it
+looks at is whatever the addon you just scaffolded actually touches. Enumerate these while you still
+have the code in front of you:
+
+- anything reading a localized `_G` — chat format strings, `ITEM_*` and tooltip constants, mail
+  subjects, spec and class display names;
+- anything matching or parsing a **tooltip line** rather than an API return;
+- anything keying off a display string where a numeric id exists — `subType` instead of
+  `classID`/`subClassID` is the collection's worked example;
+- anything writing a **header, token or key another tool parses**, which must be locale-independent by
+  construction and needs the step to say so and prove it.
+
+Where the addon has none of those, the step still ships and says what it checked and why it came back
+empty. "This addon reads no localized global" is a claim the next agent can re-check; an absent step is
+not.
+
+**Each step names its failure, not only its pass.** A step whose only outcome is "it works" is
+unfalsifiable in a client the operator booted specially. Write the concrete symptom: an English
+sentence rendered on a German client, a stray `%d` or `%s` conversion artifact left by a format string
+that did not match, a bind type that fell back to the English literal and misclassified, a row that
+came back `(none)` where the enUS client fills it.
+
+**Say when it can be signed off without the client.** A step that needs a language pack and offers no
+alternative is skipped forever, which is how the gap gets recorded as coverage. State which headless
+cases stand in for it and which of the numbered sub-steps are sufficient on English —
+`ConsumableMaster/docs/smoke-tests.md` § 3c does exactly this, and `KickCD/docs/smoke-tests.md:229`
+§ 9b is the shape for a step where the client genuinely is the only witness. Copy the shape from those
+two; do not invent a third.
 
 ## Standards source
 
