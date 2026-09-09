@@ -1,5 +1,5 @@
 ---
-description: Bump the addon version to X.Y.Z everywhere it appears — TOC, code constants, README badges, "What's new" section and Version History table, CLAUDE*.md — roll the release history for everything since the last tag into the README's "What's new" and "Version History" for an addon (or CHANGELOG.md in a Ka0s-owned library repo, the only place documentation-§1 permits one), and write the release automated-test bundle's ANALYSIS.md and RESULTS.md watch list. Gated: runs the full four-suite battery FIRST and refuses to bump anything unless lint, tests, perf and complexity all pass with zero functions above CCN 15. Asks for the version if not provided.
+description: Bump the addon version to X.Y.Z everywhere it appears — TOC, code constants, README badges, Version History table, CLAUDE*.md — roll the release history for everything since the last tag into the README's "Version History" for an addon (or CHANGELOG.md in a Ka0s-owned library repo, the only place documentation-§1 permits one), and write the release automated-test bundle's ANALYSIS.md and RESULTS.md watch list. Gated: runs the full four-suite battery FIRST and refuses to bump anything unless lint, tests, perf and complexity all pass with zero functions above CCN 15. Asks for the version if not provided.
 argument-hint: [X.Y.Z]
 allowed-tools: [Read, Glob, Grep, Bash, Edit, Write]
 ---
@@ -118,7 +118,7 @@ Search the addon root recursively (skip `libs/`, `Libs/`, `.git/`, `node_modules
   - `https://img.shields.io/curseforge/v/<id>` (auto-derived — leave alone)
   - `https://img.shields.io/github/v/release/<owner>/<repo>` (auto-derived — leave alone)
   - Manually-pinned badges with the version in the path or `?label=` parameter
-- **"What's new in X.Y.Z" section** near the top of the README (also matches `## What's New`, `## What's new in vX.Y.Z`, `## Latest release`). This section describes only the *current* release — retitle it to the new version and **replace its body** with the highlights from Step 3b. If the README has no such section, create one directly below the badges / intro paragraph and above the first content heading (Features / Installation / Usage).
+- **A `## What's new in X.Y.Z` section — DO NOT create one, and do not roll one forward.** `documentation-§1` dropped it at standard v2.42.0: its content was defined as a copy of the top `## Version History` row, so it could only ever be in sync or in breach. If a README still carries one (or a `## What's New` / `## Latest release` variant), leave it byte-for-byte alone and report it for Step 6 as a `documentation-§1` violation whose fix is deletion — removing it is `/wow-addon:sync-docs`' job, not a release edit.
 - **"Version History" table** at the bottom of the README — this lists OLD versions as facts, not "the current version". Add a NEW row for the new version with an auto-generated summary of changes since the last version bump (see Step 3b). Do NOT rewrite existing rows.
 - **Two things in the README this command MUST NOT touch while it is in the badge row.** The **standard badge is not a link** (`documentation-§1`) — it is the bare `![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)`, it carries no version, and it must be left exactly as found: never re-wrapped in `[…](https://github.com/tusharsaxena/WowAddonStandards)` as a tidy-up. And the README carries **no bundled-library inventory** — no `## Libraries`, `## Bundled libraries`, `## Libraries and credits`, `## Credits and libraries`, no library list in the intro prose, and no `Bundles [LibKa0s] …` sentence — so a release never adds one, and never "refreshes" a vendored-library version there. If one exists in the repo, leave it and report it (anti-pattern #58); removing it is `/wow-addon:sync-docs`' job, not a release edit.
 
@@ -144,7 +144,7 @@ Report the full list of matches **before** editing.
 One pass over the release's changes, written up at **two granularities**:
 
 - **Full list** — every user-relevant change since the last release. Feeds a library repo's CHANGELOG entry (Step 4); in an addon repo it is still collected, because it is what the highlights are drawn from, but it is not written anywhere on its own.
-- **Highlights** — the 3–5 changes a user actually cares about. Feeds the README "What's new in X.Y.Z" section and the Version History row (Step 4).
+- **Highlights** — the 3–5 changes a user actually cares about. Feeds the README's Version History row (Step 4).
 
 **Determine the "since" reference**, in this order:
 1. **The last git tag** — `git describe --tags --abbrev=0` (fall back to `git tag --list --sort=-v:refname | head -1` if the repo has no annotated tags). This is the release boundary; prefer it over everything below.
@@ -177,22 +177,20 @@ State which reference you used and how many commits it spans before writing anyt
 
 For each match, replace the old version with the new version using `Edit`. Be precise — match the exact context to avoid touching unrelated strings (e.g. don't replace `1.0.0` if it's an Interface number, a library version, or a Lua version requirement).
 
-For the README **"What's new in X.Y.Z"** section: retitle the heading to the new version and replace the body with the Step 3 highlights as a plain bullet list. This section always describes only the current release — the previous release's text is *replaced*, not appended to (its record lives on in the Version History table). If the section doesn't exist, create it below the badges/intro and above the first content heading, matching the README's existing heading level and tone.
-
 For the README **"Version History" table**: insert a NEW row at the top (or wherever the table is ordered to put the latest), with the new version, today's date if the table has a date column, and the `<br>`-joined highlights in the release-notes cell. Do NOT modify existing rows.
 
 ### Where the release history goes: `CHANGELOG.md` is a library file, not an addon file
 
 `documentation-§1` settles this in both directions, and the answer differs by repo kind. **Establish which kind you are in before writing any history**, by the same test the rest of the plugin uses: a **`.toc` at the repo root means an addon**; a Ka0s-owned library repo (`LibKa0s` and its kin — `library-stack-§7`'s applicability list) has none.
 
-**In an addon repo — a root `CHANGELOG.md` is FORBIDDEN.** The player-facing history already has two mandated homes, and they are the two this command has always rolled: the README's `## What's new in X.Y.Z` body and its `## Version History` table (`documentation-§1`, items 5 and 12). A second history is exactly the drift the never-a-fourth-root-doc rule exists to prevent. So:
+**In an addon repo — a root `CHANGELOG.md` is FORBIDDEN.** The player-facing history already has one mandated home, and it is the one this command rolls: the README's `## Version History` table (`documentation-§1`, item 11). A second history is exactly the drift the never-a-fourth-root-doc rule exists to prevent. So:
 
 - **Never create one**, as before.
 - **Never fill one that exists**, which is the change. If a root `CHANGELOG.md` is present, leave it byte-for-byte alone and record it for the Step 6 report as a `documentation-§1` violation, naming the fix: fold anything user-facing into `## Version History` and delete the file. Filling it every release is what kept the contradiction alive and invisible — the file stayed current, so nothing ever read as broken.
 - **`docs/CHANGELOG.md` is not a compliant relocation** (`documentation-§3`) — it is the same second history one directory down. Report it the same way.
 - Do **not** delete it here. This command bumps a version; deleting a root doc is a change the user makes deliberately, and it needs the fold-forward first.
 
-**In a Ka0s-owned library repo — a root `CHANGELOG.md` is REQUIRED**, and this step writes it. `testing-§10`'s versioning suite MUSTs that the changelog account for the version every file is at, and it has nowhere else to look: a library ships no player-facing README with a `## What's new` section to carry the history instead. Write a full entry for this release — `## [X.Y.Z] — YYYY-MM-DD` with today's date, followed by the Step 3b **full list** grouped by category. If an "Unreleased" or `## [Unreleased]` header exists, that entry becomes this one (retitle it and merge its existing bullets in — see Step 3b). Follow the file's established formatting (Keep a Changelog style, link refs at the bottom, etc.) rather than imposing a new one; if the file maintains comparison links, add one for the new version. It stays at **root**, where the versioning suite reads it. Do NOT rewrite past entries.
+**In a Ka0s-owned library repo — a root `CHANGELOG.md` is REQUIRED**, and this step writes it. `testing-§10`'s versioning suite MUSTs that the changelog account for the version every file is at, and it has nowhere else to look: a library ships no player-facing README with a `## Version History` table to carry the history instead. Write a full entry for this release — `## [X.Y.Z] — YYYY-MM-DD` with today's date, followed by the Step 3b **full list** grouped by category. If an "Unreleased" or `## [Unreleased]` header exists, that entry becomes this one (retitle it and merge its existing bullets in — see Step 3b). Follow the file's established formatting (Keep a Changelog style, link refs at the bottom, etc.) rather than imposing a new one; if the file maintains comparison links, add one for the new version. It stays at **root**, where the versioning suite reads it. Do NOT rewrite past entries.
 
 ### The perf-skip exception goes into the release notes, not just the chat
 
@@ -200,7 +198,7 @@ Step 2 item 3 makes it a **MUST** that a `perf` gate satisfied by the no-scenari
 
 When Step 2 recorded the perf gate as passing because **the addon ships no `tests/perf.lua`**, the release notes carry **one sentence** saying so — in whichever release-notes home this repo kind has (see *Where the release history goes*, above):
 
-- in an **addon** repo, the README **"What's new in X.Y.Z"** body;
+- in an **addon** repo, the new **`## Version History`** row's highlights cell;
 - in a **library** repo, this release's **`CHANGELOG.md`** entry.
 
 Use this substance, adapted to the file's voice:
@@ -240,8 +238,8 @@ bundles for one version is a trend line with a fork in it.
    a year later:
 
    - **Step 4 — the release notes.** This repo kind's release-notes body carries the one-sentence note
-     (see Step 4, *The perf-skip exception goes into the release notes*) — the README "What's new"
-     body in an addon, the `CHANGELOG.md` entry in a library. This is the half `automated-tests-§3`
+     (see Step 4, *The perf-skip exception goes into the release notes*) — the new README `## Version
+     History` row in an addon, the `CHANGELOG.md` entry in a library. This is the half `automated-tests-§3`
      MUSTs and the half that is easy to skip, because the chat report feels like it discharged the
      obligation.
    - **Step 6 — the chat report.** Printed beside the gate table while the tag decision is live.
@@ -257,18 +255,18 @@ Print:
 - Every file changed (path + the line that was updated)
 - Whether a fresh automated-test bundle was produced (with the command run), plus anything that **newly** crossed a threshold and its disposition — or, if `lizard` was absent, that the complexity suite is recorded as a **skip with its reason** and that the release notes should say so. Also report any watch-list entry that has now carried an **Accepted** disposition across three consecutive release runs: it is owed a fix or a tracked deviation ID (`anti-pattern #53`)
 - Every version-shaped string found but DID NOT change (with reason — e.g. "looks like a library version, not the addon's version", "auto-derived CurseForge badge", "BigWigsMods @project-version@ substitution")
-- **Which repo kind this run treated the repo as** — addon (root `.toc` found, named) or Ka0s-owned library — and, therefore, where this release's history was written: the README's `## What's new` and `## Version History` for an addon, `CHANGELOG.md` for a library. One line. It is the premise every history edit above rests on, and getting it wrong is silent.
-- **When a root (or `docs/`) `CHANGELOG.md` was found in an addon repo**: state that it was left **untouched**, that it is a `documentation-§1` violation — an addon root ships `README.md`, the `CLAUDE.md` stub, `DEPENDENCIES.md` and `LICENSE`, and the history lives in the README's `## What's new` and `## Version History` — and that the fix is to fold anything user-facing into `## Version History` and delete the file. Say it once, plainly, with the path. This command deliberately no longer maintains that file: filling it every release is what let one addon carry a second history for years without anything reading as broken.
+- **Which repo kind this run treated the repo as** — addon (root `.toc` found, named) or Ka0s-owned library — and, therefore, where this release's history was written: the README's `## Version History` for an addon, `CHANGELOG.md` for a library. One line. It is the premise every history edit above rests on, and getting it wrong is silent.
+- **When a root (or `docs/`) `CHANGELOG.md` was found in an addon repo**: state that it was left **untouched**, that it is a `documentation-§1` violation — an addon root ships `README.md`, the `CLAUDE.md` stub, `DEPENDENCIES.md` and `LICENSE`, and the history lives in the README's `## Version History` — and that the fix is to fold anything user-facing into `## Version History` and delete the file. Say it once, plainly, with the path. This command deliberately no longer maintains that file: filling it every release is what let one addon carry a second history for years without anything reading as broken.
 - Reminder: tag the commit with `vX.Y.Z` if using the BigWigsMods packager (the packager picks the version up from the latest git tag)
 
 ## Hard rules
 
 - **Don't commit.** The user reviews the diffs first.
 - **Don't tag.** Tagging is a deliberate user action.
-- **Don't create a `CHANGELOG.md` that doesn't already exist, and in an addon repo don't fill one that does.** `documentation-§1` forbids the file at an addon root — the history lives in the README's `## What's new` and `## Version History`, both of which this command rolls. Leave an existing one untouched and report it (Step 6). In a **Ka0s-owned library repo** the file is **required** and this release's entry is written in full (Step 3b's full list). Don't delete an addon's `CHANGELOG.md` here either — the fold-forward comes first and the deletion is the user's.
+- **Don't create a `CHANGELOG.md` that doesn't already exist, and in an addon repo don't fill one that does.** `documentation-§1` forbids the file at an addon root — the history lives in the README's `## Version History`, which this command rolls. Leave an existing one untouched and report it (Step 6). In a **Ka0s-owned library repo** the file is **required** and this release's entry is written in full (Step 3b's full list). Don't delete an addon's `CHANGELOG.md` here either — the fold-forward comes first and the deletion is the user's.
 - **Don't modify existing Version History rows or past CHANGELOG entries** — only add the new version's row/entry.
-- **Don't let the generated text outrun the commits.** Every bullet in the CHANGELOG entry, the "What's new" section, and the Version History row must trace to a real change between `<since>` and HEAD. No aspirational or filler entries; if there's nothing since the last tag, say so and bump the version only.
-- **Don't let the release notes omit a skipped suite.** When the gate passed because the addon ships no `tests/perf.lua`, Step 4 writes the one-sentence note into this repo kind's release-notes body — the README "What's new" in an addon, the CHANGELOG entry in a library. Printing it in the Step 6 chat report is not enough — the chat is gone by the time anyone reads the release, and notes that say only "verified" over a three-suite gate read as four. This is the mirror of the rule above: that one stops the notes claiming changes that did not happen, this one stops them claiming verification that did not happen.
+- **Don't let the generated text outrun the commits.** Every bullet in the CHANGELOG entry and the Version History row must trace to a real change between `<since>` and HEAD. No aspirational or filler entries; if there's nothing since the last tag, say so and bump the version only.
+- **Don't let the release notes omit a skipped suite.** When the gate passed because the addon ships no `tests/perf.lua`, Step 4 writes the one-sentence note into this repo kind's release-notes body — the new README `## Version History` row in an addon, the CHANGELOG entry in a library. Printing it in the Step 6 chat report is not enough — the chat is gone by the time anyone reads the release, and notes that say only "verified" over a three-suite gate read as four. This is the mirror of the rule above: that one stops the notes claiming changes that did not happen, this one stops them claiming verification that did not happen.
 - **Don't bump the Interface version.** That's `/wow-addon:bump-interface`.
 - **Don't hand-edit an automated-test record.** Produce it with the vendored runner. Never write a number into a bundle and never edit a bundle once written — the bundle is the evidence the gate was decided on, including when it refused.
 - **Don't bump anything when the Step 2 gate fails.** No version string, no README, no CHANGELOG, no tag, no commit, no push. Report every failed gate with its detail and stop. Never "bump anyway and note it" — a release the gate refused is not a release with a caveat.
