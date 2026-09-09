@@ -177,6 +177,10 @@ State which reference you used and how many commits it spans before writing anyt
 
 For each match, replace the old version with the new version using `Edit`. Be precise — match the exact context to avoid touching unrelated strings (e.g. don't replace `1.0.0` if it's an Interface number, a library version, or a Lua version requirement).
 
+**Then run the de-AI pass over what you just wrote.** `documentation-§1` MUSTs a **de-AI writing pass** on every `README.md` edit (anti-pattern #77): run the `/humanize` skill, or audit against a published AI-writing pattern catalogue, and fix what it finds **before** the change is committed.
+
+It binds the README alone — the `CHANGELOG.md` entry in a library repo is a contributor-facing file and is exempt — and here it binds the text **this command authored**: the new Version History row's highlights cell, and the perf-skip sentence when Step 2 recorded one. Release-notes bullets are where the tells cluster hardest, because they are generated from a git log: `**Bold lead.**` openers on every bullet, three-item rhythm whether or not the release had three parts, and "significantly improved" where a number belongs. Fix them before the commit, and say in the Step 6 report that the pass ran.
+
 For the README **"Version History" table**: insert a NEW row at the top (or wherever the table is ordered to put the latest), with the new version, today's date if the table has a date column, and the `<br>`-joined highlights in the release-notes cell. Do NOT modify existing rows.
 
 ### Where the release history goes: `CHANGELOG.md` is a library file, not an addon file
@@ -267,6 +271,7 @@ Print:
 - **Don't modify existing Version History rows or past CHANGELOG entries** — only add the new version's row/entry.
 - **Don't let the generated text outrun the commits.** Every bullet in the CHANGELOG entry and the Version History row must trace to a real change between `<since>` and HEAD. No aspirational or filler entries; if there's nothing since the last tag, say so and bump the version only.
 - **Don't let the release notes omit a skipped suite.** When the gate passed because the addon ships no `tests/perf.lua`, Step 4 writes the one-sentence note into this repo kind's release-notes body — the new README `## Version History` row in an addon, the CHANGELOG entry in a library. Printing it in the Step 6 chat report is not enough — the chat is gone by the time anyone reads the release, and notes that say only "verified" over a three-suite gate read as four. This is the mirror of the rule above: that one stops the notes claiming changes that did not happen, this one stops them claiming verification that did not happen.
+- **Don't commit a README edit without the de-AI pass.** `documentation-§1` MUSTs it on every `README.md` change (anti-pattern #77), and this command changes one on every run. The release-notes cell it writes is the part to audit; the badges are mechanical.
 - **Don't bump the Interface version.** That's `/wow-addon:bump-interface`.
 - **Don't hand-edit an automated-test record.** Produce it with the vendored runner. Never write a number into a bundle and never edit a bundle once written — the bundle is the evidence the gate was decided on, including when it refused.
 - **Don't bump anything when the Step 2 gate fails.** No version string, no README, no CHANGELOG, no tag, no commit, no push. Report every failed gate with its detail and stop. Never "bump anyway and note it" — a release the gate refused is not a release with a caveat.

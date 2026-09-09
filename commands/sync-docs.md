@@ -183,10 +183,21 @@ Use `Edit` for surgical updates. Only `Write` (full rewrite) if the file is comp
 
 **Write the DECLARED line ending, not the observed one.** Ask git what the repo declares for the file — `git check-attr eol -- <path>` — and write that: CRLF in a client-bound repo, LF in one that ships nothing to the WoW client (`line-endings-§2`). Do **not** simply mirror what the file happens to carry: a file whose endings disagree with the declaration is a **straggler**, and preserving it faithfully propagates the defect. The plugin's line-ending hook normalizes to whatever the repo declares, in either direction, but writing the right ending the first time keeps diffs clean. Where nothing is declared, preserve what is there.
 
+### The de-AI pass on the README (MUST)
+
+`documentation-§1` MUSTs a **de-AI writing pass** on every `README.md` edit (anti-pattern #77): run the `/humanize` skill, or audit against a published AI-writing pattern catalogue, and fix what it finds **before** the change is committed.
+
+It binds the README and nothing else. `docs/`, `CLAUDE.md`, `DEPENDENCIES.md` and code comments are contributor surfaces and are deliberately exempt — do not run it over them, and do not "improve the voice" of a comment. Apply it to **what this command changed**, not to the whole file: a README already through the pass is not re-audited section by section on every later edit.
+
+What the pass looks for, so it is not a vibe check: uniform paragraph and sentence length (the strongest signal, ahead of vocabulary), `**Bold lead.**` openers on every bullet, see-saw pairs, the same rhetorical move repeated across sections, rhetorical-question openers, rule-of-three padding, em-dash overuse, and the AI vocabulary set (delve, leverage, robust, seamless, testament to, showcase, foster). Removal is half of it — prose with every tell stripped and no voice put back reads as a press release, which is its own tell.
+
+This command is the single largest rewriter of README prose in the plugin, so the pass is not optional here and it is not "if time allows": a sync that rewrites six sections and skips the audit ships six sections of machine-shaped prose to the one page players read. State in the Step 5 report that the pass ran and what it changed.
+
 ## Step 5 — Report
 
 Print a summary:
 - Files updated (with line-count delta per file)
+- **The README de-AI pass** — that it ran, and what it changed. If `README.md` was not touched this run, say so; skipping the pass because nothing changed is correct, skipping it silently is not
 - Files unchanged (already accurate)
 - **Dead exports flagged** (separate section — these are NOT auto-removed; the user decides)
 - **Comment citations**, split into applied-after-confirmation and declined-or-unresolved, and the fact that each applied one was comment-only
