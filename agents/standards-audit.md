@@ -198,6 +198,112 @@ later and the number was bigger. When your count contradicts one on record, file
 both commands, both outputs, what each covered — and only then say which question was being asked. A
 second pass with no stated scope is not a check on the first; it is a second guess.
 
+### The disabled state is a registration census, not a reading of the show ladder
+
+`slash-commands-§7` makes the disabled state **total**, and it is a **MUST**: with `enabled` written
+false the addon is not running — every registration it owns is genuinely unregistered, every timer,
+ticker and `OnUpdate` cancelled, every frame it owns hidden at the source, no SavedVariables write
+reachable from a game event, and the slash surface down to exactly `enable` and `help`. This is newly
+auditable, it is the check this rotation has never run, and **it is expected to fail**: the upstream
+audit that produced the rule found **11 of 11 addons failing it** — 107 survivors, of which 34 are live
+event registrations, 13 are timers still running and 18 are SavedVariables writes. Not one addon in the
+collection genuinely stands down today.
+
+**Do not audit against the old text, in any form.** `slash-commands-§2` used to carry a SHOULD that a
+disabled addon *refuse a feature verb*, plus a twelve-verb live list (`help`, `config`, `version`,
+`enable`, `disable`, `debug`, `perf`, and the schema CLI). That bullet and its sub-bullets are **deleted
+and replaced** by `§7`, which inverts them: the refusal is a MUST, and the live list is **two verbs**.
+What survives in `§2` is only that the chat command, the dispatcher and the `COMMANDS` table stay
+registered, because `enable` is the only way back and a one-way switch is the defect that rule prevents.
+If a prior bundle in `docs/audits/` marked this area compliant, it was measured against a rule that no
+longer exists — say so rather than inheriting the verdict, and re-measure from the fetched section files.
+
+**Why every previous pass passed it.** Disable is implemented as a **draw gate** in all eleven: the
+stored flag is one rung of a show-decision ladder, or one early return at the top of each handler, and
+from the outside that is indistinguishable from standing down. The frames are gone, the addon is quiet,
+and the auditor reading the code sees a flag that is honestly consulted everywhere it matters. It is
+`anti-patterns` **#85**, and the reason it survived eleven audits is precisely that the cost it leaves
+behind is invisible on every surface a player or a reader can see: the client still walks its
+registration list on every `UNIT_AURA` in a twenty-five-man raid, still builds the argument frame, still
+enters Lua, and only then runs the comparison that decides to leave. That dispatch cost is what a player
+turning the addon off is trying to stop paying. **A handler that early-returns does not satisfy `§7`** —
+the addon stopped reacting, it did not stop watching — and an audit entry that reads "disable is handled
+at the visibility layer" is describing the deviation, not clearing it.
+
+So measure it the way the rule is written — five parts, each backed by `file:line` in `03_EVIDENCE.md`:
+
+- **The teardown.** Is there one at all, and is it the **existing suspend/resume seam**? Every addon
+  already ships the machinery, built for `performance`'s second arm — `core/PerfSetup.lua` in
+  AbsorbTracker calls `UnregisterAllEvents` on exactly the per-unit frames disable leaves registered.
+  The compliant shape is **one latch with two named holds** (`disabled`, `perf`): stood down while any
+  hold is taken, stood up only when the last is released. Two things are findings here and they are
+  opposite: **no** teardown (the draw gate, #85), and a **second, parallel** teardown written beside the
+  perf one, which is the same anti-pattern's other face — releasing one hold then resurrecting an addon
+  the other still holds down is the bug that shape produces, and it cannot be found by reading either
+  path alone. The perf hold is session-only and must not be persisted; `disabled` is persisted.
+- **The registration set.** Census every `RegisterEvent`, `RegisterUnitEvent`, `RegisterMessage`,
+  `RegisterBucketEvent` and raw `frame:RegisterEvent` the addon owns, then find where each is undone.
+  The only sanctioned survivors are a `hooksecurefunc` body that gates itself and returns (there is no
+  un-hook, so it cannot be undone) and the single `PLAYER_REGEN_ENABLED` registration a disabled addon
+  keeps to finish a combat-deferred stand-down — which it must release the moment that fires. Raw hooks
+  and AceHook hooks **can** be undone and therefore must be; a carve-out generalized from
+  `hooksecurefunc` to anything with a real unregister is itself the finding.
+- **The writes.** No SavedVariables write may originate from a **game event** while disabled. This is
+  the part that bites: one addon writes `locked = true` and prints to chat on entering combat with the
+  addon off. A write the **player** causes through the panel or a live verb is not a write from a game
+  event, and LibDBIcon's own `minimapPos` write is the library's, not the addon's.
+- **The surfaces.** The slash dispatcher answers exactly `enable` and `help` normally; `disable` echoes
+  `<enablePath> = false` rather than refusing, because it is an alias onto a schema write and refusing it
+  would answer `/<slash> disable` with a line telling the player to type `enable`; everything else —
+  including the bare command and an unknown verb — prints **one** tagged refusal line naming
+  `/<slash> enable` and does nothing else. The launcher's left-click prints that same line and **writes
+  nothing**, while right-click still opens the panel in either state (`launcher-§2`).
+- **The conformance suite.** `tests/test_disabled.lua`, listed in `tests/run.lua` and inside the green
+  gate. Its absence is a MUST failure. Its **presence is not a pass**: read it for whether step 3 asserts
+  on the **mock's registration set** or on a handler's return value, and whether the mocks record at all
+  — a no-op `RegisterUnitEvent` in the kit makes the whole suite unfalsifiable, and a suite that goes
+  green against a draw gate is a second draw gate, not a conformance test (`testing-§12`).
+
+Three cheap greps orient the census; none of them is the finding on its own, and all three start from
+`git ls-files` with the vendored payloads excluded, per the census rule above — never `grep -r`, which
+reports the library's own registrations as if the addon had written them:
+
+```sh
+# What the addon registers — the set that must be empty while disabled.
+git ls-files '*.lua' ':!libs' ':!tests/_kit' \
+  | xargs grep -nE 'Register(Unit)?Event|RegisterMessage|RegisterBucketEvent'
+# What it ever un-registers — usually the perf seam, and usually nothing else.
+git ls-files '*.lua' ':!libs' ':!tests/_kit' \
+  | xargs grep -nE 'Unregister(All)?Events?|UnregisterMessage|UnregisterBucket|CancelTimer|CancelAllTimers|:Cancel\(|SetScript\("OnUpdate", *nil\)'
+# The enable flag's consumers — a show ladder full of them and no teardown is #85.
+git ls-files '*.lua' ':!libs' ':!tests/_kit' | xargs grep -n '\benabled\b'
+```
+
+**Grade it by impact like everything else, and the parts do not all grade alike.** A SavedVariables write
+or a chat line produced by a game event while the addon is off is **High** — the user's stored data and
+their chat frame change after they turned it off, today, on a default profile. Live registrations and an
+armed repaint timer are **Medium**: reachable and degraded, costing exactly what the player asked to stop
+paying, with no user-visible error. A missing `tests/test_disabled.lua` is **Low** and still names its
+MUST. File the draw gate as **one root** with the survivors `derived from <ID>` — one design decision
+produces all of them — and let a survivor **graduate** under the usual rule, which the combat-entry write
+does: it is higher-impact than its root and reachable independently of how the show ladder is spelled.
+
+**Adoption is blocked, not overdue.** `§7`'s compliant shape is built on `LibKa0s-Lifecycle-1.0`
+(`library-stack`), and until a LibKa0s tag carries it — with the Perf floor bump, the Slash disabled gate
+and the kit's recording additions — no addon can conform without hand-rolling the module, which is
+`anti-patterns` #47. Record the state as **blocked upstream**, name the missing tag, and put the gap where
+it lives: in the library, not in the addon's execution plan. An addon that has already re-vendored a tag
+carrying it and still ships the draw gate is a different entry, and that one is overdue.
+
+**Two non-findings, stated so they are not filed.** `slash-commands-§8` — `/<slash> lock` and
+`/<slash> unlock` as verbs — is a **MAY**: an addon shipping the *Lock frame* checkbox and no verbs is
+compliant, owes no row in `## Documented deviations`, and must not be written up, because that register is
+for ratified departures from a MUST or a SHOULD and filing declined MAYs there buries the real rows. An
+addon with nothing to lock does not acquire a lock path so it can register the verbs. And MultiMeters'
+**ratified** row for its master-lock semantics is **out of `§8`'s reach** — that row is about what `lock`
+*means* there, while `§8` is about which verbs exist and where they write. An auditor finding the row must
+not read `§8` as superseding it; a ratified row is unmade only by its owner.
+
 ### Mechanical checks — run them, don't reason about them
 
 The playbook's evidence step calls for checks whose whole value is that they are **executed**. Run each and record the real command and output in `03_EVIDENCE.md`; never infer a result from the code looking reasonable, and never quietly skip one.
