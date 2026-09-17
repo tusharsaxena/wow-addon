@@ -203,20 +203,26 @@ second pass with no stated scope is not a check on the first; it is a second gue
 `slash-commands-§7` makes the disabled state **total**, and it is a **MUST**: with `enabled` written
 false the addon is not running — every registration it owns is genuinely unregistered, every timer,
 ticker and `OnUpdate` cancelled, every frame it owns hidden at the source, no SavedVariables write
-reachable from a game event, and the slash surface down to exactly `enable` and `help`. This is newly
+reachable from a game event. The slash surface is **not** part of the stand-down: the dispatcher is
+setup, and `slash-commands-§2` keeps it answering. This is newly
 auditable, it is the check this rotation has never run, and **it is expected to fail**: the upstream
 audit that produced the rule found **11 of 11 addons failing it** — 107 survivors, of which 34 are live
 event registrations, 13 are timers still running and 18 are SavedVariables writes. Not one addon in the
 collection genuinely stands down today.
 
-**Do not audit against the old text, in any form.** `slash-commands-§2` used to carry a SHOULD that a
-disabled addon *refuse a feature verb*, plus a twelve-verb live list (`help`, `config`, `version`,
-`enable`, `disable`, `debug`, `perf`, and the schema CLI). That bullet and its sub-bullets are **deleted
-and replaced** by `§7`, which inverts them: the refusal is a MUST, and the live list is **two verbs**.
-What survives in `§2` is only that the chat command, the dispatcher and the `COMMANDS` table stay
-registered, because `enable` is the only way back and a one-way switch is the defect that rule prevents.
-If a prior bundle in `docs/audits/` marked this area compliant, it was measured against a rule that no
-longer exists — say so rather than inheriting the verdict, and re-measure from the fetched section files.
+**Do not audit the slash surface against v2.56.0's narrowed text.** For one release (v2.56.0) the
+standard cut a disabled addon's slash surface to exactly `enable` and `help` and made refusing everything
+else a MUST. v2.57.0 **reversed that** and restored `slash-commands-§2` verbatim from v2.55.0, keeping
+`§7`'s stand-down whole. The rule to audit is `§2`'s: the chat command, the dispatcher and the
+`COMMANDS` table stay registered, and every reserved verb — `help`, `config`, `version`, `enable`,
+`disable`, `debug`, `perf` — the bare `/<slash>` and the whole schema CLI (`get`, `set`, `list`,
+`reset`, `resetall`) **MUST** keep answering normally while disabled. Refusing a **feature** verb is
+only a **SHOULD**, and an addon that declines it owes no register row. The findings therefore run the
+other way from v2.56.0: a disabled addon that refuses `config`, the bare `/<slash>` or any verb on that
+live list fails `§2`'s MUST. If a prior bundle in `docs/audits/` graded this area against v2.56.0's
+two-verb surface, say so rather than inheriting the verdict, and re-measure from the fetched section
+files. The surface also tells you nothing about whether the addon is inert — the other four parts
+below measure that.
 
 **Why every previous pass passed it.** Disable is implemented as a **draw gate** in all eleven: the
 stored flag is one rung of a show-decision ladder, or one early return at the top of each handler, and
@@ -252,17 +258,22 @@ So measure it the way the rule is written — five parts, each backed by `file:l
   the part that bites: one addon writes `locked = true` and prints to chat on entering combat with the
   addon off. A write the **player** causes through the panel or a live verb is not a write from a game
   event, and LibDBIcon's own `minimapPos` write is the library's, not the addon's.
-- **The surfaces.** The slash dispatcher answers exactly `enable` and `help` normally; `disable` echoes
-  `<enablePath> = false` rather than refusing, because it is an alias onto a schema write and refusing it
-  would answer `/<slash> disable` with a line telling the player to type `enable`; everything else —
-  including the bare command and an unknown verb — prints **one** tagged refusal line naming
-  `/<slash> enable` and does nothing else. The launcher's left-click prints that same line and **writes
-  nothing**, while right-click still opens the panel in either state (`launcher-§2`).
+- **The surfaces.** The slash dispatcher keeps answering every reserved verb, `config`, the bare
+  `/<slash>` and the schema CLI with their **normal** output (`slash-commands-§2`); refusing any of them
+  is a MUST failure — and it is exactly what LibKa0s v1.40.0's Slash minor 12 shipped, so an addon still
+  vendoring that tag fails it by construction. `disable` while already disabled echoes
+  `<enablePath> = false`, because it is an alias onto a schema write. Where the addon implements `§2`'s
+  feature-verb **SHOULD**, a refused feature verb prints **one** tagged refusal line naming
+  `/<slash> enable` (`§7`, *The refusal line*) and reaches no write seam; where it declines the SHOULD,
+  that is not a finding. The launcher's left-click on rungs (a) and (b) prints that same line and
+  **writes nothing**, while right-click still opens the panel in either state (`launcher-§2`).
 - **The conformance suite.** `tests/test_disabled.lua`, listed in `tests/run.lua` and inside the green
   gate. Its absence is a MUST failure. Its **presence is not a pass**: read it for whether step 3 asserts
   on the **mock's registration set** or on a handler's return value, and whether the mocks record at all
   — a no-op `RegisterUnitEvent` in the kit makes the whole suite unfalsifiable, and a suite that goes
-  green against a draw gate is a second draw gate, not a conformance test (`testing-§12`).
+  green against a draw gate is a second draw gate, not a conformance test (`testing-§12`). Its step 7
+  asserts the `§2` live list answers normally and pins whichever way the addon answered the feature-verb
+  SHOULD; a step 7 still asserting v2.56.0's refusals is a finding.
 
 Three cheap greps orient the census; none of them is the finding on its own, and all three start from
 `git ls-files` with the vendored payloads excluded, per the census rule above — never `grep -r`, which
@@ -288,12 +299,14 @@ MUST. File the draw gate as **one root** with the survivors `derived from <ID>` 
 produces all of them — and let a survivor **graduate** under the usual rule, which the combat-entry write
 does: it is higher-impact than its root and reachable independently of how the show ladder is spelled.
 
-**Adoption is blocked, not overdue.** `§7`'s compliant shape is built on `LibKa0s-Lifecycle-1.0`
-(`library-stack`), and until a LibKa0s tag carries it — with the Perf floor bump, the Slash disabled gate
-and the kit's recording additions — no addon can conform without hand-rolling the module, which is
-`anti-patterns` #47. Record the state as **blocked upstream**, name the missing tag, and put the gap where
-it lives: in the library, not in the addon's execution plan. An addon that has already re-vendored a tag
-carrying it and still ships the draw gate is a different entry, and that one is overdue.
+**Adoption is overdue, not blocked.** `§7`'s compliant shape is built on `LibKa0s-Lifecycle-1.0`
+(`library-stack`), which ships from LibKa0s **v1.40.0**. The adoption floor is **v1.42.0** (Slash minor
+14): v1.40.0's Slash minor 12 implemented v2.56.0's narrowed surface, and v1.41.0's minor 13 still
+refused a reserved verb the host never registered, so neither answers `§2` exactly. Both tags are
+released, so the gap belongs in the **addon's** execution plan: re-vendor to v1.42.0 or later, route the
+stand-down through the latch, and ship the suite. Hand-rolling the latch instead of adopting the module
+is `anti-patterns` #47. Name the tag the `CLAUDE.md` provenance line carries — an addon vendoring anything
+older than v1.42.0 has not adopted, whatever its own code does.
 
 **Two non-findings, stated so they are not filed.** `slash-commands-§8` — `/<slash> lock` and
 `/<slash> unlock` as verbs — is a **MAY**: an addon shipping the *Lock frame* checkbox and no verbs is
