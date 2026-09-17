@@ -45,6 +45,7 @@ A focused toolkit for working on WoW addons: scaffolding new addons that are bor
 ### Hooks
 
 - **Line-ending normalization on Write/Edit/MultiEdit** — when a file is written/edited inside a git repo, the plugin asks git what that file's `.gitattributes` declares and normalizes to it: **CRLF** in a client-bound Ka0s repo (the addons and `LibKa0s`), **LF** in one that ships nothing to the WoW client (the standards repo and this one). Every Ka0s repo declares one or the other (`line-endings`). It asks for `text` as well as `eol`, so a file marked `binary` is left alone even though the pin still answers `eol: crlf` for it (`line-endings-§7`); silent likewise on files with no declared `eol`, and it never blocks a write. Lives at `hooks/hooks.json` + `scripts/normalize-eol.sh`.
+- **Bounded heavy runs on Bash** — a `PreToolUse` hook refuses an unbounded `lua tests/run.lua` / `lua tests/perf.lua`, `run-automated-tests.sh`, `luacheck` or `lizard` and names the bounded runner to prefix instead: `~/.claude/wow-addon/bin/ka0s-bounded <command>` (a symlink the hook keeps pointed at the installed `scripts/ka0s-bounded`). The runner caps process memory (`ulimit -v`, `KA0S_KIT_PROC_MB`, default 2048), the process tree's memory and task count (a `systemd-run --user --scope`, `KA0S_KIT_TREE_MB` default half of RAM, `KA0S_KIT_TASKS` 256) and wall-clock time (`KA0S_KIT_TIMEOUT_S`, 900), and queues on a machine-wide `flock` slot pool (`~/.cache/ka0s-kit/slots`, `max(1, MemAvailable×0.6 / KA0S_KIT_SLOT_MB)` slots, or `KA0S_KIT_SLOTS`), so several repos' suites can run in parallel without exhausting memory. Exit codes pass through; 124 (timeout) and 137 (killed) get a one-line explanation. Lua runs in a repo whose `tests/_kit` is LibKa0s kit revision 23+ are let through, because that kit bounds itself with the same variables. Why: an unbounded runaway suite once OOM-killed a whole WSL2 VM and the session driving it. Opt-out for one command: an inline `KA0S_BOUNDED_HOOK=off` assignment.
 
 ## Install
 
@@ -62,7 +63,7 @@ Step by step:
 2. **`/plugin install wow-addon@wow-addon`** — installs the plugin (`wow-addon`) from the marketplace (`wow-addon`). When prompted for scope, choose **user** to enable it in every project on this machine, or **project** to enable it only in the current project.
 3. **`/reload-plugins`** — activates the plugin in the current session without a restart.
 
-After install, the commands, the `review` and `standards-audit` subagents, and the line-ending hook are available in every Claude Code session.
+After install, the commands, the `review` and `standards-audit` subagents, the line-ending hook and the bounded-runs hook are available in every Claude Code session.
 
 ## Updating
 

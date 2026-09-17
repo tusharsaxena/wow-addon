@@ -281,7 +281,7 @@ Write the plan before touching code. Per adopted candidate it names: the files i
 
 **The assertion standard is "does this render the same bytes", not "does this still run."** A test that passed before and after proves nothing if the code path moved. The divergences that matter here fail **silently and only in-game** — colour codecs, EditBox-versus-Dropdown dispatch, `hasAlpha`, an unknown `row.type` dropping one row from a page — and none of them appear headless unless the assertion is written. Write it.
 
-Then implement, **one candidate at a time**: test, then code, then `luacheck` + `lua tests/run.lua` green, then **its own commit**. A candidate whose suites go red is rolled back to its own commit boundary and reported; it does not block the candidates after it.
+Then implement, **one candidate at a time**: test, then code, then `luacheck` + `lua tests/run.lua` green (both through `~/.claude/wow-addon/bin/ka0s-bounded`), then **its own commit**. A candidate whose suites go red is rolled back to its own commit boundary and reported; it does not block the candidates after it.
 
 Fences, all four of which hold on every candidate:
 

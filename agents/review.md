@@ -53,16 +53,18 @@ But a committed artifact is a **claim about a past state of the code**, and the 
 
 | Suite | Command (from the repo root) | Fresh output is used for |
 |---|---|---|
-| **luacheck** | `luacheck .` (when `.luacheckrc` exists) | current lint state; findings that lint already proves |
-| **Headless test suite** | `lua5.1 tests/run.lua` (→ `lua` → `luajit`) | current pass/fail; coverage under your findings |
-| **Test-case inventory** | `lua5.1 tests/run.lua --list` to a **scratch path** | the live inventory, and drift vs. the committed `docs/test-cases.md` |
-| **Offline perf runner** | `lua5.1 tests/perf.lua` | current allocation / call counts on the hot paths |
-| **Complexity** | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` to a **scratch path** | current complexity, and drift vs. the newest bundle's `complexity.txt` and `RESULTS.md`'s watch list |
+| **luacheck** | `ka0s-bounded luacheck .` (when `.luacheckrc` exists) | current lint state; findings that lint already proves |
+| **Headless test suite** | `ka0s-bounded lua5.1 tests/run.lua` (→ `lua` → `luajit`) | current pass/fail; coverage under your findings |
+| **Test-case inventory** | `ka0s-bounded lua5.1 tests/run.lua --list` to a **scratch path** | the live inventory, and drift vs. the committed `docs/test-cases.md` |
+| **Offline perf runner** | `ka0s-bounded lua5.1 tests/perf.lua` | current allocation / call counts on the hot paths |
+| **Complexity** | `ka0s-bounded lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` to a **scratch path** | current complexity, and drift vs. the newest bundle's `complexity.txt` and `RESULTS.md`'s watch list |
 | **Makefile target** | `make test` (when a root `Makefile` defines `test:`) | whatever the repo treats as canonical — often a wrapper, sometimes more |
 | **Vendor sync** | `diff -r libs/<Lib>/ ../<LibRepo>/<ship folder>/` and `diff -r tests/_kit/ ../LibKa0s/testkit/` | whether a vendored copy has drifted from its source |
 | **Cross-addon** | the four collision-class commands in *The cross-addon pass*, run from the directory holding the siblings | slash-token, vendored-minor, payload-byte and `## Interface:` collisions across the whole collection |
 
 Three notes on the last three rows. **`make test` is usually a wrapper** — if it plainly re-runs lint and the suite, run it *instead of* those and say so, rather than reporting the same suite twice; if it does something additional, run it as its own suite. **Vendor sync only runs when the sibling library repo is on local disk** — it is a `diff`, not a suite, and it needs both copies. When the source repo isn't beside this one, that is a skip, not a pass. It earns its place here because its failure is otherwise **invisible**: both repos stay green while the copies diverge, since each suite tests its own copy. A drift is an `[upstream]`-adjacent finding whose remediation is *re-vendor the whole folder*, never edit either side. **The cross-addon pass has the same precondition and the same failure mode** — it needs the eight siblings on disk, and every collision it looks for is invisible to a suite that only ever loads one addon. Its own section below carries the commands, the scoping rule and the baseline to diff against.
+
+**Every run goes through the bounded runner.** Prefix each command with `~/.claude/wow-addon/bin/ka0s-bounded` (e.g. `~/.claude/wow-addon/bin/ka0s-bounded lua tests/run.lua`). It caps process memory, process-tree memory and wall-clock time, and queues on a machine-wide slot pool, so running several repos' suites **in parallel** is fine — the pool, not you, decides how many run at once. The plugin's `PreToolUse` hook refuses an unbounded `lua tests/run.lua` / `tests/perf.lua`, `run-automated-tests.sh`, `luacheck` or `lizard` (a repo whose `tests/_kit` is kit revision 23+ self-bounds its Lua runs and is let through). A run that exits **124** hit the time limit and **137** was killed, most likely by the memory limit — report either as exactly that, never as a test failure or a pass.
 
 Four rules govern all of it:
 

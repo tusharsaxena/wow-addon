@@ -72,10 +72,12 @@ The runner is **vendored**: `tests/_kit/run-automated-tests.sh`, from `LibKa0s`'
 From the repo root:
 
 ```sh
-tests/_kit/run-automated-tests.sh                    # the default: all four, writes a bundle
-tests/_kit/run-automated-tests.sh --label <text>     # when the run answers a specific question
-tests/_kit/run-automated-tests.sh --suite <name>     # repeatable, for a subset
+~/.claude/wow-addon/bin/ka0s-bounded tests/_kit/run-automated-tests.sh                    # the default: all four, writes a bundle
+~/.claude/wow-addon/bin/ka0s-bounded tests/_kit/run-automated-tests.sh --label <text>     # when the run answers a specific question
+~/.claude/wow-addon/bin/ka0s-bounded tests/_kit/run-automated-tests.sh --suite <name>     # repeatable, for a subset
 ```
+
+**Every run goes through the bounded runner.** Prefix each command with `~/.claude/wow-addon/bin/ka0s-bounded` (e.g. `~/.claude/wow-addon/bin/ka0s-bounded lua tests/run.lua`). It caps process memory, process-tree memory and wall-clock time, and queues on a machine-wide slot pool, so running several repos' suites **in parallel** is fine — the pool, not you, decides how many run at once. The plugin's `PreToolUse` hook refuses an unbounded `lua tests/run.lua` / `tests/perf.lua`, `run-automated-tests.sh`, `luacheck` or `lizard` (a repo whose `tests/_kit` is kit revision 23+ self-bounds its Lua runs and is let through). A run that exits **124** hit the time limit and **137** was killed, most likely by the memory limit — report either as exactly that, never as a test failure or a pass.
 
 The runner writes the bundle and prepends the `RESULTS.md` row. It does **not** write `ANALYSIS.md`
 or the `RESULTS.md` watch list — those need a reader, and they are Steps 3 and 4.

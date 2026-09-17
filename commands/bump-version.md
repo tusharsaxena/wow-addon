@@ -35,8 +35,10 @@ and corrosive at the other one.
 1. **Run the full battery**, tagged with the version from Step 1:
 
    ```sh
-   tests/_kit/run-automated-tests.sh --release X.Y.Z
+   ~/.claude/wow-addon/bin/ka0s-bounded tests/_kit/run-automated-tests.sh --release X.Y.Z
    ```
+
+   **Every run goes through the bounded runner.** Prefix each command with `~/.claude/wow-addon/bin/ka0s-bounded` (e.g. `~/.claude/wow-addon/bin/ka0s-bounded lua tests/run.lua`). It caps process memory, process-tree memory and wall-clock time, and queues on a machine-wide slot pool, so running several repos' suites **in parallel** is fine — the pool, not you, decides how many run at once. The plugin's `PreToolUse` hook refuses an unbounded `lua tests/run.lua` / `tests/perf.lua`, `run-automated-tests.sh`, `luacheck` or `lizard` (a repo whose `tests/_kit` is kit revision 23+ self-bounds its Lua runs and is let through). A run that exits **124** hit the time limit and **137** was killed, most likely by the memory limit — report either as exactly that, never as a test failure or a pass.
 
    Use the **vendored** runner — never the four tools invoked separately, and never a hand-assembled
    equivalent. If the runner is **missing**, the addon has not adopted `automated-tests`: stop, say so,
