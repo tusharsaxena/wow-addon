@@ -125,7 +125,7 @@ date -d "@<timestamp>" +%Y%m%d-%H%M%S      # e.g. 1786087202 -> 20260807-125002
 ```
 
 The folder names when the run happened. A capture pasted a week later still sorts against its
-neighbours, which is the whole reason the store is cumulative. Local time, with the same rationale
+neighbors, which is the whole reason the store is cumulative. Local time, with the same rationale
 `automated-tests-§1` gives for its bundles — the person reading it thinks in the clock they ran it
 on. If `dump.timestamp` is `0` or absent, fall back to the `label`'s `YYYY-MM-DD HH:MM` stamp with
 `00` seconds, and **say in the analysis that the stamp was reconstructed**.
@@ -150,7 +150,7 @@ docs/perf-analysis/
   pretty-print it, do not re-order its keys, do not round a figure, do not strip a field you think is
   wrong. The library already emits sorted keys so two records diff cleanly, and the encoder's own
   quirks (`%.4f` on every non-integer, an empty table encoding as `{}` rather than `[]`) are part of
-  the record's identity. A reformatted record no longer diffs against its neighbours, and a
+  the record's identity. A reformatted record no longer diffs against its neighbors, and a
   hand-touched one is worse than an absent one because it reads as measured. Use `jq` to *read* it;
   never to rewrite it into the file.
 

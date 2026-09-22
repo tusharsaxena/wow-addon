@@ -12,7 +12,7 @@ Issues on a Ka0s addon repo are the durable store of pending work — `docs/pend
 
 **Status** — exactly one `state:` label per issue:
 
-| Label | Colour | Meaning | Issue state |
+| Label | Color | Meaning | Issue state |
 |---|---|---|---|
 | `state:untriaged` | red `ff0000` | Seen and recorded; nobody has been asked about it yet | open |
 | `state:triaged` | yellow `ffff00` | Decided: not now. Still on the books | open |
@@ -21,7 +21,7 @@ Issues on a Ka0s addon repo are the durable store of pending work — `docs/pend
 
 **Severity** — exactly one `severity:` label per issue:
 
-| Label | Colour | Meaning |
+| Label | Color | Meaning |
 |---|---|---|
 | `severity:critical` | red `110000` | Taint, combat-lockdown breakage, saved-variable corruption or data loss, an error on a common path |
 | `severity:high` | orange `110800` | A user-visible defect, or a Ka0s standard deviation carried from an audit bundle |
@@ -67,7 +67,7 @@ Turn the fuzzy inputs into a clean issue:
 
 ### Step 2a — Ensure the label set exists
 
-Before creating, make sure the eight collection labels exist on this repo. `gh label create --force` creates a missing label and updates an existing one's colour and description, so it is safe to run every time and it repairs a drifted colour on the way:
+Before creating, make sure the eight collection labels exist on this repo. `gh label create --force` creates a missing label and updates an existing one's color and description, so it is safe to run every time and it repairs a drifted color on the way:
 
 ```
 gh label create "state:untriaged"   --color ff0000 --description "Seen and recorded; nobody has been asked yet"  --force

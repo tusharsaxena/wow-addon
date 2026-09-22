@@ -12,7 +12,7 @@ This is the second half of the pair. `/wow-addon:issue-audit` sweeps the repo an
 
 **Status** — exactly one `state:` label per issue:
 
-| Status | Label | Colour | GitHub state | Meaning |
+| Status | Label | Color | GitHub state | Meaning |
 |---|---|---|---|---|
 | done | `state:done` | green `00ff00` | closed | Implemented. Terminal |
 | will-not-do | `state:will-not-do` | blue `0000ff` | closed | Will never be done. Terminal |
@@ -21,7 +21,7 @@ This is the second half of the pair. `/wow-addon:issue-audit` sweeps the repo an
 
 **Severity** — exactly one `severity:` label per issue. It is what this command **orders the queue by**, so it is load-bearing here rather than decorative:
 
-| Severity | Label | Colour | Meaning |
+| Severity | Label | Color | Meaning |
 |---|---|---|---|
 | Critical | `severity:critical` | red `110000` | Taint, combat-lockdown breakage, saved-variable corruption or data loss, an error on a common path |
 | High | `severity:high` | orange `110800` | A user-visible defect, or a Ka0s standard deviation carried from an audit bundle |
@@ -48,7 +48,7 @@ Preflight `gh auth status` and `gh repo view --json nameWithOwner`. Either faili
 
 ### Ensure the label set exists
 
-Before any write, make sure the eight collection labels exist. `gh label create --force` creates a missing label and updates an existing one's colour and description, so it is safe to run every time:
+Before any write, make sure the eight collection labels exist. `gh label create --force` creates a missing label and updates an existing one's color and description, so it is safe to run every time:
 
 ```
 gh label create "state:untriaged"   --color ff0000 --description "Seen and recorded; nobody has been asked yet"  --force
@@ -188,7 +188,7 @@ The run is not finished when the last question is answered. It is finished when 
 
 A decision the user made and GitHub never received is the one failure this command must never hide.
 
-**Never change the title.** The title is how the item is recognised across runs and in `/wow-addon:issue-details`; rewriting it orphans every reference to it. The single exception is stripping a legacy `[status]` prefix during the Step 0 stray repair, which is announced.
+**Never change the title.** The title is how the item is recognized across runs and in `/wow-addon:issue-details`; rewriting it orphans every reference to it. The single exception is stripping a legacy `[status]` prefix during the Step 0 stray repair, which is announced.
 
 **Exactly one `state:` label, and it must not disagree with the GitHub state.** `state:done` and `state:will-not-do` are closed; `state:triaged` and `state:untriaged` are open. If you find one that disagrees, fix the state and say so in the report — that combination is a bug, and it is exactly what `/wow-addon:issue-summary` reports as an inconsistency. Two `state:` labels on one issue is the same class of bug: report it and leave it rather than guessing which is current.
 

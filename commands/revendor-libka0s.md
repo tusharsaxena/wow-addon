@@ -12,7 +12,7 @@ Carry the current **LibKa0s** into the addon(s) in scope, and then decide what t
 
 This command is both halves, consumer-side, one repo at a time. It re-vendors, diffs, recommends, interviews, plans, and implements.
 
-**Keep it apart from its neighbours.** These lines are all places a run will otherwise blur:
+**Keep it apart from its neighbors.** These lines are all places a run will otherwise blur:
 
 | Against | The line |
 |---|---|
@@ -117,7 +117,7 @@ diff -r                     <scratch>/testkit <Addon>/tests/_kit
 Three readings, and only one of them is a fork:
 
 - **Content dirty** → a copy has genuinely forked. Re-vendoring is the fix.
-- **Content clean, bytes dirty** → **nothing has forked.** The two checkouts merely disagree about line endings, which `git status` will never show you because the blobs are LF on both sides either way. The fix is to renormalise whichever side drifted (`git add --renormalize .`; if the working tree does not flip, delete the affected paths and `git checkout -- .` to pull them back through the filter). It is **never** an edit to `libs/` — editing the vendored copy to settle a line-ending disagreement creates a fork to fix a fork that was not there.
+- **Content clean, bytes dirty** → **nothing has forked.** The two checkouts merely disagree about line endings, which `git status` will never show you because the blobs are LF on both sides either way. The fix is to renormalize whichever side drifted (`git add --renormalize .`; if the working tree does not flip, delete the affected paths and `git checkout -- .` to pull them back through the filter). It is **never** an edit to `libs/` — editing the vendored copy to settle a line-ending disagreement creates a fork to fix a fork that was not there.
 - **`Only in <Addon>/libs/LibKa0s`** → a file removed upstream that survives here. See Step 4.
 
 ### 3e. Consumption map
@@ -135,7 +135,7 @@ Every lookup site, with its file. A major present in the payload with **no looku
 grep -n 'Kit.VERSION' <scratch>/testkit/framework.lua <Addon>/tests/_kit/framework.lua
 ```
 
-**A consumer taking LibKa0s v1.9.0 or newer MUST take kit revision 11 in the same commit.** Before revision 11, `vendor_sync.lua` listed one directory level and normalised line endings on everything — it reads `media` as a file, and would mangle the comparison of any binary containing the byte pair `0D 0A`. Since both payloads are copied whole in Step 4 this is satisfied by construction, but state it in the bundle: it is the reason the two payloads move together rather than independently.
+**A consumer taking LibKa0s v1.9.0 or newer MUST take kit revision 11 in the same commit.** Before revision 11, `vendor_sync.lua` listed one directory level and normalized line endings on everything — it reads `media` as a file, and would mangle the comparison of any binary containing the byte pair `0D 0A`. Since both payloads are copied whole in Step 4 this is satisfied by construction, but state it in the bundle: it is the reason the two payloads move together rather than independently.
 
 ### 3g. Contract delta — what moved without changing shape
 
@@ -245,7 +245,7 @@ Each candidate carries:
 - a **recommendation** with its reasoning;
 - its blast radius — additive, or does it replace code the addon currently owns and ships?
 
-That last one matters more than it looks. A capability you **add** cannot regress: nothing was deleted, no existing test could break, the whole risk lives in code that did not exist yet. A module that **replaces** what the host owns means deleting real files and rewiring what survives onto a library seam through an adapter you write — and every deletion is a chance to change rendered output, lose a behaviour nobody wrote a test for, or silently drop a schema row. Say which kind each candidate is.
+That last one matters more than it looks. A capability you **add** cannot regress: nothing was deleted, no existing test could break, the whole risk lives in code that did not exist yet. A module that **replaces** what the host owns means deleting real files and rewiring what survives onto a library seam through an adapter you write — and every deletion is a chance to change rendered output, lose a behavior nobody wrote a test for, or silently drop a schema row. Say which kind each candidate is.
 
 ## Step 6 — Interview → `03_DECISIONS.md`
 
@@ -279,15 +279,15 @@ Every issue carries exactly **two labels that are the data**: one `state:` and o
 
 Write the plan before touching code. Per adopted candidate it names: the files it touches, the **characterization test written before** anything untested is modified, the assertion that actually proves the change, and the commit boundary.
 
-**The assertion standard is "does this render the same bytes", not "does this still run."** A test that passed before and after proves nothing if the code path moved. The divergences that matter here fail **silently and only in-game** — colour codecs, EditBox-versus-Dropdown dispatch, `hasAlpha`, an unknown `row.type` dropping one row from a page — and none of them appear headless unless the assertion is written. Write it.
+**The assertion standard is "does this render the same bytes", not "does this still run."** A test that passed before and after proves nothing if the code path moved. The divergences that matter here fail **silently and only in-game** — color codecs, EditBox-versus-Dropdown dispatch, `hasAlpha`, an unknown `row.type` dropping one row from a page — and none of them appear headless unless the assertion is written. Write it.
 
 Then implement, **one candidate at a time**: test, then code, then `luacheck` + `lua tests/run.lua` green (both through `~/.claude/wow-addon/bin/ka0s-bounded`), then **its own commit**. A candidate whose suites go red is rolled back to its own commit boundary and reported; it does not block the candidates after it.
 
 Fences, all four of which hold on every candidate:
 
-- **`libs/`, `Libs/` and `tests/_kit/` are read-only.** The copy in Step 4 is the only write this command makes to either, and it replaces them wholesale from the tag. A defect found in either payload is an **`[upstream]` finding**: report it, stop that candidate, fix it in the library repo, bump the file's LibStub minor, re-vendor the whole folder. A local patch is reverted silently by the next copy and the behaviour comes back as a regression with **no cause in the consumer's history**.
+- **`libs/`, `Libs/` and `tests/_kit/` are read-only.** The copy in Step 4 is the only write this command makes to either, and it replaces them wholesale from the tag. A defect found in either payload is an **`[upstream]` finding**: report it, stop that candidate, fix it in the library repo, bump the file's LibStub minor, re-vendor the whole folder. A local patch is reverted silently by the next copy and the behavior comes back as a regression with **no cause in the consumer's history**.
 - **Setup files hold a descriptor plus a degradation stub, and nothing else.** The shared subsystems — chat printer, debug console, options toolkit, slash dispatcher, perf harness, test framework, media library — are **consumed, not written**. Anything genuinely missing goes upstream as an **additive** field, not worked around in the host. The rule of thumb that has held: one host's misfit is a setup-file concern; two is a library gap.
-- **No behaviour change inside a mechanical diff**, no body dumped into a nameless helper (anti-pattern #52), no dispatch table built inside the function it serves.
+- **No behavior change inside a mechanical diff**, no body dumped into a nameless helper (anti-pattern #52), no dispatch table built inside the function it serves.
 - **Every close control goes through the one wrapper that supplies the addon's folder name.** A bare two-argument `Core.MakeCloseButton(frame, Hide)` is a defect on sight (`standalone-windows`, `debug-logging-§12`, anti-pattern #65) — it produces a perfectly good button, no layer errors, no suite goes red, and the only witness is somebody looking at two windows side by side. That defect has shipped twice upstream; do not let an adoption reintroduce it.
 
 **Never push.**

@@ -23,7 +23,7 @@ Two independent things are being chosen: **how the message is decided**, and **w
 The flag has to combine with everything else while never swallowing a word from a custom message. So:
 
 1. Split `$ARGUMENTS` on whitespace.
-2. If **every** token is a recognised flag (approval and/or push), it is flag-only: no custom message.
+2. If **every** token is a recognized flag (approval and/or push), it is flag-only: no custom message.
 3. Otherwise there is a custom message. Consume a push flag **only if it is the leading token**; everything after it is the message, verbatim.
 
 | Argument | Message | Push |

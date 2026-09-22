@@ -122,7 +122,7 @@ Widening the *scope* does not widen the *permission*. Sort every 3b hit by where
 - **A hit in `docs/`, the README, `CLAUDE.md` or any other prose file** — applies automatically, exactly as before. Nothing about doc handling changes.
 - **A hit in `.lua`, `.xml`, `.toc`, `.luacheckrc`, `.pkgmeta` or any other code or config file** — is **reported with `file:line`, listed in the Step 4 inventory, and applied only on the user's explicit confirmation**. When they confirm, the edit is **comment-only**: it changes the text of a comment or a commented header line and nothing else. If correcting a reference would require touching a line that is not a comment — a string literal, a key, a value — do not edit it; report it and say why.
 
-This is a deliberate, narrow relaxation of this command's blanket "never edit code" rule, and it is written as an exception in the hard rules rather than left to be inferred, because the rule and this behaviour would otherwise contradict each other. The rule exists so an agent authorized to rewrite every repo's `CLAUDE.md` cannot also reach into `.lua`; a confirmed comment-only correction of a citation the standard MUSTs or SHOULDs is the one case where the rule's purpose and its letter come apart. It stays narrow: this sweep only, comments only, confirmation always, and never in a multi-repo run without the whole plan confirmed up front (Step 4).
+This is a deliberate, narrow relaxation of this command's blanket "never edit code" rule, and it is written as an exception in the hard rules rather than left to be inferred, because the rule and this behavior would otherwise contradict each other. The rule exists so an agent authorized to rewrite every repo's `CLAUDE.md` cannot also reach into `.lua`; a confirmed comment-only correction of a citation the standard MUSTs or SHOULDs is the one case where the rule's purpose and its letter come apart. It stays narrow: this sweep only, comments only, confirmation always, and never in a multi-repo run without the whole plan confirmed up front (Step 4).
 
 ### 3c. `CLAUDE.md` pointer list and the `docs/` shape
 
@@ -161,7 +161,7 @@ You **may** still fix references *to* it — a `CLAUDE.md` pointer naming it is 
 
 ### 3f. Normative claims the standard has since changed
 
-3b sweeps forms the standard has **retired**. This sweep is the other half: a doc sentence that still *paraphrases correctly-named rules the standard has since rewritten*. It is scoped narrowly and deliberately — to statements about **which checkpoint gates on what** — because that is where the collection's docs are one template with nine copies, and because the rewrite is fully determined by the fetched section rather than by judgement.
+3b sweeps forms the standard has **retired**. This sweep is the other half: a doc sentence that still *paraphrases correctly-named rules the standard has since rewritten*. It is scoped narrowly and deliberately — to statements about **which checkpoint gates on what** — because that is where the collection's docs are one template with eleven copies, and because the rewrite is fully determined by the fetched section rather than by judgement.
 
 Read `automated-tests-§3` ("What gates, and what only records", including its release-gate subsection) from the fetched section file and hold its current wording. Then check these locations, by name:
 

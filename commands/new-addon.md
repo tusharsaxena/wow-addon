@@ -99,15 +99,18 @@ of it.
 It is scaffolded rather than left to the first person who trips over it because the headless harness
 structurally cannot see this class of bug. The base mock's globals are enUS, so a path that keys off a
 localized string is green in the suite whether it is right or wrong — the test and the bug agree.
-Six of nine addons in this collection have no locale step, and the two whose code is most
-locale-sensitive are among them. `LootHistory/core/Compat.lua:188-195` hard-codes four English
+All eleven addons in this collection now carry a locale step (a `locales/` folder loaded from the TOC,
+re-measured 2026-09-22) — but the step being present is not the step being right, and the two addons
+whose code is most locale-sensitive are still where the worked examples come from.
+`LootHistory/core/Compat.lua:194-201` hard-codes the English
 wordings — `WARBAND_LINES`, `BIND_TO_WARBAND_PREFIX`, `UE_LITERAL = "until equipped"` — as the fallback
-for when the client leaves the `ITEM_ACCOUNTBOUND*` globals nil, reaches them at `:230-231`, and the
+for when the client leaves the `ITEM_ACCOUNTBOUND*` globals nil, reaches them at `:213-214` and `:237`,
+and the
 same file calls the tooltip "the ONLY witness" for items whose bind type lies; its cases assert against
-those literals (`tests/test_compat.lua:65-66` passes `"Auction House"` and `"Auction won: %s"`).
-PrettyChat's entire function is overwriting localized `_G` chat format strings, and it has no locale
-step in 797 lines. Neither gap is visible from inside either repo's green suite, and neither was found
-by a review that ran per-addon.
+those literals (`tests/test_compat.lua:62-65` passes `"Auction House"` and `"Auction won: %s"`).
+PrettyChat's entire function is overwriting localized `_G` chat format strings across 4957 lines of
+loaded source, against a 120-line `locales/enUS.lua`. Neither gap was visible from inside either repo's
+green suite, and neither was found by a review that ran per-addon.
 
 **Write the body from the addon's own seams, not from a template.** The step is unconditional; what it
 looks at is whatever the addon you just scaffolded actually touches. Enumerate these while you still

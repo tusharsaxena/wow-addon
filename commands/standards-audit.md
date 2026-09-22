@@ -1,5 +1,5 @@
 ---
-description: Run the wow-addon:standards-audit subagent — a read-only compliance audit of the repository in cwd against the living Ka0s WoW Addon Standard. Covers the whole audit rotation: the nine addons, LibKa0s, and the two documentation-and-tooling repos (WowAddonStandards, wow-addon). Fetches the AUDIT.md playbook + standards/STANDARDS.md (the standard's index, then every section file it lists) from the WowAddonStandards repo at runtime and writes a frozen dated bundle to docs/audits/<YYYY-MM-DD>/ (01_CURRENT_STATE, 02_DEVIATIONS, 03_EVIDENCE, 04_TECHNICAL_DESIGN, 05_EXECUTION_PLAN), plus a chat summary.
+description: Run the wow-addon:standards-audit subagent — a read-only compliance audit of the repository in cwd against the living Ka0s WoW Addon Standard. Covers the whole audit rotation: the eleven addons, LibKa0s, and the two documentation-and-tooling repos (WowAddonStandards, wow-addon). Fetches the AUDIT.md playbook + standards/STANDARDS.md (the standard's index, then every section file it lists) from the WowAddonStandards repo at runtime and writes a frozen dated bundle to docs/audits/<YYYY-MM-DD>/ (01_CURRENT_STATE, 02_DEVIATIONS, 03_EVIDENCE, 04_TECHNICAL_DESIGN, 05_EXECUTION_PLAN), plus a chat summary.
 ---
 
 Invoke the `wow-addon:standards-audit` subagent on the addon in the current working directory.
@@ -8,7 +8,7 @@ Use the Task tool with `subagent_type: "wow-addon:standards-audit"`. Pass throug
 
 **Three kinds of repository are in the rotation and they are not audited against the same rules**, so
 the first thing the agent settles is which one it is standing in — its *Which rule set binds this
-repository* section owns that decision. The nine addons take the whole standard. `LibKa0s` takes
+repository* section owns that decision. The eleven addons take the whole standard. `LibKa0s` takes
 `library-stack-§7`'s applicability list. `WowAddonStandards` and `wow-addon` take the **documentation
 lane**: same eight steps, same five artifacts, same `docs/audits/<date>/`, but measuring internal
 consistency between rules, cross-references that resolve, worked examples against the trees they cite,

@@ -12,7 +12,7 @@ Issues on a Ka0s addon repo are the durable store of pending work — `docs/pend
 
 **Status** — exactly one `state:` label per issue:
 
-| Label | Colour | Meaning | Issue state |
+| Label | Color | Meaning | Issue state |
 |---|---|---|---|
 | `state:untriaged` | red `ff0000` | Seen and recorded; nobody has been asked about it yet | open |
 | `state:triaged` | yellow `ffff00` | Decided: not now. Still on the books | open |
@@ -21,7 +21,7 @@ Issues on a Ka0s addon repo are the durable store of pending work — `docs/pend
 
 **Severity** — exactly one `severity:` label per issue:
 
-| Label | Colour | Meaning |
+| Label | Color | Meaning |
 |---|---|---|
 | `severity:critical` | red `110000` | Taint, combat-lockdown breakage, saved-variable corruption or data loss, an error on a common path |
 | `severity:high` | orange `110800` | A user-visible defect, or a Ka0s standard deviation carried from an audit bundle |

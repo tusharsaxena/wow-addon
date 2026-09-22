@@ -4,7 +4,7 @@ argument-hint: [here|all|<repo>] [untriaged|triaged|done|will-not-do|open|closed
 allowed-tools: [Bash, Read]
 ---
 
-Show what is actually in the issue store, item by item, with enough of each to recognise it without opening GitHub.
+Show what is actually in the issue store, item by item, with enough of each to recognize it without opening GitHub.
 
 This is the companion to `/wow-addon:issue-summary`: that one answers *how much and how bad*, this one answers *what*. Where summary prints grids of counts across repos, this prints the issues themselves.
 
@@ -41,7 +41,7 @@ The remaining token(s) select which statuses and which severities to show. Accep
 - **absent** → every severity, including issues with no `severity:` label.
 - **any of `critical`, `high`, `medium`, `low`** → only those, in any combination. `critical high` is the useful one and is worth suggesting when a scope returns more rows than fit.
 
-An unrecognised token is an error, not a filter — say so and list the valid values rather than silently returning everything.
+An unrecognized token is an error, not a filter — say so and list the valid values rather than silently returning everything.
 
 ## Step 3 — Fetch
 

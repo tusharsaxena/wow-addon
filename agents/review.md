@@ -110,7 +110,7 @@ When the addon ships a `.luacheckrc`, run `luacheck .` from the repo root and re
 - **The zero-overhead scenario is required evidence, not a nicety.** `performance-§2`'s "a dormant bracket is free" is only true if a scenario pins that the hottest bracketed path with capture **off** allocates no more than the same path with the instrumentation absent. Where the addon brackets hot paths and ships no such scenario, the claim is unverified — say so. And any bracket that allocates, concatenates, formats or calls anything while capture is off is a finding regardless of what the scenario says.
 - **Cross-check declared buckets against actual brackets.** A declared bucket that no bracket reaches is *a lie in every report*; a bracketed path with no declared bucket renders outside the report's stable order. Both live in the descriptor and the call sites, which are the addon's own code — these are local findings, not `[upstream]` ones. Check `within` nesting too: nested totals are not disjoint and must never be summed.
 - **Scenarios must not be counted as test cases** in `docs/test-cases.md` or the README `[tests]` badge (`testing-§7`). If they are, that is a finding — the badge is overstating coverage.
-- **`docs/perf-analysis/` is frozen, cumulative evidence.** Never propose deleting, rewriting or "tidying" a committed bundle — not its `report.md`, not its `ANALYSIS.md`, and least of all `dump.json`, which is the client's own bytes and stops diffing against its neighbours the moment it is reformatted. The raw record is meant to outlive the write-up interpreting it, and the store is cumulative precisely so runs compare across addon versions; a reading that turned out wrong is corrected by the **next** capture's analysis, not by editing this one.
+- **`docs/perf-analysis/` is frozen, cumulative evidence.** Never propose deleting, rewriting or "tidying" a committed bundle — not its `report.md`, not its `ANALYSIS.md`, and least of all `dump.json`, which is the client's own bytes and stops diffing against its neighbors the moment it is reformatted. The raw record is meant to outlive the write-up interpreting it, and the store is cumulative precisely so runs compare across addon versions; a reading that turned out wrong is corrected by the **next** capture's analysis, not by editing this one.
 
 ### `docs/automated-tests/`
 
@@ -152,8 +152,8 @@ count already: it never descends into an untracked scratch or build directory, i
 file because a glob skipped a dotted path, and it is reproducible by the next reader from a clean
 checkout of the same SHA. `libs/` and `tests/_kit/` come out because they are **vendored** — code this
 repository must not patch (library-stack-§5, testing-§1), audited where it is authored, and sitting in
-nine near-identical copies across the collection, so counting them multiplies one upstream fact by nine
-and reports it as nine facts.
+eleven near-identical copies across the collection, so counting them multiplies one upstream fact by
+eleven and reports it as eleven facts.
 
 `tests/` stays **in**. That is the answer `layout-§1` now gives explicitly, and a census that drops it is
 quietly reporting on a smaller repository than the one being reviewed.
@@ -161,7 +161,7 @@ quietly reporting on a smaller repository than the one being reviewed.
 ### The two scopes that are not the default, and when each is right
 
 - **The TOC-derived load list** — *what the client actually loads*. Use it, and only it, for any claim
-  about runtime behaviour: registered slash tokens, raw `_G` writes, event registrations, taint surface.
+  about runtime behavior: registered slash tokens, raw `_G` writes, event registrations, taint surface.
   The cross-addon pass below is built entirely on this scope and carries the command for deriving it.
 - **The whole tracked set with no exclusions** — *what a checkout contains*. Use it for line-ending pins,
   `.gitattributes` agreement and packaging questions, where a vendored file is exactly as much of a
@@ -174,7 +174,7 @@ it to be inferred from the number, because it cannot be.
 
 ### What an unwritten scope actually does to a number
 
-Every figure here was re-measured on 2026-09-07 with the command printed beside it. They are worked
+Each figure here was measured with the command printed beside it, on the date it carries. They are worked
 examples, not a table to keep current — the point is the size of the gap, which is never small.
 
 - **The LOC cap.** A bundle claimed eleven files over `layout-§1`'s 1500-line cap across five repos. The
@@ -190,21 +190,23 @@ examples, not a table to keep current — the point is the size of the gap, whic
   ```
 
 - **Hard-coded `Interface\` paths.** Scoped to tracked `*.lua` excluding `libs/`, `tests/` and
-  PrettyChat's generated `GlobalStrings/`, the nine addons carry **75 lines holding 76 paths** —
-  BankLedger 17, LootHistory 19, ConsumableMaster 11, MultiMeters 8, KickCD 7, PanelMaster 7,
-  AbsorbTracker 3, WhatGroup 2, PrettyChat 1. Keep `GlobalStrings/` in and PrettyChat's 1 becomes
-  **93**, every one of the extra 92 inside a machine-written dump that no TOC loads. Twenty-one of the
-  76 are `Interface\Buttons\WHITE8x8`, the texture `standalone-windows` itself mandates for the shared
-  window edge, and twelve
-  are the addon's own `Interface\AddOns\…` art — so the number that matters is not 75 either, until the
-  sweep says which of the 76 it is even proposing to change.
+  PrettyChat's generated `GlobalStrings/`, the eleven addons carry **140 lines holding 141 paths**
+  (re-measured 2026-09-22) — ConsumableMaster 25, LootHistory 20, BankLedger 19, MultiMeters 19,
+  PanelMaster 13, KickCD 12, PartyFrameEnhanced 12, AuraMaster 6, AbsorbTracker 5, WhatGroup 5,
+  PrettyChat 4. Keep `GlobalStrings/` in and PrettyChat's 4 becomes **96**, every one of the extra 92
+  inside a machine-written dump that no TOC loads. Twenty-five of the
+  141 are `Interface\Buttons\WHITE8x8`, the texture `standalone-windows` itself mandates for the shared
+  window edge, and forty-one
+  are the addon's own `Interface\AddOns\…` art — so the number that matters is not 140 either, until the
+  sweep says which of the 141 it is even proposing to change.
 
 - **The same census with `libs/` left in.** A chrome pair reported as hundreds of `Interface\Tooltips`
-  hits is **138** across the nine when `libs/` is swept and **3** when it is not. The 135 difference is
-  one Ace3 payload counted nine times.
+  hits is **245** across the eleven when `libs/` is swept and **6** when it is not (re-measured
+  2026-09-22). The 239 difference is the vendored payload counted once per repo — 22 hits in ten of
+  them, 19 in PrettyChat.
 
-- **Bundles missing an `ANALYSIS.md`.** Measured today over the nine plus LibKa0s: **36 of 94**, against
-  a bundle figure of 35 of 93. That one is not a scope error — the tree gained a bundle since — and it is
+- **Bundles missing an `ANALYSIS.md`.** Re-measured 2026-09-22 over the eleven plus LibKa0s: **69 of
+  188**, against a bundle figure of 35 of 93. That one is not a scope error — the tree gained a bundle since — and it is
   here because it shows the other half of the rule. A census is true *as of a SHA*. Re-run it; never
   re-type it out of an earlier document.
 
@@ -228,7 +230,8 @@ not a check on the first; it is a second guess wearing the authority of a correc
 ## The cross-addon pass — the collisions only a same-session load exposes
 
 Everything above this line reviews one addon against itself. The collection's stated deployment is **all
-nine loaded in the same session**, and there is a whole class of defect that exists only at that scale:
+eleven loaded in the same session**, and there is a whole class of defect that exists only at that
+scale:
 two addons that are each correct in isolation and collide the moment the client has both. Nothing in a
 per-addon checklist can see it — the only cross-addon fault this collection has found was found by a lens
 held above the review bundles, not by any of the twenty passes that produced them. This section is that
@@ -249,7 +252,7 @@ That distinction is not pedantry; it is the difference between a clean result an
 both directions have real examples here:
 
 - A `RegisterChatCommand` census that walks `libs/` reports the token `mychat`, which no addon registers.
-  It is a comment inside vendored `AceConfigCmd-3.0.lua`, present in four of the nine repos.
+  It is a comment inside vendored `AceConfigCmd-3.0.lua`, present in seven of the eleven repos.
 - A raw-`SLASH_*` census scoped to "the repo minus `libs/`" reports **359 hits in PrettyChat** and would
   have you writing up a collection-wide violation of the AceConsole rule. Scoped to the TOC load list it
   reports **0**. Every one of those 359 lives in `GlobalStrings/GlobalStrings.lua`, a tracked but
@@ -260,10 +263,11 @@ So: derive the file list from the TOC, and **report every count with the command
 it**. A count whose denominator is unstated is not a count.
 
 ```sh
-# Run from the directory holding the sibling repos. The list is the nine — not
-# WhoGotLoots, not BuffTextNotifications, neither of which is a Ka0s addon.
-set -- AbsorbTracker BankLedger ConsumableMaster KickCD LootHistory \
-       MultiMeters PanelMaster PrettyChat WhatGroup
+# Run from the directory holding the sibling repos. The list is the eleven rows of
+# `WowAddonStandards/standards/ADDONS.md` — not WhoGotLoots, not BuffTextNotifications,
+# neither of which is a Ka0s addon.
+set -- AbsorbTracker AuraMaster BankLedger ConsumableMaster KickCD LootHistory \
+       MultiMeters PanelMaster PartyFrameEnhanced PrettyChat WhatGroup
 
 # The TOC-derived load list for one addon, from inside its root:
 tr -d '\r' < *.toc | grep -iE '\.lua$' | grep -v '^#' | sed 's|\\|/|g'
@@ -303,11 +307,11 @@ done                                        # any output bypasses AceConsole
 ### 2. Vendored LibKa0s minors, identical across every consumer
 
 This is the subtlest of the four and the one worth understanding before you run it. LibStub keys on the
-MAJOR string and admits a file only if its MINOR is **higher** than what is already registered. Nine
+MAJOR string and admits a file only if its MINOR is **higher** than what is already registered. Eleven
 copies of the same library therefore resolve to exactly one — **whichever addon loaded first** — and the
-other eight silently run a payload they did not ship. That is harmless while the copies are identical
+other ten silently run a payload they did not ship. That is harmless while the copies are identical
 and it is a genuine cross-addon fault the moment they are not: same minor, different bytes, and the
-behaviour an addon gets depends on alphabetical load order rather than on anything in its own repo.
+behavior an addon gets depends on alphabetical load order rather than on anything in its own repo.
 
 Identical minors across all consumers make the hazard **latent**. Divergent bytes at an identical minor
 make it **live**, which is why classes 2 and 3 are run together and neither is sufficient alone.
@@ -319,7 +323,7 @@ for a in "$@"; do
 done | sort -u                              # more than one line means a split
 ```
 
-**Clean is** a single line — one minor per major, agreed by all nine.
+**Clean is** a single line — one minor per major, agreed by all eleven.
 
 ### 3. Vendored payload byte-identity
 
@@ -332,7 +336,7 @@ for a in "$@"; do diff -rq AbsorbTracker/libs/LibKa0s "$a/libs/LibKa0s"; done
 ```
 
 The reference addon is arbitrary — say which one you used. Where a file differs, **check whether the
-difference survives CR-normalisation** before you write it up, because a line-ending straggler and an
+difference survives CR-normalization** before you write it up, because a line-ending straggler and an
 edited payload are the same `diff -rq` line and very different findings:
 
 ```sh
@@ -356,16 +360,16 @@ distinct values for the same number, which is a line-ending finding wearing an i
 
 ### The recorded baseline — diff against it, don't re-derive it
 
-All four classes were measured across the nine on **2026-09-07** and were clean. The point of writing the
+All four classes were measured across the eleven on **2026-09-22** and were clean. The point of writing the
 numbers down is that the next pass compares against them in a minute instead of re-establishing them in
 an hour:
 
-| Class | Result on 2026-09-07 |
+| Class | Result on 2026-09-22 |
 |---|---|
-| Slash tokens | 18 roots, 9 addons, zero collisions — `at`/`bl`/`cm`/`kcd`/`lh`/`mm`/`pm`/`pc`/`wg` plus each full addon name. All through AceConsole; zero raw `SLASH_*` in loaded source. |
-| Vendored minors | Identical across all nine for all ten majors: Core 7, DebugLog 12, Env 1, Item 1, Media 3, Options 14, Perf 7, Pool 3, Slash 7, Widgets 9. |
-| Payload bytes | 137 of 139 files byte-identical across the nine. The two exceptions are PrettyChat's `libs/LibKa0s/DebugLog.lua` and `libs/LibKa0s/Pool.lua`, which are **CR-normalisation-clean** — a known line-ending straggler, not an edit. |
-| `## Interface:` | `120007`, uniform. |
+| Slash tokens | 22 roots, 11 addons, zero collisions — `at`/`am`/`bl`/`cm`/`kcd`/`lh`/`mm`/`pm`/`pfe`/`pc`/`wg` plus each full addon name. All through AceConsole; zero raw `SLASH_*` in loaded source. |
+| Vendored minors | Identical across all eleven for all twelve majors: Core 7, DebugLog 12, Env 1, Item 1, Launcher 1, Lifecycle 1, Media 3, Options 23, Perf 12, Pool 3, Slash 14, Widgets 9. |
+| Payload bytes | 143 of 143 files byte-identical across the eleven (`diff -rq` against AbsorbTracker's copy, zero output for every other addon). |
+| `## Interface:` | `120100`, uniform. |
 
 A result that matches this table is a **non-finding you record in the measurement block**, not a finding.
 A result that departs from it is a finding, and the table tells you which direction it moved.
@@ -382,7 +386,7 @@ A result that departs from it is a finding, and the table tells you which direct
   The remedy is a re-vendor of the whole folder into the offending consumer, as its own commit.
 - **The in-client half belongs in `03_SMOKE_TESTS.md`,** and it is not optional just because the greps
   came back clean. Source-level token distinctness is not the same claim as the client's dispatch table:
-  write the step as *type each of the nine roots and confirm it reaches its own addon, then open
+  write the step as *type each of the eleven roots and confirm it reaches its own addon, then open
   Settings → AddOns and confirm each addon appears exactly once, and each multi-page addon's pages appear
   once each.* It is cheap to fold into any session where several are loaded anyway.
 
@@ -515,7 +519,7 @@ Write five artifacts to `docs/reviews/<YYYY-MM-DD>/` under the addon root (creat
 - **Measurement run** block, immediately under the verdict: one line per out-of-game suite from Step 0 — `luacheck`, the headless test suite, the fresh `--list` inventory, `tests/perf.lua`, `lizard`, a `make test` target, the vendor-sync `diff`, and the four-class cross-addon pass — each **pass / fail / skipped (reason)**, with counts and the exact command run. Then one line per committed artifact whose fresh run disagrees with it (`docs/test-cases.md`, `docs/automated-tests/RESULTS.md`, `docs/performance.md`). This block is what lets a reader tell what was **measured today** from what was **read off disk**, and it is where a skipped tool is recorded so no downstream claim reads as verified when it isn't. A cross-addon pass that matches the recorded baseline is recorded **here**, as a measured non-finding, so the next reviewer can see it was actually run. In-client checks are deliberately absent here — they live in `03_SMOKE_TESTS.md`.
 - **Every finding carries a `Reachability:` line, and it is written before its severity is chosen.** One sentence: **who hits this, in what configuration, today.** Not "a user could be affected" — name the actor and the path. `Any player on a default profile, every login.` `Only a developer who types /bl debug — an undocumented verb, unreachable from the UI.` `Nobody: the branch is guarded by a flag no shipping build sets.` `Only the test inventory — the assertion is vacuous; the shipped code is correct.` `A comment; no runtime effect.` If you cannot write that sentence from evidence, you do not yet know what the finding is worth, and the answer is not to guess upward.
 
-  This exists because defect *kind* alone has graded this collection wrong, repeatedly and in one direction. A format-string arity bug that prints one wrong chat line was filed **Critical**; a LibStub-key typo behind a developer-only diagnostic verb was filed **High**; an inert colour picker whose default already equals the colour it fails to paint was filed **High**; a vacuous vendor-sync assertion — test-inventory integrity, not shipped behaviour — was filed High or Medium in four repos. Every one of those was demoted in triage. Severity is what a reader budgets their week against, so it has to be auditable rather than a matter of taste, and the reachability line is what makes it auditable.
+  This exists because defect *kind* alone has graded this collection wrong, repeatedly and in one direction. A format-string arity bug that prints one wrong chat line was filed **Critical**; a LibStub-key typo behind a developer-only diagnostic verb was filed **High**; an inert color picker whose default already equals the color it fails to paint was filed **High**; a vacuous vendor-sync assertion — test-inventory integrity, not shipped behavior — was filed High or Medium in four repos. Every one of those was demoted in triage. Severity is what a reader budgets their week against, so it has to be auditable rather than a matter of taste, and the reachability line is what makes it auditable.
 
 - Findings grouped by severity. **A bucket has a floor set by the defect kind and a ceiling set by the reachability line; a finding must clear both.**
   - **Critical** — the defect kind must be **data loss, taint propagation, secret-value or protected-API leakage, or a failure to load** (security issues qualify on the same terms), **and** the reachability line must show that a **normal install reaches it**: a default profile, a documented command, an ordinary session. A leak or a taint path that only a developer verb reaches is not Critical; neither is a load failure that needs a configuration nobody ships. Both halves, or it is not Critical.

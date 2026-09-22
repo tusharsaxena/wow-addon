@@ -14,7 +14,7 @@ There is no local ledger. `docs/pending/LEDGER.md` is **retired** — the durabl
 
 **Status** — exactly one `state:` label per issue:
 
-| Status | Label | Colour | GitHub state | Meaning |
+| Status | Label | Color | GitHub state | Meaning |
 |---|---|---|---|---|
 | done | `state:done` | green `00ff00` | closed | Implemented. Terminal |
 | will-not-do | `state:will-not-do` | blue `0000ff` | closed | Will never be done. Terminal |
@@ -23,7 +23,7 @@ There is no local ledger. `docs/pending/LEDGER.md` is **retired** — the durabl
 
 **Severity** — exactly one `severity:` label per issue:
 
-| Severity | Label | Colour | Meaning |
+| Severity | Label | Color | Meaning |
 |---|---|---|---|
 | Critical | `severity:critical` | red `110000` | Taint, combat-lockdown breakage, saved-variable corruption or data loss, an error on a common path |
 | High | `severity:high` | orange `110800` | A user-visible defect, or a Ka0s standard deviation carried from an audit bundle |
@@ -61,7 +61,7 @@ The one exception, offered rather than assumed: the code, docs and memory sweeps
 
 ### Ensure the label set exists
 
-Before any write, make sure the eight collection labels exist on the repo. `gh label create --force` creates a missing label and updates an existing one's colour and description, so it is safe to run every time and repairs a drifted colour on the way:
+Before any write, make sure the eight collection labels exist on the repo. `gh label create --force` creates a missing label and updates an existing one's color and description, so it is safe to run every time and repairs a drifted color on the way:
 
 ```
 gh label create "state:untriaged"   --color ff0000 --description "Seen and recorded; nobody has been asked yet"  --force
