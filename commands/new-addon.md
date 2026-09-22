@@ -54,7 +54,31 @@ A new addon is born having adopted `automated-tests`. Before the first commit:
    nothing to the client. What is true and sufficient: a shebang followed by CRLF makes the kernel
    look for an interpreter literally named `bash\r`, and the vendored runner is then broken on every
    checkout. Take the wording from the fetched section, not from this summary.
-3. Create `docs/automated-tests/README.md` (what it is, how to run it, which suites gate) — and write
+3. **Wire the kit's two own suites into `tests/run.lua`.** Vendoring lands them; it does not turn
+   them on, and `Kit.assertSuiteInventory` scans `tests/_kit/` as well as `tests/`, so a scaffold
+   that skips this is born **red** naming the entries to add. That is the intended failure: a gate
+   that arrives silently and runs nothing is worse than no gate.
+
+   ```lua
+   Kit.run{ dir = "tests/", suites = {
+     "test_schema", ...,
+     { name = "test_eol",   dir = "tests/_kit/" },   -- line-endings-§7
+     { name = "test_prose", dir = "tests/_kit/" },   -- localization-§5, kit revision 24+
+   } }
+   ```
+
+   `test_prose` is the US-English gate. **Do not hand-write one** — `localization-§5` makes the
+   kit's copy the SHOULD precisely because eleven hand-written copies are eleven chances to carry a
+   subset, and a subset is a gate whose green means nothing. A new addon has no legacy copy to keep,
+   so it takes the kit's and writes none of its own.
+
+   A new addon normally needs **no** `tests/prose_waivers.lua`. Write one only when a scanned file
+   legitimately holds a British spelling that is not the addon's English to correct — a library's
+   field name, a Blizzard token matched verbatim, a generated dump of the client's own strings — and
+   then per **file** and per **word**, with the reason beside it, never per file alone. The three
+   MUSTs governing a waiver are in `localization-§5`; take them from the fetched section.
+
+4. Create `docs/automated-tests/README.md` (what it is, how to run it, which suites gate) — and write
    its "what gates, and what only records" section, plus `docs/testing.md`'s gate table, so each states
    **both checkpoints**: `lint` and `tests` gate the **commit**, `perf` and `complexity` never fail a
    **run** and never gate a commit, and the **release** (the tag) is gated on all four suites plus zero
@@ -63,7 +87,7 @@ A new addon is born having adopted `automated-tests`. Before the first commit:
    this summary and not from the context pack's one-line version. A gate sentence that names no
    checkpoint is the drift `/wow-addon:revendor-standards` sweep 3f exists to clean up; a new addon
    should not be born needing it.
-4. Run `~/.claude/wow-addon/bin/ka0s-bounded tests/_kit/run-automated-tests.sh` once, which writes the first bundle and creates
+5. Run `~/.claude/wow-addon/bin/ka0s-bounded tests/_kit/run-automated-tests.sh` once, which writes the first bundle and creates
    `RESULTS.md`.
 
 `docs/complexity.md` is **retired** (standard v2.19.0) — do not scaffold one. Neither is
