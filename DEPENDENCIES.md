@@ -8,15 +8,17 @@ The toolchain contract for **this** repository (documentation-§7).
 > explicit **not used here** list with reasons, and no invented rows. Every entry below names the
 > `file:line` in *this* tree that needs it; an entry with no such line does not belong here.
 >
-> The repo is 39 tracked files: 28 Markdown (the command and agent specs), three JSON manifests,
-> two Python files, two Bash scripts, the extensionless `scripts/ka0s-bounded`, plus `LICENSE`,
+> The repo is 40 tracked files: 28 Markdown (the command and agent specs), three JSON manifests,
+> two Python files, two Bash scripts, the extensionless `scripts/ka0s-bounded` and its POSIX `sh`
+> exec wrapper `bin/ka0s-bounded` (what puts the bare name on the plugin's PATH entry), plus `LICENSE`,
 > `.gitattributes` and `.gitignore`. Line endings are **LF** here, not the CRLF the client-bound
 > addon repos pin.
 
 ## The short version
 
 Clone it, then point Claude Code at it as a plugin. There is no build step and no package manifest —
-the two Python files are standard-library-only and the shell scripts are Bash.
+the two Python files are standard-library-only and the shell scripts are Bash, apart from the
+one-line POSIX `sh` wrapper `bin/ka0s-bounded`, which only `exec`s the Bash runner.
 
 ```sh
 git clone https://github.com/tusharsaxena/wow-addon.git
@@ -76,7 +78,7 @@ applicable".
 |---|---|---|
 | **Lua 5.1** | **not used here** | No `.lua` file is tracked in this repo. The Lua the specs talk about runs in the addon repo the command is invoked from. |
 | **luacheck** | **not used here** | Lint needs Lua to lint, and there is no `.luacheckrc`. |
-| **lizard** | **not used here** | Cyclomatic complexity over zero Lua functions is not a measurement. The two Python files and three shell scripts are on no complexity gate. |
+| **lizard** | **not used here** | Cyclomatic complexity over zero Lua functions is not a measurement. The two Python files and four shell scripts are on no complexity gate. |
 | **A WoW client** | **not used here** | Nothing here loads as an addon; there is no `.toc` and no `docs/smoke-tests.md`. |
 | **pip / a `requirements.txt`** | **not used here** | `bounded_runs.py` and `test_bounded_runs.py` import only the standard library (`json`, `os`, `re`, `shlex`, `sys`, `subprocess`, `tempfile`, `unittest`). Adding a manifest would be the first thing to go stale. |
 | **packager / release tooling** | **not used here** | No `.pkgmeta` and no artifact to publish. The plugin is consumed from the repo by Claude Code, not released as a build. |

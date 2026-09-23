@@ -1,0 +1,10 @@
+#!/bin/sh
+# wow-addon plugin: the bounded runner on the plugin's PATH entry.
+#
+# Claude Code puts <plugin>/bin on PATH, so this file is what makes the bare name work:
+#   ka0s-bounded luacheck .
+# The runner itself is scripts/ka0s-bounded (Bash); this only hands every argument to it, so its
+# bounds, variables, exit codes and messages are exactly the runner's. The hook's
+# ~/.claude/wow-addon/bin/ka0s-bounded symlink still points straight at scripts/ka0s-bounded, and
+# that absolute path keeps working where the plugin's bin/ is not on PATH.
+exec "$(dirname "$0")/../scripts/ka0s-bounded" "$@"
