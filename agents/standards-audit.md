@@ -215,13 +215,13 @@ collection genuinely stands down today.
 **Do not audit the slash surface against v2.56.0's narrowed text.** For one release (v2.56.0) the
 standard cut a disabled addon's slash surface to exactly `enable` and `help` and made refusing everything
 else a MUST. v2.57.0 **reversed that** and restored `slash-commands-§2` verbatim from v2.55.0, keeping
-`§7`'s stand-down whole. The rule to audit is `§2`'s: the chat command, the dispatcher and the
+`slash-commands-§7`'s stand-down whole. The rule to audit is `slash-commands-§2`'s: the chat command, the dispatcher and the
 `COMMANDS` table stay registered, and every reserved verb — `help`, `config`, `version`, `enable`,
 `disable`, `debug`, `perf` — the bare `/<slash>` and the whole schema CLI (`get`, `set`, `list`,
 `reset`, `resetall`) **MUST** keep answering normally while disabled. Refusing a **feature** verb is
 only a **SHOULD**, and an addon that declines it owes no register row. The findings therefore run the
 other way from v2.56.0: a disabled addon that refuses `config`, the bare `/<slash>` or any verb on that
-live list fails `§2`'s MUST. If a prior bundle in `docs/audits/` graded this area against v2.56.0's
+live list fails `slash-commands-§2`'s MUST. If a prior bundle in `docs/audits/` graded this area against v2.56.0's
 two-verb surface, say so rather than inheriting the verdict, and re-measure from the fetched section
 files. The surface also tells you nothing about whether the addon is inert — the other four parts
 below measure that.
@@ -234,7 +234,7 @@ and the auditor reading the code sees a flag that is honestly consulted everywhe
 behind is invisible on every surface a player or a reader can see: the client still walks its
 registration list on every `UNIT_AURA` in a twenty-five-man raid, still builds the argument frame, still
 enters Lua, and only then runs the comparison that decides to leave. That dispatch cost is what a player
-turning the addon off is trying to stop paying. **A handler that early-returns does not satisfy `§7`** —
+turning the addon off is trying to stop paying. **A handler that early-returns does not satisfy `slash-commands-§7`** —
 the addon stopped reacting, it did not stop watching — and an audit entry that reads "disable is handled
 at the visibility layer" is describing the deviation, not clearing it.
 
@@ -264,9 +264,9 @@ So measure it the way the rule is written — five parts, each backed by `file:l
   `/<slash>` and the schema CLI with their **normal** output (`slash-commands-§2`); refusing any of them
   is a MUST failure — and it is exactly what LibKa0s v1.40.0's Slash minor 12 shipped, so an addon still
   vendoring that tag fails it by construction. `disable` while already disabled echoes
-  `<enablePath> = false`, because it is an alias onto a schema write. Where the addon implements `§2`'s
+  `<enablePath> = false`, because it is an alias onto a schema write. Where the addon implements `slash-commands-§2`'s
   feature-verb **SHOULD**, a refused feature verb prints **one** tagged refusal line naming
-  `/<slash> enable` (`§7`, *The refusal line*) and reaches no write seam; where it declines the SHOULD,
+  `/<slash> enable` (`slash-commands-§7`, *The refusal line*) and reaches no write seam; where it declines the SHOULD,
   that is not a finding. The launcher's left-click on rungs (a) and (b) prints that same line and
   **writes nothing**, while right-click still opens the panel in either state (`launcher-§2`).
 - **The conformance suite.** `tests/test_disabled.lua`, listed in `tests/run.lua` and inside the green
@@ -274,7 +274,7 @@ So measure it the way the rule is written — five parts, each backed by `file:l
   on the **mock's registration set** or on a handler's return value, and whether the mocks record at all
   — a no-op `RegisterUnitEvent` in the kit makes the whole suite unfalsifiable, and a suite that goes
   green against a draw gate is a second draw gate, not a conformance test (`testing-§12`). Its step 7
-  asserts the `§2` live list answers normally and pins whichever way the addon answered the feature-verb
+  asserts the `slash-commands-§2` live list answers normally and pins whichever way the addon answered the feature-verb
   SHOULD; a step 7 still asserting v2.56.0's refusals is a finding.
 
 Three cheap greps orient the census; none of them is the finding on its own, and all three start from
@@ -301,10 +301,10 @@ MUST. File the draw gate as **one root** with the survivors `derived from <ID>` 
 produces all of them — and let a survivor **graduate** under the usual rule, which the combat-entry write
 does: it is higher-impact than its root and reachable independently of how the show ladder is spelled.
 
-**Adoption is overdue, not blocked.** `§7`'s compliant shape is built on `LibKa0s-Lifecycle-1.0`
+**Adoption is overdue, not blocked.** `slash-commands-§7`'s compliant shape is built on `LibKa0s-Lifecycle-1.0`
 (`library-stack`), which ships from LibKa0s **v1.40.0**. The adoption floor is **v1.42.0** (Slash minor
 14): v1.40.0's Slash minor 12 implemented v2.56.0's narrowed surface, and v1.41.0's minor 13 still
-refused a reserved verb the host never registered, so neither answers `§2` exactly. Both tags are
+refused a reserved verb the host never registered, so neither answers `slash-commands-§2` exactly. Both tags are
 released, so the gap belongs in the **addon's** execution plan: re-vendor to v1.42.0 or later, route the
 stand-down through the latch, and ship the suite. Hand-rolling the latch instead of adopting the module
 is `anti-patterns` #47. Name the tag the `CLAUDE.md` provenance line carries — an addon vendoring anything
@@ -315,9 +315,9 @@ older than v1.42.0 has not adopted, whatever its own code does.
 compliant, owes no row in `## Documented deviations`, and must not be written up, because that register is
 for ratified departures from a MUST or a SHOULD and filing declined MAYs there buries the real rows. An
 addon with nothing to lock does not acquire a lock path so it can register the verbs. And MultiMeters'
-**ratified** row for its master-lock semantics is **out of `§8`'s reach** — that row is about what `lock`
-*means* there, while `§8` is about which verbs exist and where they write. An auditor finding the row must
-not read `§8` as superseding it; a ratified row is unmade only by its owner.
+**ratified** row for its master-lock semantics is **out of `slash-commands-§8`'s reach** — that row is about what `lock`
+*means* there, while `slash-commands-§8` is about which verbs exist and where they write. An auditor finding the row must
+not read `slash-commands-§8` as superseding it; a ratified row is unmade only by its owner.
 
 ### Mechanical checks — run them, don't reason about them
 
