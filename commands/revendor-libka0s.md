@@ -1,5 +1,5 @@
 ---
-description: Re-vendor LibKa0s into an addon from the library's newest tag, then decide what to do with what arrived. Copies both payloads whole (libs/LibKa0s/ and tests/_kit/), rolls the CLAUDE.md provenance line in the same commit, and reports the delta — per-file LibStub minors, both diffs, the kit-revision pairing rule, which majors this addon actually consumes, and contract changes under surfaces whose signature did not move, which are adoption blockers rather than candidates. Then works out which new surfaces are candidates for adoption, recommends per candidate with file:line evidence out of the library's own docs/api/, interviews you one at a time most-valuable-first, and implements what you accept — characterization test first, luacheck and the headless harness green, one commit per candidate. Declines are filed as GitHub issues. Writes a frozen bundle to docs/revendor/<date>/. Read-only on libs/ and tests/_kit/ apart from the copy itself; never pushes.
+description: Re-vendor LibKa0s into an addon from the library's newest tag, then decide what to do with what arrived. Copies both payloads whole (libs/LibKa0s/ and tests/_kit/), rolls the CLAUDE.md provenance line in the same commit, and reports the delta — per-file LibStub minors, both diffs, the kit-revision pairing rule, which majors this addon actually consumes, and contract changes under surfaces whose signature did not move, which are adoption blockers rather than candidates. Then works out which new surfaces are candidates for adoption, recommends per candidate with file:line evidence out of the library's own docs/api/, interviews you one at a time most-valuable-first, and implements what you accept — characterization test first, luacheck and the headless harness green, one commit per candidate. Declines are filed as GitHub issues. Takes the delta base from the addon's own CLAUDE.md provenance line, never the library's previous tag. Writes a frozen bundle to docs/revendor/<date>-v<tag>/, plus one consolidated span bundle (docs/revendor/<date>-v<first>-v<last>/) when tags the addon vendored went unrecorded. Read-only on libs/ and tests/_kit/ apart from the copy itself; never pushes.
 argument-hint: [path | repo names | all] [--tag vX.Y.Z]
 allowed-tools: [Read, Glob, Grep, Bash, Edit, Write, AskUserQuestion]
 ---
@@ -25,6 +25,33 @@ This command is both halves, consumer-side, one repo at a time. It re-vendors, d
 | `/wow-addon:harvest-standards` | It reads `docs/revendor/` bundles as evidence. They are **frozen** — never edit a past bundle. |
 
 This is, with `new-addon`, one of only two specs in this plugin that writes an addon's own Lua. Step 7's fences are what make that safe; do not relax them.
+
+## Step 0 — Pre-flight: does each addon's newest bundle state the right base?
+
+Report only; it writes nothing and fixes nothing. For every addon in the standards roster (`../WowAddonStandards/standards/ADDONS.md`, *In-scope addons*), compare the base on line 1 of its newest `docs/revendor/` bundle with the provenance tag the addon carried just before the commit that vendored that bundle's tag. Run it from the target addon's root:
+
+```sh
+tag_at() {  # the provenance tag in <repo>'s CLAUDE.md at <rev>
+  git -C "$1" show "$2:CLAUDE.md" 2>/dev/null |
+    grep -oE 'Bundles \[LibKa0s\]\([^)]*\) v[0-9]+\.[0-9]+\.[0-9]+' |
+    grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1
+}
+sed -n '/^## In-scope addons/,/^## Ka0s-owned/p' ../WowAddonStandards/standards/ADDONS.md |
+  grep -oE '\]\(\.\./\.\./[A-Za-z]+/\)' | cut -d/ -f3 | while read -r a; do
+  r=../$a; b=$(ls -1d "$r"/docs/revendor/*/ 2>/dev/null | sort | tail -1)
+  [ -n "$b" ] || { echo "$a: no store"; continue; }
+  tags=$(head -1 "$b/01_DELTA.md" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
+  said=$(echo "$tags" | head -1); new=$(echo "$tags" | tail -1)
+  c=$(git -C "$r" log --format=%H -- libs/LibKa0s tests/_kit CLAUDE.md | while read -r h; do
+        [ "$(tag_at "$r" "$h")" = "$new" ] && [ "$(tag_at "$r" "$h^")" != "$new" ] && { echo "$h"; break; }
+      done)
+  was=$(tag_at "$r" "$c^"); s=$(git -C "$r" rev-parse --short "$c")
+  if [ "$said" = "$was" ]; then v=ok; else v="MISMATCH: bundle base $said, provenance before $s was $was"; fi
+  echo "$a  $(basename "$b")  base $said  vendored-before $was@$s  $v"
+done
+```
+
+The re-vendor commit is the newest one touching either payload or `CLAUDE.md` whose provenance line names the bundle's new tag while its parent's does not; the base is the tag at that parent. Both payload paths again, because a kit-only re-vendor rolls the line from `tests/_kit/` alone, and `CLAUDE.md` because a provenance-only roll touches neither. Print the table before Step 1 and carry any `MISMATCH` row into that addon's 3a correction paragraph when it is re-vendored. A missing `../WowAddonStandards` checkout is a **stated skip** of this step, never a pass.
 
 ## Step 1 — Resolve the scope
 
@@ -69,7 +96,7 @@ If `git archive` fails, or the working tree is dirty in a way that suggests the 
 
 ## Step 3 — Establish the delta → `01_DELTA.md`
 
-Six reads. **Each one is recorded with the command that produced it — a claim without its command is not a finding.**
+Seven reads and one record (3h). **Each one is recorded with the command that produced it — a claim without its command is not a finding.**
 
 ### 3a. Claimed version
 
@@ -79,10 +106,28 @@ grep -n '[Bb]undles' <Addon>/CLAUDE.md
 
 Grep case-insensitively and tolerate mid-sentence phrasing. What the template fixes is the **shape, not the wording**: a line that names the library and names the version satisfies it wherever it sits in a sentence. A capital-anchored sweep once reported a repo as carrying no provenance line at all when it had always had one. Do not rewrite two true lines to look alike.
 
+**The delta base is the tag this provenance line names.** It is the tag the addon actually vendored last, and it is **never "the library's previous tag"**: an addon can sit several releases behind, and it can have taken a kit-only re-vendor that rolled the line while the library bytes stayed put. Cross-check it against the last commit that touched either payload, and the provenance line as that commit left it:
+
+```sh
+c=$(git -C <Addon> log -1 --format=%H -- libs/LibKa0s tests/_kit)
+git -C <Addon> show "$c:CLAUDE.md" | grep -oE 'Bundles \[LibKa0s\]\([^)]*\) v[0-9]+\.[0-9]+\.[0-9]+'
+```
+
+Walk **both** paths. A kit-only re-vendor touches `tests/_kit/` alone and still rolls the line, and a walk over `libs/LibKa0s` by itself never sees it. The two answers agree, or the disagreement is a finding reported before anything is copied, the same as 3b's. With the base settled, every range in this run is `<base>..<new>`:
+
+```sh
+git -C ../LibKa0s log --oneline <base>..<new>
+git -C ../LibKa0s diff --stat <base> <new>
+```
+
+Record the base in `01_DELTA.md` with the commands that produced it. Line 1 of that file is exactly `Delta: LibKa0s <base> -> <new>`, for example `Delta: LibKa0s v1.55.0 -> v1.56.0`. The standards audit's re-vendor check reads the tags off that line, so it carries both tags and nothing else that looks like one. Library tags inside `<base>..<new>` that this addon never vendored need no record of their own: the range above already covers them.
+
+**A misstated base in a frozen bundle is corrected here, once, and never there.** Run Step 0's pre-flight for this addon. If the newest existing bundle's line 1 names a base that disagrees with the provenance line at the re-vendor before it, add one paragraph to the **new** bundle's `01_DELTA.md` naming the old folder, the base it stated, the base the history shows, and the command that shows it. Never edit the old bundle (`audit-review-history`: a frozen bundle is corrected by the next bundle, never rewritten).
+
 ### 3b. Actual version
 
 ```sh
-grep -hoE 'local (MAJOR, )?(MINOR|WIDGETS_MINOR|SCROLL_MINOR|PANEL_MINOR) *= *("[^"]+", *)?[0-9]+' \
+grep -hoE 'local (MAJOR, )?[A-Z_]*MINOR *= *("[^"]+", *)?[0-9]+' \
   <Addon>/libs/LibKa0s/*.lua
 ```
 
@@ -90,16 +135,17 @@ The line is a **claim**; the minors are the **fact**. Disagreement between them 
 
 ### 3c. Per-file minor delta
 
-Old versus tag, every shipped file by its **exact constant name** — the secondary files carry their own name rather than `MINOR` because they attach to a shell that already owns that local:
+Old versus tag, every shipped file by its **exact constant name**. A major's own file declares `local MAJOR, MINOR`. A secondary file attaches to a shell that already owns that local, so it carries its own `<NAME>_MINOR` instead: `WIDGETS_MINOR`, `TABS_MINOR`, `COMPOSE_MINOR`, `SCROLL_MINOR`, `DRAG_MINOR` and `PANEL_MINOR` as of v1.55.0. Keep no table of those names here; derive it. The file list comes from the tag's `LibKa0s/LibKa0s.xml`, and each file's constant from the one grep whose `[A-Z_]*MINOR` matches every one of them:
 
-| File | Constant |
-|---|---|
-| `Core.lua`, `Media.lua`, `DebugLog.lua`, `Slash.lua`, `Options.lua`, `Perf.lua` | `MINOR` |
-| `OptionsWidgets.lua` | `WIDGETS_MINOR` |
-| `OptionsScroll.lua` | `SCROLL_MINOR` |
-| `PerfPanel.lua` | `PANEL_MINOR` |
+```sh
+for f in $(git -C ../LibKa0s show <new>:LibKa0s/LibKa0s.xml | grep -oE 'file="[^"]+\.lua"' | cut -d'"' -f2); do
+  printf '%s  old: %s  new: %s\n' "$f" \
+    "$(grep -hoE 'local (MAJOR, )?[A-Z_]*MINOR *= *("[^"]+", *)?[0-9]+' <Addon>/libs/LibKa0s/"$f" 2>/dev/null)" \
+    "$(git -C ../LibKa0s show <new>:LibKa0s/"$f" | grep -hoE 'local (MAJOR, )?[A-Z_]*MINOR *= *("[^"]+", *)?[0-9]+')"
+done
+```
 
-**Read the file list from the tag's `LibKa0s/LibKa0s.xml`, not from that table.** The table is what the names look like today; the XML is what shipped. A module added upstream must appear in this delta without anyone editing this spec.
+**The XML is what shipped; a list of names in this spec is only what the names looked like the day it was written.** A module added upstream must appear in this delta without anyone editing this spec. A file whose `old:` column is empty is new in this range.
 
 A consumer behind on any file is **cross-major skew**, and it is the most serious thing this step can find: it is the failure mode whole-folder vendoring exists to prevent, and it does not announce itself at runtime. Report the file, both minors, and what the consumer therefore does not have.
 
@@ -149,8 +195,8 @@ The worked example is the one this read was written for. `OptionsCompose.lua` mi
 
 ```sh
 git -C ../LibKa0s show <tag>:docs/api/<Major>/version-<new>-docs.md | head -20   # the header table
-diff <(git -C ../LibKa0s show <old-tag>:docs/api/<Major>/version-<old>-docs.md) \
-     <(git -C ../LibKa0s show <tag>:docs/api/<Major>/version-<new>-docs.md)
+diff <(git -C ../LibKa0s show <base>:docs/api/<Major>/version-<old>-docs.md) \
+     <(git -C ../LibKa0s show <new>:docs/api/<Major>/version-<new>-docs.md)
 ```
 
 **Then read that diff for what is *not* new.** A `Since` marker is an addition; it belongs to Step 5, where the user decides. A changed sentence under a surface that already existed, or a MUST that appeared in this range, is a contract change and belongs here — the library documents its half of a seam by stating what the host owes it, and a new MUST is a MUST somebody's existing code was written before. In the worked example the document says so outright, in a section that did not exist a version earlier — "The one contract that tightened, for a host that supplies its own `LSMValues`" — and the `LSMValues` row itself gains a sentence while its surface, its `Since` marker and its arguments all stay put. That is the signature of this class: the tables look unchanged and the prose around them does not.
@@ -168,7 +214,46 @@ For each site, list the members the addon supplies and check every one against t
 
 If the fix needs a decision rather than an edit — the host's shape is deliberate, or the right replacement is not obvious from the document — **stop before the copy** and report the blocker with both versions quoted. Staying one release behind is recoverable and visible. Landing a payload that silently breaks a page, under a commit message saying every suite was green, is the outcome this read was written to prevent.
 
-Write all of this to `docs/revendor/<YYYY-MM-DD>/01_DELTA.md` **before copying anything.** 3g is why that ordering is a rule rather than a habit: a blocker found after the copy is a blocker found in a repo that is already carrying it. If the delta is empty — same tag, both diffs clean, kit revision matching, nothing in 3g — say so, write the bundle, and stop. There is nothing to adopt from a release the addon already has.
+### 3h. Tags this addon vendored and never recorded → a consolidated span bundle
+
+3a's base answers "what did the addon carry last?" This read answers a different question: did every tag the addon **vendored** get a bundle? The listing is the standards audit's re-vendor check (`AUDIT.md`, *Check every re-vendor commit has its bundle*), run before this run's copy:
+
+```sh
+cd <Addon>
+horizon=$(ls -1 docs/revendor | sort | head -1 | cut -c1-10)   # the store's first bundle
+
+git log --since="$horizon 00:00" --format=%H -- libs/LibKa0s tests/_kit CLAUDE.md | while read -r c; do
+  git show "$c:CLAUDE.md" 2>/dev/null |
+    grep -oE 'Bundles \[LibKa0s\]\([^)]*\) v[0-9]+\.[0-9]+\.[0-9]+' |
+    grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1
+done | sort -uV > <scratch>/vendored.txt
+
+for b in docs/revendor/*/; do
+  n=$(basename "$b" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | wc -l)
+  if [ "$n" -ge 2 ]; then
+    head -1 "$b/01_DELTA.md" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+'
+  else
+    t=$(basename "$b" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    [ -n "$t" ] || t=$(head -1 "$b/01_DELTA.md" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | tail -1)
+    [ -n "$t" ] && echo "$t"
+  fi
+done | sort -uV > <scratch>/recorded.txt
+
+grep -vxF -f <scratch>/recorded.txt <scratch>/vendored.txt       # vendored, in scope, unrecorded
+```
+
+This walk adds `CLAUDE.md` to the audit's two paths. A tag whose payload equalled the one before it can arrive as a provenance roll alone, touching neither payload folder (AuraMaster's v1.45.0, `8923a1a`). The addon still claims to carry that tag, so the span names it; a tag recorded twice costs nothing, and one left off is reported unrecorded. The `--since` bound carries `00:00` because git fills a bare date's time of day from the clock and would drop the horizon's own morning. A store with no bundle yet has no horizon and nothing to back-fill; it is measured from this run on.
+
+**Empty output → nothing to write.** Otherwise write **one** consolidated span bundle beside this run's own, shaped exactly as `audit-review-history` fixes it, because the audit's check reads it:
+
+- folder `docs/revendor/<YYYY-MM-DD>-v<first>-v<last>/`, named for the first and last unrecorded tags;
+- `01_DELTA.md` and `05_SUMMARY.md` **only**. The middle three record deliberation, and a span carried by sweeps had none;
+- line 1 of `01_DELTA.md` exactly `Delta: LibKa0s v<first> -> v<last> (span: v<first> v<...> v<last>)`, the `span:` list naming **every** unrecorded tag in version order, first and last included. A tag left off that line is a tag the audit reports as unrecorded. Below it, the two listing commands and their output;
+- `05_SUMMARY.md` with one line per tag: `v<X.Y.Z>: carried by sweep, nothing adopted`, or the short sha of the commit that adopted something from it.
+
+Library tags the addon never vendored do not belong on the span line; the addon did not carry them, so there is nothing to record. The span bundle is written in the same run as this re-vendor's bundle and is frozen from then on like every other.
+
+Write all of this to `docs/revendor/<YYYY-MM-DD>-v<new>/01_DELTA.md` **before copying anything.** 3g is why that ordering is a rule rather than a habit: a blocker found after the copy is a blocker found in a repo that is already carrying it. If the delta is empty — same tag, both diffs clean, kit revision matching, nothing in 3g — say so, write the bundle, and stop. There is nothing to adopt from a release the addon already has.
 
 ## Step 4 — The copy
 
@@ -216,7 +301,7 @@ Then **one commit**, carrying both payloads *and* the provenance line together. 
 Three sources, in this order. **Never from memory, and never from an API document's summary paragraph.**
 
 ```sh
-git -C ../LibKa0s log --oneline <old-tag>..<new-tag>
+git -C ../LibKa0s log --oneline <base>..<new>   # <base> from 3a, never the library's previous tag
 ```
 
 - the `CHANGELOG.md` version blocks in that range — each release block names every file's new minor and says what changed;
@@ -296,7 +381,8 @@ Fences, all four of which hold on every candidate:
 
 Both carry the same facts:
 
-- the tag moved from → to, and the per-file minor table;
+- the tag moved from → to, with the base 3a took from the provenance line, and the per-file minor table;
+- any consolidated span bundle 3h wrote, by folder and tag count, and any base correction 3a recorded;
 - what reached the addon **for free** (class A) — this is the part that is invisible otherwise;
 - any **contract blocker** 3g found, both documents' lines, and how it was resolved — or that the run stopped before the copy because it was not;
 - what was **adopted**, with each commit;
@@ -304,6 +390,6 @@ Both carry the same facts:
 - what was **skipped or unreached**, and why;
 - the suite results at each gate, with any tool that was skipped named as skipped.
 
-The bundle lives at `<Addon>/docs/revendor/<YYYY-MM-DD>/` and is **frozen**: a later run makes a new dated folder, and the difference between two folders is the record of what moved. `/wow-addon:harvest-standards` reads these as evidence — never edit a past bundle, and never rewrite one whose notation the standard has since retired. It records what was true against the library of *its* date, which is what a dated artifact is for.
+The bundle lives at `<Addon>/docs/revendor/<YYYY-MM-DD>-v<new>/`, named for the tag it vendored (a consolidated span bundle from 3h sits beside it under its own two-tag name), and is **frozen**: a later run makes a new folder, and the difference between two folders is the record of what moved. `/wow-addon:harvest-standards` reads these as evidence — never edit a past bundle, and never rewrite one whose notation the standard has since retired. It records what was true against the library of *its* date, which is what a dated artifact is for.
 
 In a multi-repo run, print a per-repo summary as each repo finishes rather than one at the end, and a final roster line saying which repos completed, which were skipped, and which the user stopped.
