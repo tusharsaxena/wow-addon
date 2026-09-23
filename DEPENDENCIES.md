@@ -51,7 +51,7 @@ are listed because losing one silently weakens the guard the whole repo exists t
 
 | Software | Package manager | Why this repo needs it | Evidence | Install (WSL2 / Ubuntu) | Verify |
 |---|---|---|---|---|---|
-| **python3** (with `unittest`) | `apt` (`python3`) | The repo's only test file. Run it after touching either bounded-runs file. | `scripts/test_bounded_runs.py:1-13`; `CLAUDE.md:40` | `sudo apt install -y python3` | `python3 scripts/test_bounded_runs.py` |
+| **python3** (with `unittest`) | `apt` (`python3`) | The repo's only test file. Run it after touching either bounded-runs file. | `scripts/test_bounded_runs.py:1-13`; `CLAUDE.md:41` | `sudo apt install -y python3` | `python3 scripts/test_bounded_runs.py` |
 | **git** | `apt` (`git`) | `.gitattributes` pins this repo to **LF**. `git check-attr` is the only correct reader of that pin. | `.gitattributes`; `scripts/normalize-eol.sh:52` | `sudo apt install -y git` | `git check-attr text eol -- CLAUDE.md` |
 | **Claude Code** | its own installer | The specs in `commands/` and `agents/` are only executable as plugin slash commands and subagents; `/reload-plugins` is the load check. | `.claude-plugin/plugin.json`; `CLAUDE.md:5` | see the Claude Code docs | `/reload-plugins` in a session |
 
@@ -62,10 +62,10 @@ them — but a command will report a skip or a stall without them, so they are n
 
 | Software | Package manager | Which specs need it | What happens without it |
 |---|---|---|---|
-| **`gh`** (GitHub CLI), authenticated | `apt` (`gh`, from the GitHub apt repository) | the six `issue-*` commands, `harvest-standards`, `revendor-libka0s`'s decline filing, the `standards-audit` agent's register read | `issue-audit` treats it as a skipped sweep; the others report an unfiled write rather than degrading silently (`CLAUDE.md:69`, `CLAUDE.md:68`) |
-| **network access to raw GitHub** | — | `standards-audit`, `new-addon`, `revendor-standards`, `automated-tests`, `perf-analysis` fetch the `WowAddonStandards` playbooks at runtime | the command cannot start; it says so rather than working from memory (`CLAUDE.md:51`) |
+| **`gh`** (GitHub CLI), authenticated | `apt` (`gh`, from the GitHub apt repository) | the six `issue-*` commands, `harvest-standards`, `revendor-libka0s`'s decline filing, the `standards-audit` agent's register read | `issue-audit` treats it as a skipped sweep; the others report an unfiled write rather than degrading silently (`CLAUDE.md:70`, `CLAUDE.md:69`) |
+| **network access to raw GitHub** | — | `standards-audit`, `new-addon`, `revendor-standards`, `automated-tests`, `perf-analysis` fetch the `WowAddonStandards` playbooks at runtime | the command cannot start; it says so rather than working from memory (`CLAUDE.md:52`) |
 | **sibling checkouts on local disk** | — | `revendor-libka0s` reads `../LibKa0s` at a git tag; `harvest-standards` reads every addon repo and the standards working tree | reported as not run, never inferred (`commands/revendor-libka0s.md`, `commands/harvest-standards.md`) |
-| **Lua 5.1**, **luacheck**, **lizard** | `apt` (`lua5.1`), `luarocks` (`luacheck`), `pip` (`lizard`) | `run-tests`, `review`, `bump-version`, `standards-audit`, `automated-tests` — all of which execute **inside an addon repo**, never here | a **stated skip** / *not run*, never an inferred pass and never a fabricated number (`CLAUDE.md:59`, `CLAUDE.md:58`) |
+| **Lua 5.1**, **luacheck**, **lizard** | `apt` (`lua5.1`), `luarocks` (`luacheck`), `pip` (`lizard`) | `run-tests`, `review`, `bump-version`, `standards-audit`, `automated-tests` — all of which execute **inside an addon repo**, never here | a **stated skip** / *not run*, never an inferred pass and never a fabricated number (`CLAUDE.md:60`, `CLAUDE.md:59`) |
 
 ## Not used here, and why
 
