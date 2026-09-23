@@ -62,7 +62,7 @@ But a committed artifact is a **claim about a past state of the code**, and the 
 | **Vendor sync** | `diff -r libs/<Lib>/ ../<LibRepo>/<ship folder>/` and `diff -r tests/_kit/ ../LibKa0s/testkit/` | whether a vendored copy has drifted from its source |
 | **Cross-addon** | the four collision-class commands in *The cross-addon pass*, run from the directory holding the siblings | slash-token, vendored-minor, payload-byte and `## Interface:` collisions across the whole collection |
 
-Three notes on the last three rows. **`make test` is usually a wrapper** — if it plainly re-runs lint and the suite, run it *instead of* those and say so, rather than reporting the same suite twice; if it does something additional, run it as its own suite. **Vendor sync only runs when the sibling library repo is on local disk** — it is a `diff`, not a suite, and it needs both copies. When the source repo isn't beside this one, that is a skip, not a pass. It earns its place here because its failure is otherwise **invisible**: both repos stay green while the copies diverge, since each suite tests its own copy. A drift is an `[upstream]`-adjacent finding whose remediation is *re-vendor the whole folder*, never edit either side. **The cross-addon pass has the same precondition and the same failure mode** — it needs the eight siblings on disk, and every collision it looks for is invisible to a suite that only ever loads one addon. Its own section below carries the commands, the scoping rule and the baseline to diff against.
+Three notes on the last three rows. **`make test` is usually a wrapper** — if it plainly re-runs lint and the suite, run it *instead of* those and say so, rather than reporting the same suite twice; if it does something additional, run it as its own suite. **Vendor sync only runs when the sibling library repo is on local disk** — it is a `diff`, not a suite, and it needs both copies. When the source repo isn't beside this one, that is a skip, not a pass. It earns its place here because its failure is otherwise **invisible**: both repos stay green while the copies diverge, since each suite tests its own copy. A drift is an `[upstream]`-adjacent finding whose remediation is *re-vendor the whole folder*, never edit either side. **The cross-addon pass has the same precondition and the same failure mode** — it needs the other ten siblings on disk, and every collision it looks for is invisible to a suite that only ever loads one addon. Its own section below carries the commands, the scoping rule and the baseline to re-derive and diff against.
 
 **Every run goes through the bounded runner.** Prefix each command with `~/.claude/wow-addon/bin/ka0s-bounded` (e.g. `~/.claude/wow-addon/bin/ka0s-bounded lua tests/run.lua`). It caps process memory, process-tree memory and wall-clock time, and queues on a machine-wide slot pool, so running several repos' suites **in parallel** is fine — the pool, not you, decides how many run at once. The plugin's `PreToolUse` hook refuses an unbounded `lua tests/run.lua` / `tests/perf.lua`, `run-automated-tests.sh`, `luacheck` or `lizard` (a repo whose `tests/_kit` is kit revision 23+ self-bounds its Lua runs and is let through). A run that exits **124** hit the time limit and **137** was killed, most likely by the memory limit — report either as exactly that, never as a test failure or a pass.
 
@@ -358,21 +358,56 @@ for a in "$@"; do grep -h '^## Interface:' "$a"/*.toc; done | tr -d '\r' | sort 
 **Clean is** a single line. Note the `tr -d '\r'` — without it a CRLF repo and an LF one report two
 distinct values for the same number, which is a line-ending finding wearing an interface finding's coat.
 
-### The recorded baseline — diff against it, don't re-derive it
+### The recorded baseline — re-derive it, then diff against it
 
-All four classes were measured across the eleven on **2026-09-22** and were clean. The point of writing the
-numbers down is that the next pass compares against them in a minute instead of re-establishing them in
-an hour:
+All four classes were measured across the eleven on **2026-09-23** and were clean, against **LibKa0s
+v1.56.0**. Every figure below sits beside the command that produced it, so the next pass re-derives it
+in a minute instead of trusting a number that has since moved. **Re-run every command at review time;
+never copy a figure out of this table into a bundle.** Run them from the directory holding the siblings,
+with the eleven names in `$@` as above, and with the library's tag taken from the checkout rather than
+from this page:
 
-| Class | Result on 2026-09-22 |
-|---|---|
-| Slash tokens | 22 roots, 11 addons, zero collisions — `at`/`am`/`bl`/`cm`/`kcd`/`lh`/`mm`/`pm`/`pfe`/`pc`/`wg` plus each full addon name. All through AceConsole; zero raw `SLASH_*` in loaded source. |
-| Vendored minors | Identical across all eleven for all twelve majors: Core 7, DebugLog 12, Env 1, Item 1, Launcher 1, Lifecycle 1, Media 3, Options 23, Perf 12, Pool 3, Slash 14, Widgets 9. |
-| Payload bytes | 143 of 143 files byte-identical across the eleven (`diff -rq` against AbsorbTracker's copy, zero output for every other addon). |
-| `## Interface:` | `120100`, uniform. |
+```sh
+tag=$(git -C LibKa0s describe --tags --abbrev=0)   # v1.56.0 when this table was recorded
+```
 
-A result that matches this table is a **non-finding you record in the measurement block**, not a finding.
-A result that departs from it is a finding, and the table tells you which direction it moved.
+| Figure | Command | Recorded (2026-09-23, `$tag` = v1.56.0) |
+|---|---|---|
+| Addons | the rows of `WowAddonStandards/standards/ADDONS.md`'s *In-scope addons* table, which is the `set --` list above | **11** |
+| LibKa0s majors | `git -C LibKa0s show "${tag}:tests/majors.lua" \| grep -c 'major = "LibKa0s-'` | **15** |
+| Per-major minors at the tag | `git -C LibKa0s grep -hoE 'local MAJOR, MINOR = "LibKa0s-[A-Za-z]+-1\.0", [0-9]+' "$tag" -- LibKa0s \| sed -E 's/.*"LibKa0s-([A-Za-z]+)-1\.0", ([0-9]+)/\1:\2/' \| sort \| tr '\n' ' '` | Bus 2, Compat 1, Core 8, DebugLog 13, Env 1, Item 2, Launcher 2, Lifecycle 2, Media 4, Options 24, Perf 13, Pool 3, Schema 2, Slash 15, Widgets 10 |
+| Per-file minors at the tag | `git -C LibKa0s grep -hoE '^local [A-Z]+_MINOR = [0-9]+' "$tag" -- LibKa0s` | OptionsCompose 7, OptionsScroll 4, OptionsTabs 4, OptionsWidgets 31, PerfPanel 5, WidgetsDragHandle 2 — so the Options key is 24.31.4.7.4, Perf 13.5, Widgets 10.2 (the tag's `CHANGELOG.md` *Versions in this release* line states the same list) |
+| Kit revision at the tag | `git -C LibKa0s grep -h '^Kit.VERSION' "$tag" -- testkit/framework.lua` | **26** |
+| Payload files at the tag | `git -C LibKa0s ls-tree -r --name-only "$tag" LibKa0s \| wc -l` | **146** |
+| Class 1: slash tokens | the two loops under *Slash-token distinctness*; `wc -l < /tmp/roots.txt` for the count | **22** roots across 11 addons, zero collisions — `at`/`am`/`bl`/`cm`/`kcd`/`lh`/`mm`/`pm`/`pfe`/`pc`/`wg` plus each full addon name. All through AceConsole; zero raw `SLASH_*` in loaded source. |
+| Class 2: vendored minors | the loop under *Vendored LibKa0s minors* | a **single line**, agreed by all eleven |
+| Class 3: payload bytes | the loop under *Vendored payload byte-identity*; `find AbsorbTracker/libs/LibKa0s -type f \| wc -l` for the file count | zero output for every addon against AbsorbTracker's copy |
+| Class 4: `## Interface:` | the loop under *`## Interface:` uniformity* | `120100`, uniform |
+
+**What the consumers held on 2026-09-23.** Every one of the eleven still bundled **v1.55.0** (its
+`CLAUDE.md` provenance line), so classes 2 and 3 were clean at the *previous* tag's figures — minors
+Bus 1, Compat 1, Core 7, DebugLog 12, Env 1, Item 1, Launcher 1, Lifecycle 1, Media 3, Options 23,
+Perf 12, Pool 3, Schema 1, Slash 14, Widgets 9, kit revision 25, 146 files — not at the v1.56.0 row
+above. That is the normal state between a library release and the re-vendor sweep that follows it, and
+it is not a cross-addon fault: classes 2 and 3 ask whether the eleven **agree with each other**, never
+whether they agree with the library's newest tag. A consumer behind the tag is a
+`/wow-addon:revendor-libka0s` question, and belongs in this bundle only as the provenance line you read.
+
+**How to read a mismatch.** First compare `$tag` with the tag recorded in this table's header.
+
+- **The tag moved** (`$tag` is newer than v1.56.0). Every library-derived row may legitimately differ —
+  a new major, a raised minor, a new kit revision, a changed file count. That is a **stale brief, not
+  drift**: record today's figures in the measurement block, name the tag you measured at, and say the
+  brief's baseline is behind. It is not a finding against the addon.
+- **The tag did not move.** A library-derived row that differs means the library checkout is dirty or
+  on another branch — say so and measure at the tag. A class row that departs from *clean* is a
+  **finding**, and the recorded figures tell you which direction it moved: a second line out of class 2,
+  a `diff -rq` line out of class 3, a second `## Interface:` value, or a token claimed twice.
+- **The roster moved** (the `ADDONS.md` count is not 11). Update `$@` from the roster, not from this
+  page, and re-run all four classes before comparing anything; the slash-root count moves with it.
+
+A result that matches is a **non-finding you record in the measurement block**, with the tag you
+measured at. A result that departs is either a stale brief or a finding, and the rules above say which.
 
 ### Reporting what you find
 
