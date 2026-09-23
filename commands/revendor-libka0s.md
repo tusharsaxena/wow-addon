@@ -38,7 +38,10 @@ tag_at() {  # the provenance tag in <repo>'s CLAUDE.md at <rev>
 }
 sed -n '/^## In-scope addons/,/^## Ka0s-owned/p' ../WowAddonStandards/standards/ADDONS.md |
   grep -oE '\]\(\.\./\.\./[A-Za-z]+/\)' | cut -d/ -f3 | while read -r a; do
-  r=../$a; b=$(ls -1d "$r"/docs/revendor/*/ 2>/dev/null | sort | tail -1)
+  r=../$a
+  b=$(ls -1d "$r"/docs/revendor/*/ 2>/dev/null | while read -r d; do   # single-tag bundles only
+        [ "$(basename "$d" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | wc -l)" -lt 2 ] && echo "$d"
+      done | sort -V | tail -1)
   [ -n "$b" ] || { echo "$a: no store"; continue; }
   tags=$(head -1 "$b/01_DELTA.md" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
   said=$(echo "$tags" | head -1); new=$(echo "$tags" | tail -1)
@@ -50,6 +53,8 @@ sed -n '/^## In-scope addons/,/^## Ka0s-owned/p' ../WowAddonStandards/standards/
   echo "$a  $(basename "$b")  base $said  vendored-before $was@$s  $v"
 done
 ```
+
+"Newest bundle" means the newest **single-tag** bundle. A span bundle (Step 3h: a folder named for two tags) records tags carried by sweeps, and its line 1 is not a base and a new tag. A back-fill span is dated the day it is written, so it often sorts after the addon's newest ordinary bundle, and reading its first and last span tags as base and new reports a false `MISMATCH`. The sort is `sort -V`, not `sort`, so two bundles on one day order by version across a digit-width change (`v1.99.0` before `v1.100.0`).
 
 The re-vendor commit is the newest one touching either payload or `CLAUDE.md` whose provenance line names the bundle's new tag while its parent's does not; the base is the tag at that parent. Both payload paths again, because a kit-only re-vendor rolls the line from `tests/_kit/` alone, and `CLAUDE.md` because a provenance-only roll touches neither. Print the table before Step 1 and carry any `MISMATCH` row into that addon's 3a correction paragraph when it is re-vendored. A missing `../WowAddonStandards` checkout is a **stated skip** of this step, never a pass.
 
@@ -113,7 +118,18 @@ c=$(git -C <Addon> log -1 --format=%H -- libs/LibKa0s tests/_kit)
 git -C <Addon> show "$c:CLAUDE.md" | grep -oE 'Bundles \[LibKa0s\]\([^)]*\) v[0-9]+\.[0-9]+\.[0-9]+'
 ```
 
-Walk **both** paths. A kit-only re-vendor touches `tests/_kit/` alone and still rolls the line, and a walk over `libs/LibKa0s` by itself never sees it. The two answers agree, or the disagreement is a finding reported before anything is copied, the same as 3b's. With the base settled, every range in this run is `<base>..<new>`:
+Walk **both** paths. A kit-only re-vendor touches `tests/_kit/` alone and still rolls the line, and a walk over `libs/LibKa0s` by itself never sees it. The two answers agree, or the disagreement is a finding reported before anything is copied, the same as 3b's.
+
+**One disagreement is not a finding: a provenance-only roll.** The line can roll in a commit that touches neither payload folder. The usual cause is a re-vendor split across two commits: the payload lands in one and the line moves in a later one (AuraMaster's v1.45.0, whose `OptionsWidgets.lua` landed in `4ebdb4a` and whose line rolled in `8923a1a`). The walk above then returns the payload commit, and its line names the older tag. Before reporting, check that the addon's payload today is the library's payload at the tag the line claims, which is what the addon's own `tests/test_vendor_sync.lua` asserts:
+
+```sh
+git -C <Addon> log --format='%h %s' "$c..HEAD" -- CLAUDE.md                          # the rolls since
+t=<scratch>/claimed; mkdir -p "$t"
+git -C ../LibKa0s archive <claimed> LibKa0s testkit | tar -x -C "$t"
+diff -rq "$t/LibKa0s" <Addon>/libs/LibKa0s && diff -rq "$t/testkit" <Addon>/tests/_kit && echo payload-matches
+```
+
+`payload-matches` printed → a provenance-only roll; the line is right and the base is the tag it names. Not printed → the disagreement stands and is reported. With the base settled, every range in this run is `<base>..<new>`:
 
 ```sh
 git -C ../LibKa0s log --oneline <base>..<new>
@@ -222,11 +238,16 @@ If the fix needs a decision rather than an edit — the host's shape is delibera
 cd <Addon>
 horizon=$(ls -1 docs/revendor | sort | head -1 | cut -c1-10)   # the store's first bundle
 
-git log --since="$horizon 00:00" --format=%H -- libs/LibKa0s tests/_kit CLAUDE.md | while read -r c; do
-  git show "$c:CLAUDE.md" 2>/dev/null |
+tag_at() {  # the provenance tag in CLAUDE.md at <rev>
+  git show "$1:CLAUDE.md" 2>/dev/null |
     grep -oE 'Bundles \[LibKa0s\]\([^)]*\) v[0-9]+\.[0-9]+\.[0-9]+' |
     grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1
-done | sort -uV > <scratch>/vendored.txt
+}
+{ git log --since="$horizon 00:00" --format=%H -- libs/LibKa0s tests/_kit     # the audit's walk
+  git log --since="$horizon 00:00" --format=%H -- CLAUDE.md | while read -r c; do
+    [ "$(tag_at "$c")" != "$(tag_at "$c^")" ] && echo "$c"                    # rolled here
+  done
+} | while read -r c; do tag_at "$c"; done | sed '/^$/d' | sort -uV > <scratch>/vendored.txt
 
 for b in docs/revendor/*/; do
   n=$(basename "$b" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | wc -l)
@@ -242,7 +263,7 @@ done | sort -uV > <scratch>/recorded.txt
 grep -vxF -f <scratch>/recorded.txt <scratch>/vendored.txt       # vendored, in scope, unrecorded
 ```
 
-This walk adds `CLAUDE.md` to the audit's two paths. A tag whose payload equalled the one before it can arrive as a provenance roll alone, touching neither payload folder (AuraMaster's v1.45.0, `8923a1a`). The addon still claims to carry that tag, so the span names it; a tag recorded twice costs nothing, and one left off is reported unrecorded. The `--since` bound carries `00:00` because git fills a bare date's time of day from the clock and would drop the horizon's own morning. A store with no bundle yet has no horizon and nothing to back-fill; it is measured from this run on.
+This walk adds to the audit's two paths the `CLAUDE.md` commits that **roll** the provenance line, Step 0's "rolled here" test. A tag can arrive as a provenance roll alone, touching neither payload folder, when its re-vendor was split and the payload landed in an earlier commit still carrying the old line (AuraMaster's v1.45.0: payload in `4ebdb4a`, line rolled in `8923a1a`). The addon still claims to carry that tag, so the span names it; a tag recorded twice costs nothing, and one left off is reported unrecorded. A `CLAUDE.md` commit that leaves the line alone, such as a standards-reference refresh, is not counted: it would bring in whatever tag the line already named, vendored before the horizon and outside the audit's scope. The `--since` bound carries `00:00` because git fills a bare date's time of day from the clock and would drop the horizon's own morning. A store with no bundle yet has no horizon and nothing to back-fill; it is measured from this run on.
 
 **Empty output → nothing to write.** Otherwise write **one** consolidated span bundle beside this run's own, shaped exactly as `audit-review-history` fixes it, because the audit's check reads it:
 
