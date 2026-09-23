@@ -105,7 +105,7 @@ Then inventory these forms:
 - **Section filenames that no longer exist upstream** — any doc citing a section file not in the fetched Sections list. Renamed sections get rewritten to the new name; genuinely deleted ones are flagged.
 - **Out-of-range and malformed `filename-§N` references** — the **MUST-fix** half of `documentation-§6`, and the reason this command range-checks rather than just rewrites. A retired `§N.M` at least tells the reader "this is old"; these send the reader to a section that does not exist while looking perfectly current.
   - **Malformed** — anything that does not parse as `filename-§N` at all: an empty or non-numeric N (`slash-commands-§:`, `foo-§`, `foo-§a`), an abbreviated filename (`perf-§2` for `performance`), a `STANDARDS.md` reference carrying a number.
-  - **Out-of-range** — the section file exists but has no such section: `options-ui-§41` against a file that carries §1–§11.
+  - **Out-of-range** — the section file exists but has no such section: `options-ui-§41` against a file whose own heading count (`grep -c '^### [0-9]'`) is far short of 41.
   - **Range-check it, don't eyeball it.** Step 2 already fetched every section file, so this command holds exactly the data needed. For each fetched `<file>.md`, count its **local** `§`-numbered headings (the `### N.` subsection headings the file's own numbering uses — count them, don't infer from the largest number you see, since a renumbering gap is itself the defect). Hold `{filename → highest local N}`. Then extract every `filename-§N` reference the sweep found and flag any whose filename is unknown, whose N exceeds that file's count, or whose N does not parse.
   - **Report these individually, never rolled up.** The `§N.M` sweep is one line with the command and the count (`documentation-§6`'s reporting shape); these are few and each needs a decision, because the correct target is not mechanically derivable — a citation numbered past the end of a file could mean the section moved, was deleted, or was a typo for a different file. Flag with `file:line`, the reference as written, and the file's real range. **Do not guess a target.**
 - **A doc set stated as a count without its members** — "the four canonical docs", "the quartet", "the three root docs", or any count that leaves a slot open. This is the specific failure that reconstructs a deleted file from memory: a model that reads "quartet", counts three names and supplies the fourth produces exactly one answer, and it is the forbidden one. Rewrite to name the members inline, in both places a count is now made:
@@ -247,7 +247,7 @@ docs/testing.md
   CHANGED: Gates? table and "Commits are gated on…" state no release checkpoint (automated-tests-§3, line 24)
 
 .gitattributes
-  MISSING: no pin — file carries only "*.sh text eol=lf" (line-endings-§1/§2)
+  MISSING: no pin — file carries only "*.sh text eol=lf" (line-endings-§1, line-endings-§2)
   STRAYS:  9 tracked files disagree with the declared pin, from
     git ls-files -z | xargs -0 -I{} sh -c 'set -- $(git check-attr text eol -- "{}" | sed "s/.*: //"); …' | wc -l
     (reported only — renormalization is the user's own commit, line-endings-§6)
@@ -255,7 +255,7 @@ docs/testing.md
 CODE / CONFIG — comment-only, needs your confirmation before anything is written
   core/Constants.lua:11        RETIRED:  cites §3.4 → architecture-§4
   settings/Slash.lua:199       MALFORMED: "slash-commands-§:" — no section number at all
-  settings/OptionsSetup.lua:43 OUT-OF-RANGE: "options-ui-§41" — options-ui.md carries §1–§11
+  settings/OptionsSetup.lua:43 OUT-OF-RANGE: "options-ui-§41" — options-ui.md carries §1–§18
   .luacheckrc:1                RETIRED:  cites §7.2 → testing-§7
   Notation sweep: 39 hits, from
     grep -rEn '§[0-9]+\.[0-9]' . --exclude-dir=.git --exclude-dir=libs --exclude-dir=_kit \

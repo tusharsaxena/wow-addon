@@ -44,8 +44,8 @@ rel_path="${abs_file#"$repo_root"/}"
 # and says nothing about `eol`, so a file marked `binary` in a CRLF-pinned repo still answers
 # `eol: crlf`, inherited from the `* text=auto eol=crlf` pin, for a file git itself will never
 # convert. Rewriting its bytes on that answer corrupts the asset — reading `text` first is what
-# makes the binary markings mean something here, and it is the same correction §7 made to the
-# audit's working-tree check.
+# makes the binary markings mean something here, and it is the same correction line-endings-§7
+# made to the audit's working-tree check.
 # `text: unset` is the binary case and exits before any byte test runs. Of the `eol` values,
 # `crlf` and `lf` are the two the Ka0s standard declares (line-endings-§2); anything else —
 # unspecified, unset — is not ours to touch and exits silently too.
