@@ -59,6 +59,14 @@ class Matcher(unittest.TestCase):
                     "KA0S_KIT_PROC_MB=4096 ka0s-bounded lua tests/run.lua"):
             self.assertEqual(self.denied(cmd), [], cmd)
 
+    def test_bare_wrapper_name_passes(self):
+        # bin/ka0s-bounded puts the bare name on the plugin's PATH entry, so specs may drop the path.
+        for cmd in ("ka0s-bounded lua tests/run.lua", "ka0s-bounded lua5.1 tests/perf.lua",
+                    "ka0s-bounded luacheck .", "ka0s-bounded lizard -l lua .",
+                    "ka0s-bounded tests/_kit/run-automated-tests.sh --no-bundle",
+                    "/opt/p/bin/ka0s-bounded lua tests/run.lua"):
+            self.assertEqual(self.denied(cmd), [], cmd)
+
     def test_bounded_by_hand_passes(self):
         self.assertEqual(self.denied("(ulimit -v 2097152; timeout 180 lua tests/run.lua > o 2>&1)"), [])
 
@@ -76,6 +84,43 @@ class Matcher(unittest.TestCase):
                     "sed -n 1,20p tests/_kit/run-automated-tests.sh", "lua -v",
                     "lua tools/gen-api-members.lua", "which luacheck lizard"):
             self.assertEqual(self.denied(cmd), [], cmd)
+
+
+class BinWrapper(unittest.TestCase):
+    """bin/ka0s-bounded: the POSIX exec wrapper that puts the runner on the plugin's PATH entry."""
+    PATH = os.path.join(os.path.dirname(HERE), "bin", "ka0s-bounded")
+
+    def test_is_an_executable_lf_posix_script(self):
+        self.assertTrue(os.path.isfile(self.PATH))
+        self.assertTrue(os.access(self.PATH, os.X_OK))
+        with open(self.PATH, "rb") as f:
+            body = f.read()
+        self.assertTrue(body.startswith(b"#!/bin/sh\n"))
+        self.assertNotIn(b"\r", body)
+        self.assertEqual(subprocess.run(["sh", "-n", self.PATH]).returncode, 0)
+
+    def test_tracked_as_executable(self):
+        p = subprocess.run(["git", "ls-files", "-s", "--", "bin/ka0s-bounded"], cwd=os.path.dirname(HERE),
+                           capture_output=True, text=True)
+        if p.returncode != 0 or not p.stdout:
+            self.skipTest("not in a git checkout, or not yet staged")
+        self.assertTrue(p.stdout.startswith("100755 "), p.stdout)
+
+    def run_wrapper(self, *args):
+        env = dict(os.environ, XDG_CACHE_HOME=tempfile.mkdtemp(), KA0S_KIT_CGROUP="off")
+        env.pop("KA0S_BOUNDED_DEPTH", None)
+        return subprocess.run([self.PATH, *args], capture_output=True, text=True, env=env, timeout=60)
+
+    def test_runs_a_command_through_the_runner(self):
+        p = self.run_wrapper("true")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        p = self.run_wrapper("sh", "-c", "echo $KA0S_BOUNDED_DEPTH; exit 3")
+        self.assertEqual((p.returncode, p.stdout.strip()), (3, "1"))  # exit code and runner env pass through
+
+    def test_no_arguments_is_the_runners_usage_error(self):
+        p = self.run_wrapper()
+        self.assertEqual(p.returncode, 2)
+        self.assertIn("usage: ka0s-bounded", p.stderr)
 
 
 class HookScript(unittest.TestCase):
