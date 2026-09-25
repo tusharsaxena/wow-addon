@@ -217,7 +217,7 @@ standard cut a disabled addon's slash surface to exactly `enable` and `help` and
 else a MUST. v2.57.0 **reversed that** and restored `slash-commands-§2` verbatim from v2.55.0, keeping
 `slash-commands-§7`'s stand-down whole. The rule to audit is `slash-commands-§2`'s: the chat command, the dispatcher and the
 `COMMANDS` table stay registered, and every reserved verb — `help`, `config`, `version`, `enable`,
-`disable`, `debug`, `perf` — the bare `/<slash>` and the whole schema CLI (`get`, `set`, `list`,
+`disable`, `debug`, `diagnostics`, `perf` — the bare `/<slash>` and the whole schema CLI (`get`, `set`, `list`,
 `reset`, `resetall`) **MUST** keep answering normally while disabled. Refusing a **feature** verb is
 only a **SHOULD**, and an addon that declines it owes no register row. The findings therefore run the
 other way from v2.56.0: a disabled addon that refuses `config`, the bare `/<slash>` or any verb on that
@@ -260,7 +260,7 @@ So measure it the way the rule is written — five parts, each backed by `file:l
   the part that bites: one addon writes `locked = true` and prints to chat on entering combat with the
   addon off. A write the **player** causes through the panel or a live verb is not a write from a game
   event, and LibDBIcon's own `minimapPos` write is the library's, not the addon's.
-- **The surfaces.** The slash dispatcher keeps answering every reserved verb, `config`, the bare
+- **The surfaces.** The slash dispatcher keeps answering every reserved verb (`diagnostics` included), `config`, the bare
   `/<slash>` and the schema CLI with their **normal** output (`slash-commands-§2`); refusing any of them
   is a MUST failure — and it is exactly what LibKa0s v1.40.0's Slash minor 12 shipped, so an addon still
   vendoring that tag fails it by construction. `disable` while already disabled echoes
