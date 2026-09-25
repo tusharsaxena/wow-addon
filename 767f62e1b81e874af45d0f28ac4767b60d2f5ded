@@ -1,0 +1,1 @@
+clean: DR-WA-01 matches STD-25 and owner rulings (item numbers verified against standard branch documentation-§1: 9/11/12; verb order matches slash-commands-§2; no alias, no destination, no redaction); gate re-run 16 OK, manifests parse, diff --check clean
