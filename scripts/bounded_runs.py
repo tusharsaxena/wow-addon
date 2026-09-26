@@ -16,18 +16,19 @@ A segment passes when:
     23 or newer: that kit re-launches itself under the same bounds (depth, tree memory, process
     memory, wall clock), so the wrapper would only add the slot pool, or
   * it is plainly not a run: `luacheck --version`, `lizard --help`, and any command where the words
-    only appear as arguments (`grep lua tests/run.lua`, `git diff tests/run.lua`).
+    only appear as arguments (`grep lua tests/run.lua`, `git diff tests/run.lua`), inside quotes
+    (`git commit -m "…; lizard …"`) or inside a heredoc body (`cat > notes.md <<'EOF'`).
 
 The matcher is deliberately a shell-ish tokenizer, not a shell parser: it splits on the control
-operators, drops leading assignments and transparent wrappers (`env`, `time`, `nice`, `exec`,
-`command`, `timeout …`), and looks at the first real word. False negatives on exotic shell are
-acceptable; false positives on ordinary commands are not.
+operators outside quotes, skips heredoc bodies (unless a bare shell reads them), drops leading
+assignments, reserved words and transparent wrappers (`env`, `time`, `nice`, `exec`, `command`,
+`timeout …`), and looks at the first real word -- the command position. False negatives on exotic
+shell are acceptable; false positives on ordinary commands are not.
 """
 
 import json
 import os
 import re
-import shlex
 import sys
 
 WRAPPER = "ka0s-bounded"
@@ -38,25 +39,192 @@ INFO_FLAGS = {"--version", "-v", "--help", "-h"}
 LUA_RUNNERS = ("tests/run.lua", "tests/perf.lua")
 KIT_MIN_REVISION = 23
 
-SPLIT = re.compile(r"\|\||&&|;|\||&|\n|\$\(|`|\(|\)|\{|\}")
 ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+# Words that open a command position without being the command: `{ …; }`, `! cmd`, `if cmd; then cmd`.
+RESERVED = {"{", "}", "!", "if", "then", "elif", "else", "while", "until", "do"}
+OPERATORS = ";&|"
+BLANKS = " \t\r"
 
 
-def tokens(segment):
-    try:
-        return shlex.split(segment, comments=True)
-    except ValueError:
-        return segment.split()
+class Scanner:
+    """Splits a Bash command into simple commands, each a list of words, roughly as the shell would.
+
+    Quoting is honoured, so a control operator inside quotes (`git commit -m "a; lizard b"`) is prose,
+    not a new command. A heredoc body is data and yields no words, except when it is fed to a bare
+    shell (`bash <<EOF`), where it is commands. Command substitutions (`$(…)`, backticks, also inside
+    double quotes) and subshells yield their inner commands as further segments. It is still not a
+    parser: unbalanced input simply ends where the text ends.
+    """
+
+    def __init__(self, text):
+        self.s = text
+        self.i = 0
+        self.segments = []
+        self.pending = []  # heredocs opened on the current line: (delimiter, strip_tabs, to_shell)
+
+    def peek(self, k=0):
+        j = self.i + k
+        return self.s[j] if j < len(self.s) else ""
+
+    def run(self):
+        self.parse(stop=None)
+        return self.segments
+
+    def upto(self, ch, start):
+        """Index of the next `ch` at or after `start`, or the end of the text."""
+        end = self.s.find(ch, start)
+        return len(self.s) if end < 0 else end
+
+    def parse(self, stop):
+        """One level: the top level, or the inside of `$(…)` / `(…)` / backticks up to `stop`."""
+        words, word = [], None
+
+        def end_word():
+            nonlocal word
+            if word is not None:
+                words.append(word)
+                word = None
+
+        def end_segment():
+            nonlocal words
+            end_word()
+            if words:
+                self.segments.append(words)
+            words = []
+
+        while self.i < len(self.s):
+            c, nxt = self.s[self.i], self.peek(1)
+            if stop is not None and c == stop:
+                self.i += 1
+                break
+            if c in BLANKS:
+                end_word()
+                self.i += 1
+            elif c == "\n":
+                end_segment()
+                self.i += 1
+                self.read_heredoc_bodies()
+            elif c == "#" and word is None:
+                self.i = self.upto("\n", self.i)
+            elif c == "\\":
+                word = (word or "") + (nxt if nxt != "\n" else "")
+                self.i += 2
+            elif c == "'":
+                end = self.upto("'", self.i + 1)
+                word = (word or "") + self.s[self.i + 1:end]
+                self.i = end + 1
+            elif c == '"':
+                word = (word or "") + self.double_quoted()
+            elif c == "$" and nxt == "{":
+                end = self.upto("}", self.i)
+                word = (word or "") + self.s[self.i:end + 1]
+                self.i = end + 1
+            elif (c == "$" and nxt == "(") or c == "`":
+                word = (word or "") + self.substitution()
+            elif c == "(" and word is None:
+                end_segment()
+                self.i += 1
+                self.parse(stop=")")
+            elif c in "()":
+                end_segment()
+                self.i += 1
+            elif c == "<" and nxt == "<" and self.peek(2) != "<":
+                end_word()
+                self.open_heredoc(words)
+            elif (c in "<>" and nxt == "&") or (c == "&" and nxt == ">"):
+                word = (word or "") + c + nxt  # a redirection (`2>&1`, `&>`), not a control operator
+                self.i += 2
+            elif c in OPERATORS:
+                end_segment()
+                self.i += 1
+            else:
+                word = (word or "") + c
+                self.i += 1
+        end_segment()
+
+    def substitution(self):
+        """At `$(` or a backtick: its commands become segments; the word keeps a placeholder."""
+        if self.s[self.i] == "`":
+            self.i += 1
+            self.parse(stop="`")
+            return "`…`"
+        self.i += 2
+        self.parse(stop=")")
+        return "$(…)"
+
+    def double_quoted(self):
+        """The text of a "…" string starting at self.i; substitutions inside it are still commands."""
+        self.i += 1
+        out = ""
+        while self.i < len(self.s):
+            c, nxt = self.s[self.i], self.peek(1)
+            if c == '"':
+                self.i += 1
+                break
+            if c == "\\" and nxt and nxt in '"\\$`\n':
+                out += nxt if nxt != "\n" else ""
+                self.i += 2
+            elif (c == "$" and nxt == "(") or c == "`":
+                out += self.substitution()
+            else:
+                out += c
+                self.i += 1
+        return out
+
+    def open_heredoc(self, words):
+        """At `<<` or `<<-`: read the delimiter word and queue the body for the next newline."""
+        self.i += 2
+        strip_tabs = self.peek() == "-"
+        if strip_tabs:
+            self.i += 1
+        while self.peek() in (" ", "\t"):
+            self.i += 1
+        delim = ""
+        while self.i < len(self.s) and self.s[self.i] not in BLANKS + "\n;&|<>()":
+            c = self.s[self.i]
+            if c in "'\"":
+                end = self.upto(c, self.i + 1)
+                delim += self.s[self.i + 1:end]
+                self.i = end + 1
+            else:
+                delim += c if c != "\\" else ""
+                self.i += 1
+        rest = strip_prefix(words)[0]
+        to_shell = bool(rest) and os.path.basename(rest[0]) in SHELLS and \
+            all(a.startswith("-") for a in rest[1:])
+        self.pending.append((delim, strip_tabs, to_shell))
+
+    def read_heredoc_bodies(self):
+        """After a newline: skip each queued heredoc body; a body fed to a bare shell is commands."""
+        for delim, strip_tabs, to_shell in self.pending:
+            body = []
+            while self.i < len(self.s):
+                end = self.upto("\n", self.i)
+                line = self.s[self.i:end]
+                self.i = end + 1
+                if (line.lstrip("\t") if strip_tabs else line) == delim:
+                    break
+                body.append(line)
+            if to_shell:
+                self.segments.extend(Scanner("\n".join(body)).run())
+        self.pending = []
+
+
+def segments(command):
+    """The simple commands in `command`, in order, each as its list of words."""
+    return Scanner(command).run()
 
 
 def strip_prefix(words):
-    """Drop assignments and transparent wrappers. Returns (words, assignments, timed)."""
+    """Drop assignments, reserved words and transparent wrappers. Returns (words, assignments, timed)."""
     assignments = {}
     timed = False
     i = 0
     while i < len(words):
         w = words[i]
-        if ASSIGNMENT.match(w):
+        if w in RESERVED:
+            i += 1
+        elif ASSIGNMENT.match(w):
             k, _, v = w.partition("=")
             assignments[k] = v
             i += 1
@@ -139,10 +307,7 @@ def check(command, cwd):
     bounded_by_hand = re.search(r"\bulimit\s+(-[A-Za-z]*v|-v)\b", command) is not None
     found = []
     here = cwd
-    for segment in SPLIT.split(command):
-        words = tokens(segment.strip())
-        if not words:
-            continue
+    for words in segments(command):
         rest, assignments, timed = strip_prefix(words)
         if not rest:
             continue

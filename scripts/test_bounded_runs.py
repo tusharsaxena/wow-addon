@@ -85,6 +85,32 @@ class Matcher(unittest.TestCase):
                     "lua tools/gen-api-members.lua", "which luacheck lizard"):
             self.assertEqual(self.denied(cmd), [], cmd)
 
+    # ── command position only (ATS-22): prose in heredocs and quotes is not a run ──
+    def test_heredoc_body_is_not_a_run(self):
+        for cmd in ("cat > notes.md <<'EOF'\nThe lizard gate passed.\nlizard -l lua .\nluacheck .\nEOF",
+                    "cat > a.md <<EOF\nlua tests/run.lua\nEOF\ngit add a.md",
+                    "python3 - <<'PY'\nimport os\nos.system('echo lizard')\nPY",
+                    "git commit -F - <<'MSG'\nWA-ATS-01: lizard in prose\n\nrun-automated-tests.sh too\nMSG",
+                    "cat <<-EOF > f\n\tlizard .\n\tEOF"):
+            self.assertEqual(self.denied(cmd), [], cmd)
+
+    def test_quoted_prose_is_not_a_run(self):
+        for cmd in ('git commit -m "x; lizard is fine"', 'echo "(lua tests/run.lua)"',
+                    "echo 'a && luacheck . | tail'", 'printf "%s\\n" "run: lizard -l lua ."',
+                    "grep -n 'lua tests/run.lua; lizard' docs/x.md"):
+            self.assertEqual(self.denied(cmd), [], cmd)
+
+    def test_bare_runs_are_still_refused_next_to_prose(self):
+        for cmd in ("lizard -l lua .",
+                    "cat > f <<'EOF'\nprose\nEOF\nlizard -l lua .",
+                    "cat > f <<EOF; luacheck .\nbody\nEOF",
+                    'echo "done: $(lizard -l lua .)"',
+                    "echo `luacheck .`",
+                    "bash <<'EOF'\nlizard -l lua .\nEOF",
+                    "{ luacheck .; }", "if lua tests/run.lua; then echo ok; fi",
+                    "lua tests/run.lua > out.txt 2>&1 &"):
+            self.assertTrue(self.denied(cmd), cmd)
+
 
 class BinWrapper(unittest.TestCase):
     """bin/ka0s-bounded: the POSIX exec wrapper that puts the runner on the plugin's PATH entry."""
@@ -144,6 +170,13 @@ class HookScript(unittest.TestCase):
     def test_silent_on_ordinary_commands(self):
         p, _ = self.run_hook("git status", repo())
         self.assertEqual((p.returncode, p.stdout), (0, ""))
+
+    def test_heredoc_prose_passes_and_a_bare_lizard_run_is_denied(self):
+        p, _ = self.run_hook("cat > ANALYSIS.md <<'EOF'\nlizard -l lua . reported no function above 15\nEOF",
+                             repo())
+        self.assertEqual((p.returncode, p.stdout), (0, ""))
+        p, _ = self.run_hook("lizard -l lua .", repo())
+        self.assertEqual(json.loads(p.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
 
     def test_fails_open_on_garbage(self):
         env = dict(os.environ, CLAUDE_PLUGIN_ROOT=os.path.dirname(HERE), HOME=tempfile.mkdtemp())
