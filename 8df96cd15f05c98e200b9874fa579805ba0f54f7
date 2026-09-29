@@ -1,0 +1,1 @@
+OK SP-PLUG-01 clean: both findings fixed in 8df96cd (Non-English client section wording; paragraph rewrapped <=102 cols); LOC-1-first claim verified in all 11 siblings; gate test_bounded_runs.py 20/20 OK, manifests valid
