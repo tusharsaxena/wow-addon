@@ -1,0 +1,1 @@
+OK GI-PLUG-01 — review/standards-audit/review-command now run the runner's sighted complexity suite (--suite complexity --no-bundle) not raw lizard; bump-version prints and gates blindFiles (NOT EVALUATED pre-kit-35), automated-tests/finalize/README/CLAUDE aligned; claims verified against LibKa0s kit 35 runner; bounded-runs tests 20/20, JSON parses, LF, diff --check clean
