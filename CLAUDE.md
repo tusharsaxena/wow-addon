@@ -1,5 +1,7 @@
 # CLAUDE.md — wow-addon plugin
 
+> **Retired and frozen (2026-10-04).** This plugin merged into dev-copilot (`../dev-copilot`, https://github.com/tusharsaxena/dev-copilot); make no changes here. Everything below describes the repo as it was when it was retired.
+
 ## Purpose & stack
 
 A **Claude Code plugin** (not a WoW addon itself) that ships helpers for World of Warcraft addon development: standard-compliant scaffolding, compliance auditing, standards-reference revendoring and cross-repo learning harvesting (the two halves of the standards cycle), LibKa0s re-vendoring and new-surface adoption (the consumer-side half of the *library* cycle — a different cycle, sharing only the word "revendor"), interface/version bumping, doc sync, test-battery running, automated-test recording, in-game perf-run recording and analysis, changeset finalization, the six-command `issue-*` family (discovery, triage, listing, detail, summary, hand-filing) over a GitHub-issue store keyed on `state:` and `severity:` labels, execution-status reporting (progress, percent complete and time to finish for a conversation's planned work), git diff/commit, a line-ending hook, and a WoW-specific review subagent. Everything here is **Markdown command/agent specs + hook scripts (the line-ending hook, and the bounded-runs hook with its Python matcher and `ka0s-bounded` runner) + JSON manifests** — there is no compiled code; the one test suite is `scripts/test_bounded_runs.py`, for the matcher.
